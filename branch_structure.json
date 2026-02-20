@@ -1,0 +1,30 @@
+{
+  "default_branch": "main",
+  "branches": [
+    "Fixes",
+    "Wilfred",
+    "Wilfred01",
+    "feature/i18n-multi-language-support",
+    "main",
+    "origin",
+    "revert-606-feature/insight-cards"
+  ],
+  "parent": {
+    "Fixes": "main",
+    "Wilfred": "main",
+    "Wilfred01": "main",
+    "feature/i18n-multi-language-support": "main",
+    "main": null,
+    "origin": "main",
+    "revert-606-feature/insight-cards": "main"
+  },
+  "order": [
+    "main",
+    "Fixes",
+    "Wilfred",
+    "Wilfred01",
+    "feature/i18n-multi-language-support",
+    "origin",
+    "revert-606-feature/insight-cards"
+  ]
+}
