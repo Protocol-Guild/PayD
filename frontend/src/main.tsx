@@ -11,7 +11,6 @@ import { ThemeProvider } from "./providers/ThemeProvider.tsx";
 import * as Sentry from "@sentry/react";
 import ErrorBoundary from "./components/ErrorBoundary";
 import ErrorFallback from "./components/ErrorFallback";
-import { Toaster } from "sonner";
 import "./i18n";
 
 const sentryDsn = import.meta.env.VITE_SENTRY_DSN;

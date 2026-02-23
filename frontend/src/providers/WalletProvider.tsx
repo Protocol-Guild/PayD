@@ -67,7 +67,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({
   const signTransaction = async (xdr: string) => {
     const kit = kitRef.current;
     if (!kit) throw new Error("Wallet kit not initialized");
-    return await kit.sign({ xdr });
+    const result = await kit.signTransaction(xdr);
+    return result.signedTxXdr;
   };
 
   return (

@@ -6,15 +6,18 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const notify = useCallback((message: string) => {
-    toast(message);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
+    (toast as any)(message);
   }, []);
 
   const notifySuccess = useCallback((message: string, description?: string) => {
-    toast.success(message, { description });
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
+    (toast as any).success(message, { description });
   }, []);
 
   const notifyError = useCallback((message: string, description?: string) => {
-    toast.error(message, { description });
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
+    (toast as any).error(message, { description });
   }, []);
 
   return (

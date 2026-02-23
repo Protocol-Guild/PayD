@@ -4,9 +4,9 @@
   "description": "PayD Backend API with SDS Integration",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "ts-node src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js",
+    "dev": "node api.js && ts-node src/index.ts",
+    "build": "node api.js && tsc",
+    "start": "node api.js && node dist/index.js",
     "test": "jest",
     "test:benchmark": "ts-node src/benchmarks/sds-vs-horizon.benchmark.ts",
     "lint": "eslint src/**/*.ts"

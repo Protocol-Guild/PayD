@@ -40,7 +40,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return () => {
       newSocket.disconnect();
     };
-  }, [notify]);
+  }, [notifySuccess, notifyError]);
 
   const subscribeToTransaction = (transactionId: string) => {
     if (socket && connected) {

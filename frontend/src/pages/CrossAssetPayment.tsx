@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { anchorService } from "../services/anchor";
 import { Loader2, ArrowRightLeft, ShieldCheck, Info, CheckCircle2 } from "lucide-react";
-import { useNotification } from "../providers/NotificationProvider";
+import { useNotification } from "../hooks/useNotification";
 
 interface Quote {
     rate: number;
