@@ -1,7 +1,23 @@
-
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { Search, Filter, Calendar, X, Activity, User, Tag, Loader2, Cpu, CheckCircle } from 'lucide-react';
-import { fetchAuditLogs, AuditRecord, AuditListFilters, fetchEmployees, Employee } from '../services/auditApi';
+import {
+  Search,
+  Filter,
+  Calendar,
+  X,
+  Activity,
+  User,
+  Tag,
+  Loader2,
+  Cpu,
+  CheckCircle,
+} from 'lucide-react';
+import {
+  fetchAuditLogs,
+  AuditRecord,
+  AuditListFilters,
+  fetchEmployees,
+  Employee,
+} from '../services/auditApi';
 
 const ASSETS = ['USDC', 'XLM', 'NGN'];
 const STATUSES = ['Completed', 'Pending', 'Failed'];
@@ -20,12 +36,24 @@ function useDebounce<T>(value: T, delay: number): T {
 function SkeletonRow() {
   return (
     <tr className="border-b border-zinc-800/30">
-      <td className="p-4"><div className="w-24 h-4 bg-zinc-800/50 rounded animate-pulse" /></td>
-      <td className="p-4"><div className="w-20 h-4 bg-zinc-800/50 rounded animate-pulse" /></td>
-      <td className="p-4"><div className="w-32 h-4 bg-zinc-800/50 rounded animate-pulse" /></td>
-      <td className="p-4"><div className="w-16 h-5 bg-zinc-800/50 rounded-md animate-pulse" /></td>
-      <td className="p-4 flex justify-end"><div className="w-20 h-4 bg-zinc-800/50 rounded animate-pulse" /></td>
-      <td className="p-4"><div className="w-16 h-5 bg-zinc-800/50 rounded-md animate-pulse" /></td>
+      <td className="p-4">
+        <div className="w-24 h-4 bg-zinc-800/50 rounded animate-pulse" />
+      </td>
+      <td className="p-4">
+        <div className="w-20 h-4 bg-zinc-800/50 rounded animate-pulse" />
+      </td>
+      <td className="p-4">
+        <div className="w-32 h-4 bg-zinc-800/50 rounded animate-pulse" />
+      </td>
+      <td className="p-4">
+        <div className="w-16 h-5 bg-zinc-800/50 rounded-md animate-pulse" />
+      </td>
+      <td className="p-4 flex justify-end">
+        <div className="w-20 h-4 bg-zinc-800/50 rounded animate-pulse" />
+      </td>
+      <td className="p-4">
+        <div className="w-16 h-5 bg-zinc-800/50 rounded-md animate-pulse" />
+      </td>
     </tr>
   );
 }
@@ -40,12 +68,12 @@ export default function TransactionHistory() {
   const [employeesList, setEmployeesList] = useState<Employee[]>([]);
 
   useEffect(() => {
-  const loadEmployees = async () => {
-    const res = await fetchEmployees();
-    setEmployeesList(res.data || []);
-  };
-  void loadEmployees();
-}, []);
+    const loadEmployees = async () => {
+      const res = await fetchEmployees();
+      setEmployeesList(res.data || []);
+    };
+    void loadEmployees();
+  }, []);
 
   // API State
   const [transactions, setTransactions] = useState<AuditRecord[]>([]);
@@ -60,48 +88,65 @@ export default function TransactionHistory() {
   const LIMIT = 20;
 
   // Load Data Effect
-  const loadData = useCallback(async (isLoadMore: boolean = false) => {
-    setIsLoading(true);
-    try {
-      const filters: AuditListFilters = {
-        page: isLoadMore ? page + 1 : 1,
-        limit: LIMIT,
-        sourceAccount: debouncedSearchTerm.length === 56 ? debouncedSearchTerm : undefined,
-        dateStart: debouncedDateRange.start || undefined,
-        dateEnd: debouncedDateRange.end || undefined,
-        employeeId: selectedEmployees.length === 1 ? selectedEmployees[0] : undefined,
-        asset: selectedAssets.length === 1 ? selectedAssets[0] : undefined,
-        status: selectedStatuses.length === 1 ? selectedStatuses[0] : undefined,
-      };
+  const loadData = useCallback(
+    async (isLoadMore: boolean = false) => {
+      setIsLoading(true);
+      try {
+        const filters: AuditListFilters = {
+          page: isLoadMore ? page + 1 : 1,
+          limit: LIMIT,
+          sourceAccount: debouncedSearchTerm.length === 56 ? debouncedSearchTerm : undefined,
+          dateStart: debouncedDateRange.start || undefined,
+          dateEnd: debouncedDateRange.end || undefined,
+          employeeId: selectedEmployees.length === 1 ? selectedEmployees[0] : undefined,
+          asset: selectedAssets.length === 1 ? selectedAssets[0] : undefined,
+          status: selectedStatuses.length === 1 ? selectedStatuses[0] : undefined,
+        };
 
-      const res = await fetchAuditLogs(filters);
+        const res = await fetchAuditLogs(filters);
 
-      if (isLoadMore) {
-        setTransactions((prev: AuditRecord[]) => [...prev, ...res.data]);
-        setPage(res.page);
-      } else {
-        setTransactions(res.data);
-        setPage(1);
+        if (isLoadMore) {
+          setTransactions((prev: AuditRecord[]) => [...prev, ...res.data]);
+          setPage(res.page);
+        } else {
+          setTransactions(res.data);
+          setPage(1);
+        }
+
+        setTotalCount(res.total);
+        setHasMore(res.page < res.totalPages);
+      } catch (e) {
+        console.error('Failed to load transactions', e);
+      } finally {
+        setIsLoading(false);
       }
-      
-      setTotalCount(res.total);
-      setHasMore(res.page < res.totalPages);
-    } catch (e) {
-      console.error('Failed to load transactions', e);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [page, debouncedSearchTerm, debouncedDateRange, selectedEmployees, selectedAssets, selectedStatuses]);
+    },
+    [
+      page,
+      debouncedSearchTerm,
+      debouncedDateRange,
+      selectedEmployees,
+      selectedAssets,
+      selectedStatuses,
+    ]
+  );
 
   useEffect(() => {
-  void loadData(false);
-}, [debouncedSearchTerm, debouncedDateRange, selectedEmployees, selectedAssets, selectedStatuses, loadData]);
+    void loadData(false);
+  }, [
+    debouncedSearchTerm,
+    debouncedDateRange,
+    selectedEmployees,
+    selectedAssets,
+    selectedStatuses,
+    loadData,
+  ]);
 
   const handleLoadMore = () => {
-  if (!isLoading && hasMore) {
-    void loadData(true);
-  }
-};
+    if (!isLoading && hasMore) {
+      void loadData(true);
+    }
+  };
 
   // Active filters array for tags
   const activeFilters = useMemo(() => {
@@ -145,10 +190,10 @@ export default function TransactionHistory() {
         setSelectedEmployees((prev: string[]) => prev.filter((e: string) => e !== filter.value));
         break;
       case 'dateStart':
-        setDateRange((prev: {start: string, end: string}) => ({ ...prev, start: '' }));
+        setDateRange((prev: { start: string; end: string }) => ({ ...prev, start: '' }));
         break;
       case 'dateEnd':
-        setDateRange((prev: {start: string, end: string}) => ({ ...prev, end: '' }));
+        setDateRange((prev: { start: string; end: string }) => ({ ...prev, end: '' }));
         break;
     }
     setPage(1);
@@ -183,8 +228,6 @@ export default function TransactionHistory() {
     );
     setPage(1);
   };
-
-
 
   return (
     <div className="flex-1 flex flex-col p-6 lg:p-12 max-w-7xl mx-auto w-full">
@@ -238,7 +281,12 @@ export default function TransactionHistory() {
                   <input
                     type="date"
                     value={dateRange.start}
-                    onChange={(e) => setDateRange((prev: {start: string, end: string}) => ({ ...prev, start: e.target.value }))}
+                    onChange={(e) =>
+                      setDateRange((prev: { start: string; end: string }) => ({
+                        ...prev,
+                        start: e.target.value,
+                      }))
+                    }
                     className="w-full bg-[#0a0a0c] border border-zinc-800 rounded-lg py-2 pl-8 pr-2 text-xs focus:ring-1 focus:ring-accent outline-none text-zinc-300 custom-date-input"
                   />
                 </div>
@@ -248,7 +296,12 @@ export default function TransactionHistory() {
                   <input
                     type="date"
                     value={dateRange.end}
-                    onChange={(e) => setDateRange((prev: {start: string, end: string}) => ({ ...prev, end: e.target.value }))}
+                    onChange={(e) =>
+                      setDateRange((prev: { start: string; end: string }) => ({
+                        ...prev,
+                        end: e.target.value,
+                      }))
+                    }
                     className="w-full bg-[#0a0a0c] border border-zinc-800 rounded-lg py-2 pl-8 pr-2 text-xs focus:ring-1 focus:ring-accent outline-none text-zinc-300 custom-date-input"
                   />
                 </div>
@@ -273,7 +326,7 @@ export default function TransactionHistory() {
                 ))}
               </div>
             </div>
-            
+
             {/* Statuses Multi-select */}
             <div className="flex flex-col gap-2">
               <label className="text-xs font-bold uppercase tracking-widest text-zinc-500">
@@ -388,20 +441,28 @@ export default function TransactionHistory() {
                     <td className="p-4 font-mono text-sm text-blue-400">
                       {txn.tx_hash.substring(0, 12)}...
                       {txn.is_contract_event && (
-                        <span className="ml-2 bg-purple-500/10 text-purple-400 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest border border-purple-500/20 flex items-center inline-flex gap-1" title="Soroban Smart Contract Event">
+                        <span
+                          className="ml-2 bg-purple-500/10 text-purple-400 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest border border-purple-500/20 flex items-center inline-flex gap-1"
+                          title="Soroban Smart Contract Event"
+                        >
                           <Cpu size={10} /> Event
                         </span>
                       )}
                     </td>
-                    <td className="p-4 text-sm text-zinc-400">{new Date(txn.created_at).toLocaleDateString()}</td>
-                    <td className="p-4 text-sm font-medium">{txn.employee_name || 'System / N/A'}</td>
+                    <td className="p-4 text-sm text-zinc-400">
+                      {new Date(txn.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="p-4 text-sm font-medium">
+                      {txn.employee_name || 'System / N/A'}
+                    </td>
                     <td className="p-4">
                       <span className="bg-zinc-800/80 text-zinc-300 px-2.5 py-1 rounded-md text-xs border border-zinc-700/50">
                         {txn.asset || 'NATIVE'}
                       </span>
                     </td>
                     <td className="p-4 text-right font-mono font-bold">
-                      {txn.amount || '0'} <span className="text-zinc-500 text-xs">{txn.asset || 'XLM'}</span>
+                      {txn.amount || '0'}{' '}
+                      <span className="text-zinc-500 text-xs">{txn.asset || 'XLM'}</span>
                     </td>
                     <td className="p-4">
                       <span
@@ -437,7 +498,7 @@ export default function TransactionHistory() {
             </tbody>
           </table>
         </div>
-        
+
         {/* Load More Button */}
         {hasMore && (
           <div className="p-4 flex justify-center border-t border-zinc-800/50">

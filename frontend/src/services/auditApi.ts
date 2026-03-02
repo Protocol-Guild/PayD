@@ -33,7 +33,9 @@ export interface AuditListFilters {
   type?: 'all' | 'transaction' | 'contract_event';
 }
 
-export const fetchAuditLogs = async (filters: AuditListFilters = {}): Promise<AuditListResponse> => {
+export const fetchAuditLogs = async (
+  filters: AuditListFilters = {}
+): Promise<AuditListResponse> => {
   const { data } = await axios.get<AuditListResponse>(`${API_BASE_URL}/audit`, {
     params: filters,
   });
@@ -48,9 +50,11 @@ export interface Employee {
   department?: string;
 }
 
-export const fetchEmployees = async (): Promise<{ data: Employee[], total: number }> => {
+export const fetchEmployees = async (): Promise<{ data: Employee[]; total: number }> => {
   try {
-    const { data } = await axios.get<{ data: Employee[], total: number }>(`${API_BASE_URL}/employees`);
+    const { data } = await axios.get<{ data: Employee[]; total: number }>(
+      `${API_BASE_URL}/employees`
+    );
     return data;
   } catch (error) {
     console.error('Failed to fetch employees:', error);
