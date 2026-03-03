@@ -1,11 +1,21 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 const Login: React.FC = () => {
+  const [searchParams] = useSearchParams();
   const backendUrl = (import.meta.env.VITE_BACKEND_URL as string) || 'http://localhost:4000';
+  const sessionExpired = searchParams.get('reason') === 'session_expired';
 
   const handleLogin = (provider: 'google' | 'github') => {
-    window.location.href = `${backendUrl}/auth/${provider}`;
+    globalThis.location.href = `${backendUrl}/auth/${provider}`;
   };
+
+  useEffect(() => {
+    if (sessionExpired) {
+      // Clear any expired tokens
+      localStorage.removeItem('payd_auth_token');
+    }
+  }, [sessionExpired]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6">
@@ -14,6 +24,14 @@ const Login: React.FC = () => {
         <p className="text-muted mb-10 font-medium">
           Connect your account to manage your payroll system
         </p>
+
+        {sessionExpired && (
+          <div className="mb-6 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+            <p className="text-sm text-yellow-500/80">
+              Your session expired due to inactivity. Please sign in again.
+            </p>
+          </div>
+        )}
 
         <div className="flex flex-col gap-4">
           <button

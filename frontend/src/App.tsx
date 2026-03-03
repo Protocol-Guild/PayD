@@ -11,152 +11,184 @@ import Settings from './pages/Settings';
 import CustomReportBuilder from './pages/CustomReportBuilder';
 import CrossAssetPayment from './pages/CrossAssetPayment';
 import TransactionHistory from './pages/TransactionHistory';
+import SessionTimeoutWarning from './components/SessionTimeoutWarning';
+import { useSessionTimeout } from './hooks/useSessionTimeout';
 
 import EmployeePortal from './pages/EmployeePortal';
 import Login from './pages/Login';
 import AuthCallback from './pages/AuthCallback';
 import { useTranslation } from 'react-i18next';
+import { useEffect } from 'react';
 
 function App() {
   const { t } = useTranslation();
+  
+  // Initialize session timeout
+  const {
+    isWarningVisible,
+    timeRemaining,
+    extendSession,
+  } = useSessionTimeout({
+    warningTime: 2 * 60 * 1000, // 2 minutes
+    sessionDuration: 60 * 60 * 1000, // 1 hour
+    onExpire: () => {
+      // Custom expiration logic if needed
+      console.log('Session expired');
+    },
+  });
+
+  const handleLogout = () => {
+    localStorage.removeItem('payd_auth_token');
+    globalThis.location.href = '/login';
+  };
 
   return (
-    <Routes>
-      <Route element={<AppLayout />}>
-        <Route
-          path="/"
-          element={
-            <ErrorBoundary
-              fallback={
-                <ErrorFallback
-                  title={t('errorFallback.homeTitle')}
-                  description={t('errorFallback.homeDescription')}
-                />
-              }
-            >
-              <Home />
-            </ErrorBoundary>
-          }
-        />
-        <Route
-          path="/payroll"
-          element={
-            <ErrorBoundary
-              fallback={
-                <ErrorFallback
-                  title={t('errorFallback.payrollTitle')}
-                  description={t('errorFallback.payrollDescription')}
-                />
-              }
-            >
-              <PayrollScheduler />
-            </ErrorBoundary>
-          }
-        />
-        <Route
-          path="/employee"
-          element={
-            <ErrorBoundary
-              fallback={
-                <ErrorFallback
-                  title={t('errorFallback.employeesTitle')}
-                  description={t('errorFallback.employeesDescription')}
-                />
-              }
-            >
-              <EmployeeEntry />
-            </ErrorBoundary>
-          }
-        />
-        <Route
-          path="/portal"
-          element={
-            <ErrorBoundary
-              fallback={
-                <ErrorFallback
-                  title="Employee Portal Error"
-                  description="Something went wrong loading your portal."
-                />
-              }
-            >
-              <EmployeePortal />
-            </ErrorBoundary>
-          }
-        />
-        <Route
-          path="/reports"
-          element={
-            <ErrorBoundary fallback={<ErrorFallback />}>
-              <CustomReportBuilder />
-            </ErrorBoundary>
-          }
-        />
-        <Route
-          path="/debug"
-          element={
-            <ErrorBoundary
-              fallback={
-                <ErrorFallback
-                  title={t('errorFallback.debuggerTitle')}
-                  description={t('errorFallback.debuggerDescription')}
-                />
-              }
-            >
-              <Debugger />
-            </ErrorBoundary>
-          }
-        />
-        <Route
-          path="/debug/:contractName"
-          element={
-            <ErrorBoundary
-              fallback={
-                <ErrorFallback
-                  title={t('errorFallback.debuggerTitle')}
-                  description={t('errorFallback.debuggerDescription')}
-                />
-              }
-            >
-              <Debugger />
-            </ErrorBoundary>
-          }
-        />
-        <Route
-          path="/settings"
-          element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
-              <Settings />
-            </ErrorBoundary>
-          }
-        />
-        <Route
-          path="/help"
-          element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
-              <HelpCenter />
-            </ErrorBoundary>
-          }
-        />
-        <Route
-          path="/cross-asset-payment"
-          element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
-              <CrossAssetPayment />
-            </ErrorBoundary>
-          }
-        />
-        <Route
-          path="/transactions"
-          element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
-              <TransactionHistory />
-            </ErrorBoundary>
-          }
-        />
-        <Route path="/login" element={<Login />} />
-        <Route path="/auth-callback" element={<AuthCallback />} />
-      </Route>
-    </Routes>
+    <>
+      <Routes>
+        <Route element={<AppLayout />}>
+          <Route
+            path="/"
+            element={
+              <ErrorBoundary
+                fallback={
+                  <ErrorFallback
+                    title={t('errorFallback.homeTitle')}
+                    description={t('errorFallback.homeDescription')}
+                  />
+                }
+              >
+                <Home />
+              </ErrorBoundary>
+            }
+          />
+          <Route
+            path="/payroll"
+            element={
+              <ErrorBoundary
+                fallback={
+                  <ErrorFallback
+                    title={t('errorFallback.payrollTitle')}
+                    description={t('errorFallback.payrollDescription')}
+                  />
+                }
+              >
+                <PayrollScheduler />
+              </ErrorBoundary>
+            }
+          />
+          <Route
+            path="/employee"
+            element={
+              <ErrorBoundary
+                fallback={
+                  <ErrorFallback
+                    title={t('errorFallback.employeesTitle')}
+                    description={t('errorFallback.employeesDescription')}
+                  />
+                }
+              >
+                <EmployeeEntry />
+              </ErrorBoundary>
+            }
+          />
+          <Route
+            path="/portal"
+            element={
+              <ErrorBoundary
+                fallback={
+                  <ErrorFallback
+                    title="Employee Portal Error"
+                    description="Something went wrong loading your portal."
+                  />
+                }
+              >
+                <EmployeePortal />
+              </ErrorBoundary>
+            }
+          />
+          <Route
+            path="/reports"
+            element={
+              <ErrorBoundary fallback={<ErrorFallback />}>
+                <CustomReportBuilder />
+              </ErrorBoundary>
+            }
+          />
+          <Route
+            path="/debug"
+            element={
+              <ErrorBoundary
+                fallback={
+                  <ErrorFallback
+                    title={t('errorFallback.debuggerTitle')}
+                    description={t('errorFallback.debuggerDescription')}
+                  />
+                }
+              >
+                <Debugger />
+              </ErrorBoundary>
+            }
+          />
+          <Route
+            path="/debug/:contractName"
+            element={
+              <ErrorBoundary
+                fallback={
+                  <ErrorFallback
+                    title={t('errorFallback.debuggerTitle')}
+                    description={t('errorFallback.debuggerDescription')}
+                  />
+                }
+              >
+                <Debugger />
+              </ErrorBoundary>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
+                <Settings />
+              </ErrorBoundary>
+            }
+          />
+          <Route
+            path="/help"
+            element={
+              <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
+                <HelpCenter />
+              </ErrorBoundary>
+            }
+          />
+          <Route
+            path="/cross-asset-payment"
+            element={
+              <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
+                <CrossAssetPayment />
+              </ErrorBoundary>
+            }
+          />
+          <Route
+            path="/transactions"
+            element={
+              <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
+                <TransactionHistory />
+              </ErrorBoundary>
+            }
+          />
+          <Route path="/login" element={<Login />} />
+          <Route path="/auth-callback" element={<AuthCallback />} />
+        </Route>
+      </Routes>
+      
+      {/* Session Timeout Warning Modal */}
+      <SessionTimeoutWarning
+        isVisible={isWarningVisible}
+        timeRemaining={timeRemaining}
+        onExtendSession={extendSession}
+        onLogout={handleLogout}
+      />
+    </>
   );
 }
 

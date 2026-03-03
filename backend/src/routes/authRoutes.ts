@@ -1,8 +1,12 @@
 import { Router } from 'express';
 import passport from 'passport';
 import { generateToken } from '../services/authService.js';
+import { AuthController } from '../controllers/authController.js';
 
 const router = Router();
+
+// Refresh token endpoint
+router.post('/refresh', AuthController.refresh);
 
 // Google Auth
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
