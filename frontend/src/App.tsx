@@ -15,6 +15,7 @@ import TransactionHistory from './pages/TransactionHistory';
 import EmployeePortal from './pages/EmployeePortal';
 import Login from './pages/Login';
 import AuthCallback from './pages/AuthCallback';
+import ProtectedRoute from './components/ProtectedRoute';
 import { useTranslation } from 'react-i18next';
 
 function App() {
@@ -22,9 +23,20 @@ function App() {
 
   return (
     <Routes>
-      <Route element={<AppLayout />}>
+      {/* public */}
+      <Route path="/login" element={<Login />} />
+      <Route path="/auth-callback" element={<AuthCallback />} />
+
+      {/* employer section: wrapped by AppLayout and protected */}
+      <Route
+        element={
+          <ProtectedRoute allowedRoles={['EMPLOYER']}>
+            <AppLayout />
+          </ProtectedRoute>
+        }
+      >
         <Route
-          path="/"
+          index
           element={
             <ErrorBoundary
               fallback={
@@ -39,7 +51,7 @@ function App() {
           }
         />
         <Route
-          path="/payroll"
+          path="payroll"
           element={
             <ErrorBoundary
               fallback={
@@ -54,7 +66,7 @@ function App() {
           }
         />
         <Route
-          path="/employee"
+          path="employee"
           element={
             <ErrorBoundary
               fallback={
@@ -69,8 +81,81 @@ function App() {
           }
         />
         <Route
-          path="/portal"
+          path="reports"
           element={
+            <ErrorBoundary fallback={<ErrorFallback />}>
+              <CustomReportBuilder />
+            </ErrorBoundary>
+          }
+        />
+        <Route
+          path="debug"
+          element={
+            <ErrorBoundary
+              fallback={
+                <ErrorFallback
+                  title={t('errorFallback.debuggerTitle')}
+                  description={t('errorFallback.debuggerDescription')}
+                />
+              }
+            >
+              <Debugger />
+            </ErrorBoundary>
+          }
+        />
+        <Route
+          path="debug/:contractName"
+          element={
+            <ErrorBoundary
+              fallback={
+                <ErrorFallback
+                  title={t('errorFallback.debuggerTitle')}
+                  description={t('errorFallback.debuggerDescription')}
+                />
+              }
+            >
+              <Debugger />
+            </ErrorBoundary>
+          }
+        />
+        <Route
+          path="settings"
+          element={
+            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
+              <Settings />
+            </ErrorBoundary>
+          }
+        />
+        <Route
+          path="help"
+          element={
+            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
+              <HelpCenter />
+            </ErrorBoundary>
+          }
+        />
+        <Route
+          path="cross-asset-payment"
+          element={
+            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
+              <CrossAssetPayment />
+            </ErrorBoundary>
+          }
+        />
+        <Route
+          path="transactions"
+          element={
+            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
+              <TransactionHistory />
+            </ErrorBoundary>
+          }
+        />
+      </Route>
+
+      {/* employee portal - separate layout/no layout but protected for EMPLOYEE */}
+      <Route
+        element={
+          <ProtectedRoute allowedRoles={['EMPLOYEE']}>
             <ErrorBoundary
               fallback={
                 <ErrorFallback
@@ -81,81 +166,10 @@ function App() {
             >
               <EmployeePortal />
             </ErrorBoundary>
-          }
-        />
-        <Route
-          path="/reports"
-          element={
-            <ErrorBoundary fallback={<ErrorFallback />}>
-              <CustomReportBuilder />
-            </ErrorBoundary>
-          }
-        />
-        <Route
-          path="/debug"
-          element={
-            <ErrorBoundary
-              fallback={
-                <ErrorFallback
-                  title={t('errorFallback.debuggerTitle')}
-                  description={t('errorFallback.debuggerDescription')}
-                />
-              }
-            >
-              <Debugger />
-            </ErrorBoundary>
-          }
-        />
-        <Route
-          path="/debug/:contractName"
-          element={
-            <ErrorBoundary
-              fallback={
-                <ErrorFallback
-                  title={t('errorFallback.debuggerTitle')}
-                  description={t('errorFallback.debuggerDescription')}
-                />
-              }
-            >
-              <Debugger />
-            </ErrorBoundary>
-          }
-        />
-        <Route
-          path="/settings"
-          element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
-              <Settings />
-            </ErrorBoundary>
-          }
-        />
-        <Route
-          path="/help"
-          element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
-              <HelpCenter />
-            </ErrorBoundary>
-          }
-        />
-        <Route
-          path="/cross-asset-payment"
-          element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
-              <CrossAssetPayment />
-            </ErrorBoundary>
-          }
-        />
-        <Route
-          path="/transactions"
-          element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
-              <TransactionHistory />
-            </ErrorBoundary>
-          }
-        />
-        <Route path="/login" element={<Login />} />
-        <Route path="/auth-callback" element={<AuthCallback />} />
-      </Route>
+          </ProtectedRoute>
+        }
+        path="portal"
+      />
     </Routes>
   );
 }
