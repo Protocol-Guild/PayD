@@ -11,17 +11,26 @@ import Settings from './pages/Settings';
 import CustomReportBuilder from './pages/CustomReportBuilder';
 import CrossAssetPayment from './pages/CrossAssetPayment';
 import TransactionHistory from './pages/TransactionHistory';
-
 import EmployeePortal from './pages/EmployeePortal';
 import Login from './pages/Login';
 import AuthCallback from './pages/AuthCallback';
 import { useTranslation } from 'react-i18next';
+import { useSessionTimer } from './hooks/useSessionTimer';
+import { SessionWarningModal } from './components/SessionWarningModal';
 
 function App() {
   const { t } = useTranslation();
+  const { showWarning, secondsRemaining, stayLoggedIn, logout } = useSessionTimer();
 
   return (
-    <Routes>
+    <>
+      <SessionWarningModal
+        isOpen={showWarning}
+        secondsRemaining={secondsRemaining}
+        onStayLoggedIn={stayLoggedIn}
+        onLogout={logout}
+      />
+      <Routes>
       <Route element={<AppLayout />}>
         <Route
           path="/"
@@ -157,6 +166,7 @@ function App() {
         <Route path="/auth-callback" element={<AuthCallback />} />
       </Route>
     </Routes>
+    </>
   );
 }
 
