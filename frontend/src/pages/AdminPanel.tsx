@@ -6,8 +6,15 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
+  FileCode2,
+  ArrowUpCircle,
+  RefreshCw,
 } from 'lucide-react';
 import { useNotification } from '../hooks/useNotification';
+import { useContractUpgrade } from '../hooks/useContractUpgrade';
+import { UpgradeConfirmationModal } from '../components/ContractUpgradeModal';
+import { MigrationProgress, MigrationHistory } from '../components/MigrationProgress';
+import { formatWasmHash, formatContractId, type MigrationStatus } from '../services/contractUpgrade';
 
 /** Centralized API base so URL changes happen in one place. */
 const API_BASE = '/api/v1';
@@ -50,7 +57,7 @@ interface LogsApiResponse {
   total: number;
 }
 
-type ActiveTab = 'account' | 'global' | 'status' | 'logs';
+type ActiveTab = 'account' | 'global' | 'status' | 'logs' | 'contract-upgrade';
 
 // ---------------------------------------------------------------------------
 // Style constants – defined once to avoid repetition
@@ -67,12 +74,36 @@ const TAB_LABELS: Record<ActiveTab, string> = {
   global: 'Global Asset Control',
   status: 'Status Check',
   logs: 'Audit Logs',
+  'contract-upgrade': 'Contract Upgrade',
 };
 
 export default function AdminPanel() {
   const { notifySuccess, notifyError } = useNotification();
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('account');
+
+  // Contract Upgrade State
+  const {
+    contracts,
+    selectedContract,
+    loading: upgradeLoading,
+    error: upgradeError,
+    loadContracts,
+    selectContract,
+    validateWasm,
+    simulateUpgrade,
+    executeUpgrade,
+    getUpgradeDiff,
+    startMigration,
+    pollMigrationStatus,
+    loadMigrationHistory,
+    clearError: clearUpgradeError,
+  } = useContractUpgrade();
+
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [migrationHistory, setMigrationHistory] = useState<MigrationStatus[]>([]);
+  const [activeMigration, setActiveMigration] = useState<MigrationStatus | null>(null);
+  const [selectedNetwork, setSelectedNetwork] = useState('testnet');
 
   // Account Control
   const [accountTarget, setAccountTarget] = useState('');
@@ -103,9 +134,11 @@ export default function AdminPanel() {
   useEffect(() => {
     if (activeTab === 'logs') {
       void loadLogs(logsPage);
+    } else if (activeTab === 'contract-upgrade') {
+      void loadContracts(selectedNetwork);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, logsPage]);
+  }, [activeTab, logsPage, selectedNetwork]);
 
   // -----------------------------------------------------------------------
   // Data fetchers
@@ -213,6 +246,38 @@ export default function AdminPanel() {
       );
     } finally {
       setStatusLoading(false);
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // Contract Upgrade Handlers
+  // -----------------------------------------------------------------------
+
+  async function handleLoadMigrationHistory() {
+    if (!selectedContract) return;
+    const history = await loadMigrationHistory();
+    setMigrationHistory(history);
+  }
+
+  async function handleSelectContract(contractId: string) {
+    await selectContract(contractId);
+    // Load migration history for the selected contract
+    setTimeout(() => void handleLoadMigrationHistory(), 0);
+  }
+
+  async function handleStartMigration(fromVersion: string, toVersion: string) {
+    const migration = await startMigration(fromVersion, toVersion);
+    if (migration) {
+      setActiveMigration(migration);
+      // Start polling for updates
+      const stopPolling = pollMigrationStatus(migration.id, (status) => {
+        setActiveMigration(status);
+        if (status.status === 'completed' || status.status === 'failed') {
+          stopPolling();
+          void handleLoadMigrationHistory();
+        }
+      });
+      notifySuccess('Migration Started', `Migration ${migration.id.slice(-8)} initiated`);
     }
   }
 
@@ -615,7 +680,186 @@ export default function AdminPanel() {
             )}
           </div>
         )}
-      </div>
+
+        {/* ── Contract Upgrade ─────────────────────────────────────── */}
+        {activeTab === 'contract-upgrade' && (
+          <div className="flex flex-col gap-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <FileCode2 className="w-5 h-5 text-accent" /> Contract Upgrade & Migration
+              </h2>
+
+              <div className="flex items-center gap-3">
+                <select
+                  value={selectedNetwork}
+                  onChange={(e) => setSelectedNetwork(e.target.value)}
+                  className="bg-black/20 border border-hi rounded-lg px-3 py-1.5 text-sm outline-none focus:border-accent/50"
+                >
+                  <option value="standalone">Standalone</option>
+                  <option value="testnet">Testnet</option>
+                  <option value="futurenet">Futurenet</option>
+                  <option value="public">Public</option>
+                </select>
+                <button
+                  onClick={() => void loadContracts(selectedNetwork)}
+                  disabled={upgradeLoading}
+                  className="flex items-center gap-1 text-xs bg-black/20 px-3 py-1.5 rounded border border-hi hover:bg-black/40 disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3 h-3 ${upgradeLoading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </button>
+              </div>
+            </div>
+
+            {/* Error Display */}
+            {upgradeError && (
+              <div className="bg-red-500/10 border border-red-500/30 p-4 rounded-xl text-red-400 text-sm">
+                <AlertCircle className="w-4 h-4 inline mr-2" />
+                {upgradeError}
+                <button
+                  onClick={clearUpgradeError}
+                  className="ml-4 text-xs underline hover:no-underline"
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
+
+            {/* Contract Selection */}
+            <div className="grid gap-4">
+              <h3 className="text-sm font-bold uppercase tracking-widest text-muted">
+                Deployed Contracts
+              </h3>
+
+              {upgradeLoading && contracts.length === 0 ? (
+                <div className="flex items-center justify-center py-12 text-muted">
+                  <RefreshCw className="w-5 h-5 animate-spin mr-2" />
+                  Loading contracts...
+                </div>
+              ) : contracts.length === 0 ? (
+                <div className="text-center py-12 text-muted">
+                  No contracts found for {selectedNetwork}
+                </div>
+              ) : (
+                <div className="grid gap-3">
+                  {contracts.map((contract) => (
+                    <div
+                      key={contract.contractId}
+                      onClick={() => void handleSelectContract(contract.contractId)}
+                      className={`p-4 border rounded-xl cursor-pointer transition-all ${
+                        selectedContract?.contractId === contract.contractId
+                          ? 'border-accent bg-accent/10'
+                          : 'border-hi hover:border-accent/50 hover:bg-white/5'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h4 className="font-bold">{contract.contractName}</h4>
+                          <p className="text-xs text-muted font-mono mt-1">
+                            {formatContractId(contract.contractId)}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-xs bg-black/20 px-2 py-1 rounded">
+                            v{contract.version || '?'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="mt-3 pt-3 border-t border-hi/50 grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <span className="text-muted">Current WASM:</span>
+                          <p className="font-mono mt-0.5">
+                            {formatWasmHash(contract.currentWasmHash)}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-muted">Deployed:</span>
+                          <p className="mt-0.5">
+                            {new Date(contract.deployedAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Selected Contract Actions */}
+            {selectedContract && (
+              <div className="flex flex-col gap-4">
+                <div className="bg-accent/10 border border-accent/30 p-4 rounded-xl">
+                  <h4 className="font-bold text-accent mb-2">Selected Contract</h4>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-muted">Name:</span>
+                      <p className="font-medium">{selectedContract.contractName}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted">Version:</span>
+                      <p className="font-medium">{selectedContract.version || 'Unknown'}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted">Contract ID:</span>
+                      <p className="font-mono text-xs">{formatContractId(selectedContract.contractId)}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted">Current WASM:</span>
+                      <p className="font-mono text-xs">
+                        {formatWasmHash(selectedContract.currentWasmHash)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setShowUpgradeModal(true)}
+                  disabled={upgradeLoading}
+                  className="flex items-center justify-center gap-2 py-4 bg-accent/20 text-accent border border-accent/50 font-black rounded-xl hover:bg-accent hover:text-white transition-all shadow-lg uppercase tracking-widest text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ArrowUpCircle className="w-5 h-5" />
+                  Upgrade Contract
+                </button>
+
+                {/* Active Migration */}
+                {activeMigration && (
+                  <MigrationProgress
+                    migration={activeMigration}
+                    onRefresh={() => {
+                      // Trigger a re-render by updating state
+                      setActiveMigration({ ...activeMigration });
+                    }}
+                    onClose={() => setActiveMigration(null)}
+                  />
+                )}
+
+                {/* Migration History */}
+                {migrationHistory.length > 0 && (
+                  <MigrationHistory
+                    migrations={migrationHistory}
+                    onSelect={setActiveMigration}
+                    selectedId={activeMigration?.id}
+                  />
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+      {/* Upgrade Confirmation Modal */}
+      <UpgradeConfirmationModal
+        isOpen={showUpgradeModal}
+        onClose={() => {
+          setShowUpgradeModal(false);
+          void handleLoadMigrationHistory();
+        }}
+        contract={selectedContract}
+        onExecute={executeUpgrade}
+        onSimulate={simulateUpgrade}
+        onGetDiff={getUpgradeDiff}
+        onValidate={validateWasm}
+        isExecuting={upgradeLoading}
+      />
     </div>
   );
 }
