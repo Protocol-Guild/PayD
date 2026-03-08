@@ -86,16 +86,26 @@ export default function CrossAssetPayment() {
         (envContractId as string) || 'CBRZZW3D52HFW57TDFVRYC6NYL33N23S4VDKF27I46445G3UKWJMFPBM';
       const contract = new Contract(contractId);
 
-      // We create a mock Soroban invocation for the swap function
-      // Real implementation requires precise arguments matching the Rust contract
+      // We translate the UI parameters to the Soroban initiate_payment signature:
+      // pub fn initiate_payment(env: Env, from: Address, amount: i128, asset: Address, 
+      //                         receiver_id: String, target_asset: String, anchor_id: String)
       const invokeOp = contract.call(
-        'swap',
+        'initiate_payment',
         nativeToScVal(address, { type: 'address' }),
-        nativeToScVal(receiver, { type: 'address' }),
-        nativeToScVal(Math.floor(Number(amount) * 1e7), { type: 'i128' }) // Mapped Amount
+        nativeToScVal(BigInt(Math.floor(Number(amount) * 1e7)), { type: 'i128' }),
+        nativeToScVal(
+          assetIn === 'USDC'
+            ? 'CBI56V6XU5S3S5S3S5S3S5S3S5S3S5S3S5S3S5S3S5S3S5S3S5S3S5S3' // Mock SAC for USDC
+            : 'CDLZFC3SYJYDZT7K67VZ75XJZ7T6V7L6V7L6V7L6V7L6V7L6V7L6V7L6', // Mock SAC for XLM
+          { type: 'address' }
+        ),
+        nativeToScVal(receiver || 'SEP31_RECEIVER_ID', { type: 'string' }),
+        nativeToScVal(assetOut, { type: 'string' }),
+        nativeToScVal('test-anchor.com', { type: 'string' })
       );
 
-      // Dummy account since we just want to build a payload to sign in this mock demo
+      // We need a valid account for the transaction builder
+      // In a real app, we'd load this from Horizon
       const account = new Account(address, '0');
 
       const transaction = new TransactionBuilder(account, {
@@ -109,8 +119,8 @@ export default function CrossAssetPayment() {
       const xdrString = transaction.toXDR();
 
       notifySuccess(
-        'Please Sign',
-        'Prompting your wallet to sign the Cross-Asset implementation...'
+        'Contract Invocation Prepared',
+        'Please sign the Soroban cross_asset_payment.initiate_payment transaction.'
       );
 
       // Wallet Signature Call
@@ -145,7 +155,7 @@ export default function CrossAssetPayment() {
     <div className="min-h-screen bg-[#0a0a0c] text-white p-8 font-sans">
       <div className="max-w-4xl mx-auto">
         <header className="mb-12">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold bg-linear-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
             Soroban Cross-Asset Swap
           </h1>
           <p className="text-zinc-400 mt-2">
@@ -227,7 +237,7 @@ export default function CrossAssetPayment() {
                 disabled={
                   status === 'initiating' || status === 'pending' || (!!address && !selectedPath)
                 }
-                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 py-4 rounded-xl font-bold text-lg hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full bg-linear-to-r from-blue-600 to-indigo-600 py-4 rounded-xl font-bold text-lg hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {status === 'initiating' ? (
                   <Loader2 className="animate-spin" />
@@ -246,7 +256,7 @@ export default function CrossAssetPayment() {
           <div className="space-y-8">
             {/* Quote Panel */}
             {selectedPath && (
-              <div className="bg-gradient-to-br from-zinc-900 to-black border border-zinc-800 rounded-2xl p-8 shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="bg-linear-to-br from-zinc-900 to-black border border-zinc-800 rounded-2xl p-8 shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <h3 className="text-lg font-bold flex items-center gap-2 mb-6">
                   <ShieldCheck className="text-emerald-400" />
                   Live Pathfinding Route
