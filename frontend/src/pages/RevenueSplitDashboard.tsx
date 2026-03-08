@@ -5,6 +5,8 @@
   @typescript-eslint/no-unsafe-argument
 */
 import { useEffect, useMemo, useState } from 'react';
+import { ContractErrorPanel } from '../components/ContractErrorPanel';
+import { parseContractError, type ContractErrorDetail } from '../utils/contractErrorParser';
 import { useNotification } from '../hooks/useNotification';
 import { useWallet } from '../hooks/useWallet';
 import { useWalletSigning } from '../hooks/useWalletSigning';
@@ -43,8 +45,9 @@ function buildConicGradient(allocations: RevenueAllocation[]): string {
 export default function RevenueSplitDashboard() {
   const [allocations, setAllocations] = useState<RevenueAllocation[]>([]);
   const [events, setEvents] = useState<DistributionEvent[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [contractError, setContractError] = useState<ContractErrorDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const { address, connect } = useWallet();
@@ -124,9 +127,9 @@ export default function RevenueSplitDashboard() {
       prev.map((entry, idx) =>
         idx === index
           ? {
-              ...entry,
-              [field]: field === 'percentage' ? Number.parseFloat(value || '0') : value,
-            }
+            ...entry,
+            [field]: field === 'percentage' ? Number.parseFloat(value || '0') : value,
+          }
           : entry
       )
     );
@@ -164,6 +167,7 @@ export default function RevenueSplitDashboard() {
     }
 
     setIsSaving(true);
+    setContractError(null);
     try {
       await contractService.initialize();
       const contractId =
@@ -182,13 +186,14 @@ export default function RevenueSplitDashboard() {
 
       notifySuccess('Allocations updated', `Submitted on-chain update transaction: ${txHash}`);
     } catch (saveError) {
-      const message =
-        saveError instanceof Error ? saveError.message : 'Failed to update allocations';
-      notifyError('Allocation update failed', message);
+      const parsed = parseContractError(undefined, saveError instanceof Error ? saveError.message : 'Failed to update allocations');
+      setContractError(parsed);
+      notifyError('Allocation update failed', parsed.message);
     } finally {
       setIsSaving(false);
     }
   };
+
 
   return (
     <div className="flex-1 flex flex-col p-6 lg:p-12 max-w-7xl mx-auto w-full">
@@ -310,7 +315,13 @@ export default function RevenueSplitDashboard() {
               {isSaving ? 'Submitting...' : 'Submit On-Chain Update'}
             </button>
           </div>
+
+          <ContractErrorPanel
+            error={contractError}
+            onClear={() => setContractError(null)}
+          />
         </section>
+
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mt-6">

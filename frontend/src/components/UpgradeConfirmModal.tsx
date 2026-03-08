@@ -41,6 +41,8 @@ import {
   cancelUpgrade,
 } from '../services/contractUpgrade';
 import { useNotification } from '../hooks/useNotification';
+import { ContractErrorPanel } from './ContractErrorPanel';
+import { parseContractError } from '../utils/contractErrorParser';
 
 // ---------------------------------------------------------------------------
 // Style constants (consistent with AdminPanel.tsx)
@@ -60,24 +62,24 @@ type ModalState =
   | { step: 'input'; wasmHash: string; validating: boolean; validationError: string | null }
   | { step: 'simulating' }
   | {
-      step: 'review';
-      upgradeLogId: number;
-      simulation: UpgradeSimulationResult;
-      wasmHash: string;
-    }
+    step: 'review';
+    upgradeLogId: number;
+    simulation: UpgradeSimulationResult;
+    wasmHash: string;
+  }
   | {
-      step: 'authorize';
-      upgradeLogId: number;
-      wasmHash: string;
-      adminSecret: string;
-    }
+    step: 'authorize';
+    upgradeLogId: number;
+    wasmHash: string;
+    adminSecret: string;
+  }
   | {
-      step: 'executing';
-      upgradeLogId: number;
-      txHash: string | null;
-      migrationSteps: MigrationStep[];
-      overallStatus: UpgradeLog['status'];
-    }
+    step: 'executing';
+    upgradeLogId: number;
+    txHash: string | null;
+    migrationSteps: MigrationStep[];
+    overallStatus: UpgradeLog['status'];
+  }
   | { step: 'done'; txHash: string; wasmHash: string }
   | { step: 'failed'; error: string };
 
@@ -93,13 +95,12 @@ function StepBreadcrumb({ current }: { current: number }) {
       {steps.map((label, i) => (
         <span key={label} className="flex items-center gap-1">
           <span
-            className={`px-2 py-0.5 rounded font-bold uppercase tracking-widest ${
-              i + 1 === current
-                ? 'text-accent bg-accent/10'
-                : i + 1 < current
-                  ? 'text-emerald-500'
-                  : 'text-muted/50'
-            }`}
+            className={`px-2 py-0.5 rounded font-bold uppercase tracking-widest ${i + 1 === current
+              ? 'text-accent bg-accent/10'
+              : i + 1 < current
+                ? 'text-emerald-500'
+                : 'text-muted/50'
+              }`}
           >
             {i + 1 < current ? '✓' : `${i + 1}.`} {label}
           </span>
@@ -472,10 +473,10 @@ export default function UpgradeConfirmModal({
                     setModal((m) =>
                       m.step === 'input'
                         ? {
-                            ...m,
-                            wasmHash: e.target.value.toLowerCase().trim(),
-                            validationError: null,
-                          }
+                          ...m,
+                          wasmHash: e.target.value.toLowerCase().trim(),
+                          validationError: null,
+                        }
                         : m
                     )
                   }
@@ -540,11 +541,10 @@ export default function UpgradeConfirmModal({
             <div className="flex flex-col gap-5">
               {/* Simulation status */}
               <div
-                className={`flex items-start gap-3 p-4 rounded-xl border ${
-                  modal.simulation.success
-                    ? 'bg-emerald-500/5 border-emerald-500/30'
-                    : 'bg-red-500/5 border-red-500/30'
-                }`}
+                className={`flex items-start gap-3 p-4 rounded-xl border ${modal.simulation.success
+                  ? 'bg-emerald-500/5 border-emerald-500/30'
+                  : 'bg-red-500/5 border-red-500/30'
+                  }`}
               >
                 {modal.simulation.success ? (
                   <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
@@ -745,13 +745,12 @@ export default function UpgradeConfirmModal({
                   Status:
                 </span>
                 <span
-                  className={`px-3 py-1 rounded text-xs font-black uppercase tracking-widest border ${
-                    modal.overallStatus === 'completed'
-                      ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/30'
-                      : modal.overallStatus === 'failed'
-                        ? 'bg-red-500/20 text-red-500 border-red-500/30'
-                        : 'bg-accent/20 text-accent border-accent/30'
-                  }`}
+                  className={`px-3 py-1 rounded text-xs font-black uppercase tracking-widest border ${modal.overallStatus === 'completed'
+                    ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/30'
+                    : modal.overallStatus === 'failed'
+                      ? 'bg-red-500/20 text-red-500 border-red-500/30'
+                      : 'bg-accent/20 text-accent border-accent/30'
+                    }`}
                 >
                   {modal.overallStatus}
                 </span>
@@ -826,9 +825,13 @@ export default function UpgradeConfirmModal({
                   The upgrade did not complete successfully.
                 </p>
               </div>
-              <div className="w-full p-4 bg-red-500/5 border border-red-500/30 rounded-xl">
-                <p className="text-xs text-red-400 break-words">{modal.error}</p>
+              <div className="w-full">
+                <ContractErrorPanel
+                  error={parseContractError(undefined, modal.error)}
+                  title="Upgrade Simulation / Execution Error"
+                />
               </div>
+
               <div className="flex gap-3 w-full">
                 <button
                   onClick={onClose}

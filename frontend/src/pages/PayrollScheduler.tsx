@@ -12,6 +12,9 @@ import { SchedulingWizard } from '../components/SchedulingWizard';
 import { CountdownTimer } from '../components/CountdownTimer';
 import { BulkPaymentStatusTracker } from '../components/BulkPaymentStatusTracker';
 
+import { ContractErrorPanel } from '../components/ContractErrorPanel';
+import { parseContractError, type ContractErrorDetail } from '../utils/contractErrorParser';
+
 interface PayrollFormState {
   employeeName: string;
   amount: string;
@@ -53,7 +56,7 @@ const initialFormState: PayrollFormState = {
 
 export default function PayrollScheduler() {
   const { t } = useTranslation();
-  const { notifySuccess, notifyError } = useNotification();
+  const { notifySuccess } = useNotification();
   const { socket, subscribeToTransaction, unsubscribeFromTransaction } = useSocket();
   const [formData, setFormData] = useState<PayrollFormState>(initialFormState);
   const [isBroadcasting, setIsBroadcasting] = useState(false);
@@ -63,6 +66,7 @@ export default function PayrollScheduler() {
     timeOfDay: string;
   } | null>(null);
   const [nextRunDate, setNextRunDate] = useState<Date | null>(null);
+  const [contractError, setContractError] = useState<ContractErrorDetail | null>(null);
 
   const [pendingClaims, setPendingClaims] = useState<PendingClaim[]>(() => {
     const saved = localStorage.getItem('pending-claims');
@@ -119,7 +123,10 @@ export default function PayrollScheduler() {
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    if (simulationResult) resetSimulation();
+    if (simulationResult) {
+      resetSimulation();
+      setContractError(null);
+    }
   };
 
   useEffect(() => {
@@ -147,19 +154,30 @@ export default function PayrollScheduler() {
 
   const handleInitialize = async () => {
     if (!formData.employeeName || !formData.amount) {
-      notifyError('Missing required fields', 'Please provide employee name and amount.');
+      setContractError({
+        code: 'MISSING_FIELDS',
+        message: 'Missing required fields',
+        suggestedAction: 'Please provide employee name and amount.',
+      });
       return;
     }
+
+    setContractError(null);
 
     // Mock XDR for simulation demonstration
     const mockXdr =
       'AAAAAgAAAABmF8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
 
-    await simulate({ envelopeXdr: mockXdr });
+    const result = await simulate({ envelopeXdr: mockXdr });
+    if (result && !result.success) {
+      const parsed = parseContractError(result.envelopeXdr, result.description);
+      setContractError(parsed);
+    }
   };
 
   const handleBroadcast = async () => {
     setIsBroadcasting(true);
+    setContractError(null);
     try {
       const mockRecipientPublicKey = generateWallet().publicKey;
 
@@ -223,11 +241,13 @@ export default function PayrollScheduler() {
       setFormData(initialFormState);
     } catch (err) {
       console.error(err);
-      notifyError('Broadcast failed', 'Please check your network connection and try again.');
+      const parsed = parseContractError(undefined, err instanceof Error ? err.message : 'Broadcast failed');
+      setContractError(parsed);
     } finally {
       setIsBroadcasting(false);
     }
   };
+
 
   const handleRemoveClaim = (id: string) => {
     unsubscribeFromTransaction(id);
@@ -404,11 +424,19 @@ export default function PayrollScheduler() {
           </div>
 
           <div className="lg:col-span-2 flex flex-col gap-6">
+            <ContractErrorPanel
+              error={contractError}
+              onClear={() => setContractError(null)}
+            />
+
             <TransactionSimulationPanel
               result={simulationResult}
               isSimulating={isSimulating}
               processError={simulationProcessError}
-              onReset={resetSimulation}
+              onReset={() => {
+                resetSimulation();
+                setContractError(null);
+              }}
             />
 
             <div className="card glass noise h-fit">
