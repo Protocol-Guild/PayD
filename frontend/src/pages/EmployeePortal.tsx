@@ -22,6 +22,7 @@ import {
 } from '../services/currencyConversion';
 import styles from './EmployeePortal.module.css';
 import { useWallet } from '../hooks/useWallet';
+import { fetchPendingClaims, type PendingClaimRecord } from '../services/claimsApi';
 
 /* ── Helper: status badge ────────── */
 function StatusBadge({ status }: { status: EmployeeTransaction['status'] }) {
@@ -64,6 +65,8 @@ function LoadingSkeleton() {
 /* ── Main Page Component ─────────── */
 const EmployeePortal: React.FC = () => {
   const { address } = useWallet();
+  const [pendingClaims, setPendingClaims] = React.useState<PendingClaimRecord[]>([]);
+  const [pendingClaimsError, setPendingClaimsError] = React.useState<string | null>(null);
   const {
     transactions,
     balance,
@@ -90,6 +93,34 @@ const EmployeePortal: React.FC = () => {
   const totalTransactions = transactions.length;
   const pendingCount = transactions.filter((t) => t.status === 'pending').length;
   const lastPayment = transactions.find((t) => t.status === 'completed');
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    async function loadPendingClaims() {
+      if (!address) {
+        setPendingClaims([]);
+        setPendingClaimsError(null);
+        return;
+      }
+
+      try {
+        setPendingClaimsError(null);
+        const claims = await fetchPendingClaims(address);
+        if (!cancelled) setPendingClaims(claims);
+      } catch (e) {
+        if (!cancelled) {
+          setPendingClaims([]);
+          setPendingClaimsError(e instanceof Error ? e.message : 'Failed to load pending claims');
+        }
+      }
+    }
+
+    void loadPendingClaims();
+    return () => {
+      cancelled = true;
+    };
+  }, [address]);
 
   return (
     <div className="page-fade flex flex-col gap-6 max-w-[1200px] mx-auto w-full">
@@ -232,6 +263,66 @@ const EmployeePortal: React.FC = () => {
         <div className="flex items-center gap-3 p-4 rounded-xl bg-[rgba(255,123,114,0.08)] border border-[rgba(255,123,114,0.2)]">
           <AlertCircle className="w-5 h-5 text-[var(--danger)]" />
           <span className="text-sm text-[var(--danger)]">{error}</span>
+        </div>
+      )}
+
+      {/* ── Pending Claims ───────────── */}
+      {(pendingClaimsError || pendingClaims.length > 0) && (
+        <div className="w-full card glass noise p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold">Pending Claims</h2>
+            <button
+              type="button"
+              onClick={() => {
+                if (address) {
+                  void fetchPendingClaims(address)
+                    .then((claims) => {
+                      setPendingClaimsError(null);
+                      setPendingClaims(claims);
+                    })
+                    .catch((e) => {
+                      setPendingClaims([]);
+                      setPendingClaimsError(
+                        e instanceof Error ? e.message : 'Failed to refresh pending claims'
+                      );
+                    });
+                }
+              }}
+              className="px-3 py-1.5 rounded-lg bg-black/20 hover:bg-black/40 border border-hi text-xs font-semibold"
+              disabled={!address}
+            >
+              Refresh
+            </button>
+          </div>
+
+          {pendingClaimsError ? (
+            <div className="text-sm text-[var(--danger)]">{pendingClaimsError}</div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              <div className="text-sm text-[var(--muted)]">
+                If you have a pending claim, add the ORGUSD trustline in your wallet and then claim
+                the balance.
+              </div>
+              {pendingClaims.map((c) => (
+                <div
+                  key={c.id}
+                  className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 p-3 rounded-xl bg-black/20 border border-hi"
+                >
+                  <div className="flex flex-col">
+                    <div className="text-sm font-semibold">
+                      {c.amount} {c.asset_code}
+                    </div>
+                    <div className="text-xs text-[var(--muted)]">
+                      Created {new Date(c.created_at).toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="text-xs text-[var(--muted)] break-all">
+                    Balance ID: {c.stellar_balance_id || '—'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
