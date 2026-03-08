@@ -1,20 +1,39 @@
-/**
- * Backward-compatible shims that delegate to the shared HorizonService singleton.
- * Existing code can continue importing from "./client" without changes.
- */
-import { horizonService } from "./horizonService";
 import { Horizon } from "@stellar/stellar-sdk";
-import { NetworkConfig } from "./network";
+import { getNetworkConfig, NetworkConfig } from './network.js';
 
+let cachedServer: Horizon.Server | null = null;
+let cachedConfig: NetworkConfig | null = null;
+
+/**
+ * Returns a cached Horizon server instance configured for the active
+ * Stellar network. The instance is created once and reused across calls.
+ */
 export function getStellarServer(): Horizon.Server {
-  return horizonService.getServer();
+  if (!cachedServer) {
+    const config = getNetworkConfig();
+    cachedServer = new Horizon.Server(config.horizonUrl);
+    cachedConfig = config;
+  }
+  return cachedServer;
 }
 
+/**
+ * Returns the resolved network configuration (network name, passphrase,
+ * and Horizon URL) for the currently active Stellar environment.
+ */
 export function getActiveNetworkConfig(): NetworkConfig {
-  return horizonService.getConfig();
+  if (!cachedConfig) {
+    cachedConfig = getNetworkConfig();
+  }
+  return cachedConfig;
 }
 
+/**
+ * Clears the cached server and config so the next call to
+ * `getStellarServer()` or `getActiveNetworkConfig()` re-reads
+ * the environment. Useful for tests or runtime network switching.
+ */
 export function resetClient(): void {
-  horizonService.reset();
+  cachedServer = null;
+  cachedConfig = null;
 }
-
