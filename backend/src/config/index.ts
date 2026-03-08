@@ -43,6 +43,23 @@ export const config = {
   logging: {
     level: process.env.LOG_LEVEL || 'info',
   },
+  
+  // OAuth Configuration
+  auth: {
+    jwtSecret: process.env.JWT_SECRET || 'super-secret-key',
+    jwtExpiresIn: process.env.JWT_EXPIRES_IN || '24h',
+    frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackUrl: '/auth/google/callback',
+    },
+    github: {
+      clientId: process.env.GITHUB_CLIENT_ID,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET,
+      callbackUrl: '/auth/github/callback',
+    },
+  },
 };
 
 export default config;

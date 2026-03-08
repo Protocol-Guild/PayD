@@ -1,6 +1,9 @@
 import { Router } from 'express';
 import passport from 'passport';
 import { generateToken } from '../services/authService.js';
+import { authenticateJWT } from '../middlewares/auth.js';
+import pool from '../config/database.js';
+import config from '../config/index.js';
 
 const router = Router();
 
@@ -32,5 +35,24 @@ router.get(
     );
   }
 );
+
+// Get current user profile
+router.get('/me', authenticateJWT, async (req: any, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT id, email, name, role, wallet_address, created_at FROM users WHERE id = $1',
+      [req.user.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 export default router;
