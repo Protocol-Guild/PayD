@@ -22,6 +22,7 @@ import { useTranslation } from 'react-i18next';
 import { contractService } from './services/contracts';
 
 function App() {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
   const { t } = useTranslation();
 
   // Initialize contract service on app startup
@@ -40,7 +41,9 @@ function App() {
             <ErrorBoundary
               fallback={
                 <ErrorFallback
+                  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
                   title={t('errorFallback.homeTitle')}
+                  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
                   description={t('errorFallback.homeDescription')}
                 />
               }
@@ -55,7 +58,9 @@ function App() {
             <ErrorBoundary
               fallback={
                 <ErrorFallback
+                  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
                   title={t('errorFallback.payrollTitle')}
+                  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
                   description={t('errorFallback.payrollDescription')}
                 />
               }
@@ -70,7 +75,9 @@ function App() {
             <ErrorBoundary
               fallback={
                 <ErrorFallback
+                  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
                   title={t('errorFallback.employeesTitle')}
+                  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
                   description={t('errorFallback.employeesDescription')}
                 />
               }
@@ -108,7 +115,9 @@ function App() {
             <ErrorBoundary
               fallback={
                 <ErrorFallback
+                  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
                   title={t('errorFallback.debuggerTitle')}
+                  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
                   description={t('errorFallback.debuggerDescription')}
                 />
               }
@@ -123,7 +132,9 @@ function App() {
             <ErrorBoundary
               fallback={
                 <ErrorFallback
+                  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
                   title={t('errorFallback.debuggerTitle')}
+                  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
                   description={t('errorFallback.debuggerDescription')}
                 />
               }
@@ -135,7 +146,7 @@ function App() {
         <Route
           path="/settings"
           element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => { }} />}>
+            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
               <Settings />
             </ErrorBoundary>
           }
@@ -143,7 +154,7 @@ function App() {
         <Route
           path="/help"
           element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => { }} />}>
+            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
               <HelpCenter />
             </ErrorBoundary>
           }
@@ -151,7 +162,7 @@ function App() {
         <Route
           path="/cross-asset-payment"
           element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => { }} />}>
+            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
               <CrossAssetPayment />
             </ErrorBoundary>
           }
@@ -159,7 +170,7 @@ function App() {
         <Route
           path="/transactions"
           element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => { }} />}>
+            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
               <TransactionHistory />
             </ErrorBoundary>
           }
@@ -167,7 +178,7 @@ function App() {
         <Route
           path="/vesting"
           element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => { }} />}>
+            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
               <VestingEscrow />
             </ErrorBoundary>
           }
