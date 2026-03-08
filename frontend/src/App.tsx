@@ -11,6 +11,7 @@ import Settings from './pages/Settings';
 import CustomReportBuilder from './pages/CustomReportBuilder';
 import CrossAssetPayment from './pages/CrossAssetPayment';
 import TransactionHistory from './pages/TransactionHistory';
+import BulkPaymentTracker from './pages/BulkPaymentTracker';
 
 import EmployeePortal from './pages/EmployeePortal';
 import Login from './pages/Login';
@@ -124,7 +125,7 @@ function App() {
         <Route
           path="/settings"
           element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
+            <ErrorBoundary fallback={<ErrorFallback onReset={() => { }} />}>
               <Settings />
             </ErrorBoundary>
           }
@@ -132,7 +133,7 @@ function App() {
         <Route
           path="/help"
           element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
+            <ErrorBoundary fallback={<ErrorFallback onReset={() => { }} />}>
               <HelpCenter />
             </ErrorBoundary>
           }
@@ -140,7 +141,7 @@ function App() {
         <Route
           path="/cross-asset-payment"
           element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
+            <ErrorBoundary fallback={<ErrorFallback onReset={() => { }} />}>
               <CrossAssetPayment />
             </ErrorBoundary>
           }
@@ -148,8 +149,16 @@ function App() {
         <Route
           path="/transactions"
           element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
+            <ErrorBoundary fallback={<ErrorFallback onReset={() => { }} />}>
               <TransactionHistory />
+            </ErrorBoundary>
+          }
+        />
+        <Route
+          path="/bulk-payments"
+          element={
+            <ErrorBoundary fallback={<ErrorFallback onReset={() => { }} />}>
+              <BulkPaymentTracker />
             </ErrorBoundary>
           }
         />
