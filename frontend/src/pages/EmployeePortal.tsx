@@ -14,6 +14,9 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { useEmployeePortal, EmployeeTransaction } from '../hooks/useEmployeePortal';
+import { useContractError } from '../hooks/useContractError';
+import { ContractErrorPanel } from '../components/ContractErrorPanel';
+import { useNotification } from '../hooks/useNotification';
 import {
   formatCurrency,
   getSupportedCurrencies,
@@ -65,7 +68,10 @@ function LoadingSkeleton() {
 /* ── Main Page Component ─────────── */
 const EmployeePortal: React.FC = () => {
   const { address } = useWallet();
+  const { notifySuccess, notifyError } = useNotification();
+  const { contractError, handleContractError, clearContractError } = useContractError();
   const [pendingClaims, setPendingClaims] = React.useState<PendingClaimRecord[]>([]);
+  const [isClaiming, setIsClaiming] = React.useState<string | null>(null);
   const [pendingClaimsError, setPendingClaimsError] = React.useState<string | null>(null);
   const {
     transactions,
@@ -121,6 +127,33 @@ const EmployeePortal: React.FC = () => {
       cancelled = true;
     };
   }, [address]);
+
+  const handleClaim = async (claimId: string, balanceId: string | null) => {
+    setIsClaiming(claimId);
+    clearContractError();
+    try {
+      // Simulate contract invocation delay
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      // Simulate a contract error for testing if the amount is '777'
+      const claim = pendingClaims.find((c) => c.id === claimId);
+      if (claim?.amount === '777') {
+        const mockErrorXdr = 'AAAABAAAAAEAAAABAAAABQ=='; // ScvError(ScError{type: SCE_CONTRACT, code: 5})
+        handleContractError(mockErrorXdr);
+        throw new Error('Contract invocation failed');
+      }
+
+      notifySuccess('Claim successful!', 'The funds have been transferred to your wallet.');
+
+      // Remove the claimed item from the list
+      setPendingClaims((prev) => prev.filter((c) => c.id !== claimId));
+    } catch (err) {
+      console.error(err);
+      notifyError('Claim failed', 'A contract error occurred. Please review the details below.');
+    } finally {
+      setIsClaiming(null);
+    }
+  };
 
   return (
     <div className="page-fade flex flex-col gap-6 max-w-[1200px] mx-auto w-full">
@@ -249,9 +282,9 @@ const EmployeePortal: React.FC = () => {
           <div className={styles.statValue}>
             {lastPayment
               ? new Date(lastPayment.date).toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                })
+                month: 'short',
+                day: 'numeric',
+              })
               : '—'}
           </div>
           <div className={styles.statLabel}>Last Payment</div>
@@ -269,30 +302,33 @@ const EmployeePortal: React.FC = () => {
       {/* ── Pending Claims ───────────── */}
       {(pendingClaimsError || pendingClaims.length > 0) && (
         <div className="w-full card glass noise p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold">Pending Claims</h2>
-            <button
-              type="button"
-              onClick={() => {
-                if (address) {
-                  void fetchPendingClaims(address)
-                    .then((claims) => {
-                      setPendingClaimsError(null);
-                      setPendingClaims(claims);
-                    })
-                    .catch((e) => {
-                      setPendingClaims([]);
-                      setPendingClaimsError(
-                        e instanceof Error ? e.message : 'Failed to refresh pending claims'
-                      );
-                    });
-                }
-              }}
-              className="px-3 py-1.5 rounded-lg bg-black/20 hover:bg-black/40 border border-hi text-xs font-semibold"
-              disabled={!address}
-            >
-              Refresh
-            </button>
+          <div className="flex flex-col mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-lg font-bold">Pending Claims</h2>
+              <button
+                type="button"
+                onClick={() => {
+                  if (address) {
+                    void fetchPendingClaims(address)
+                      .then((claims) => {
+                        setPendingClaimsError(null);
+                        setPendingClaims(claims);
+                      })
+                      .catch((e) => {
+                        setPendingClaims([]);
+                        setPendingClaimsError(
+                          e instanceof Error ? e.message : 'Failed to refresh pending claims'
+                        );
+                      });
+                  }
+                }}
+                className="px-3 py-1.5 rounded-lg bg-black/20 hover:bg-black/40 border border-hi text-xs font-semibold"
+                disabled={!address}
+              >
+                Refresh
+              </button>
+            </div>
+            <ContractErrorPanel error={contractError} />
           </div>
 
           {pendingClaimsError ? (
@@ -316,9 +352,21 @@ const EmployeePortal: React.FC = () => {
                       Created {new Date(c.created_at).toLocaleString()}
                     </div>
                   </div>
-                  <div className="text-xs text-[var(--muted)] break-all">
+                  <div className="text-xs text-[var(--muted)] break-all flex-1">
                     Balance ID: {c.stellar_balance_id || '—'}
                   </div>
+                  <button
+                    onClick={() => void handleClaim(c.id, c.stellar_balance_id)}
+                    disabled={isClaiming === c.id}
+                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {isClaiming === c.id ? (
+                      <RefreshCw className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <ArrowUpRight className="w-3 h-3" />
+                    )}
+                    Claim Funds
+                  </button>
                 </div>
               ))}
             </div>
