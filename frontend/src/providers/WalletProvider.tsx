@@ -18,13 +18,23 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const { t } = useTranslation();
   const { notify, notifySuccess, notifyError } = useNotification();
 
+  const network = (import.meta.env.VITE_STELLAR_NETWORK || 'TESTNET') as WalletNetwork;
+
   useEffect(() => {
     const newKit = new StellarWalletsKit({
-      network: WalletNetwork.TESTNET,
+      network: network,
       modules: [new FreighterModule(), new xBullModule(), new LobstrModule()],
     });
     kitRef.current = newKit;
-  }, []);
+
+    // Persist session check
+    const savedAddress = localStorage.getItem('wallet-address');
+    const savedWallet = localStorage.getItem('wallet-provider');
+    if (savedAddress && savedWallet) {
+      setAddress(savedAddress);
+      setWalletName(savedWallet);
+    }
+  }, [network]);
 
   const connect = async () => {
     const kit = kitRef.current;
@@ -39,6 +49,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             const { address } = await kit.getAddress();
             setAddress(address);
             setWalletName(option.id);
+            localStorage.setItem('wallet-address', address);
+            localStorage.setItem('wallet-provider', option.id);
             notifySuccess(
               'Wallet connected',
               `${address.slice(0, 6)}...${address.slice(-4)} via ${option.id}`
@@ -61,6 +73,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const disconnect = () => {
     setAddress(null);
     setWalletName(null);
+    localStorage.removeItem('wallet-address');
+    localStorage.removeItem('wallet-provider');
     notify('Wallet disconnected');
   };
 
