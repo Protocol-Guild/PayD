@@ -76,7 +76,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
 
     void attemptSilentReconnect();
-  }, [notifySuccess]);
+  }, [notifySuccess, network]);
 
   const connect = async () => {
     const kit = kitRef.current;

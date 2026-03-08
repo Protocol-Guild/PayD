@@ -43,9 +43,10 @@ export const SchedulingWizard = ({
           name: `${emp.first_name} ${emp.last_name}`,
           amount: '2000', // Default mock amount
           currency: 'USDC',
-          wallet: emp.wallet_address || 'GDUKMGUGKAAZBAMNSMUA4Y6G4XDSZPSZ3SW5UN3ARVMO6QSRDWP5YLEXT2U2D6',
+          wallet:
+            emp.wallet_address || 'GDUKMGUGKAAZBAMNSMUA4Y6G4XDSZPSZ3SW5UN3ARVMO6QSRDWP5YLEXT2U2D6',
         }));
-        setConfig(prev => ({ ...prev, preferences: prefs }));
+        setConfig((prev) => ({ ...prev, preferences: prefs }));
       } catch (err) {
         console.error('Failed to load employees for wizard:', err);
       } finally {
@@ -105,9 +106,21 @@ export const SchedulingWizard = ({
       {isLoading ? (
         <div className="flex flex-col items-center justify-center p-12 text-center">
           <div className="animate-spin text-accent mb-4">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M22 12a10 10 0 0 1-10 10" /></svg>
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <path d="M22 12a10 10 0 0 1-10 10" />
+            </svg>
           </div>
-          <p className="text-muted font-mono text-sm tracking-widest uppercase">Loading Organizational Data...</p>
+          <p className="text-muted font-mono text-sm tracking-widest uppercase">
+            Loading Organizational Data...
+          </p>
         </div>
       ) : step === 2 ? (
         <div className="flex flex-col gap-4">
@@ -126,43 +139,47 @@ export const SchedulingWizard = ({
               <tbody className="divide-y divide-hi">
                 {config.preferences.length === 0 ? (
                   <tr>
-                    <td colSpan={3} className="px-4 py-8 text-center text-muted">No employees found in organization.</td>
+                    <td colSpan={3} className="px-4 py-8 text-center text-muted">
+                      No employees found in organization.
+                    </td>
                   </tr>
-                ) : config.preferences.map((emp, index) => (
-                  <tr key={emp.id} className="bg-black/10 hover:bg-black/20">
-                    <td className="px-4 py-3 font-medium">{emp.name}</td>
-                    <td className="px-4 py-3 font-mono text-muted">
-                      <div className="flex items-center gap-1">
-                        <span>$</span>
-                        <input
-                          type="number"
-                          value={emp.amount}
-                          onChange={(e) => {
+                ) : (
+                  config.preferences.map((emp, index) => (
+                    <tr key={emp.id} className="bg-black/10 hover:bg-black/20">
+                      <td className="px-4 py-3 font-medium">{emp.name}</td>
+                      <td className="px-4 py-3 font-mono text-muted">
+                        <div className="flex items-center gap-1">
+                          <span>$</span>
+                          <input
+                            type="number"
+                            value={emp.amount}
+                            onChange={(e) => {
+                              const newPrefs = [...config.preferences];
+                              newPrefs[index].amount = e.target.value;
+                              setConfig({ ...config, preferences: newPrefs });
+                            }}
+                            className="bg-transparent border-b border-hi focus:border-accent outline-none w-20 px-1 py-0.5"
+                          />
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <select
+                          value={emp.currency}
+                          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
                             const newPrefs = [...config.preferences];
-                            newPrefs[index].amount = e.target.value;
+                            newPrefs[index].currency = e.target.value;
                             setConfig({ ...config, preferences: newPrefs });
                           }}
-                          className="bg-transparent border-b border-hi focus:border-accent outline-none w-20 px-1 py-0.5"
-                        />
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <select
-                        value={emp.currency}
-                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-                          const newPrefs = [...config.preferences];
-                          newPrefs[index].currency = e.target.value;
-                          setConfig({ ...config, preferences: newPrefs });
-                        }}
-                        className="bg-transparent border border-hi rounded p-1 text-text focus:border-accent outline-none"
-                      >
-                        <option value="USDC">USDC (Stellar)</option>
-                        <option value="XLM">XLM</option>
-                        <option value="EURC">EURC</option>
-                      </select>
-                    </td>
-                  </tr>
-                ))}
+                          className="bg-transparent border border-hi rounded p-1 text-text focus:border-accent outline-none"
+                        >
+                          <option value="USDC">USDC (Stellar)</option>
+                          <option value="XLM">XLM</option>
+                          <option value="EURC">EURC</option>
+                        </select>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -187,10 +204,11 @@ export const SchedulingWizard = ({
                       frequency: freq as SchedulingConfig['frequency'],
                     })
                   }
-                  className={`flex-1 py-3 rounded-xl border font-bold capitalize transition-all ${config.frequency === freq
-                    ? 'border-accent text-accent bg-accent/10'
-                    : 'border-hi text-muted hover:border-accent/40'
-                    }`}
+                  className={`flex-1 py-3 rounded-xl border font-bold capitalize transition-all ${
+                    config.frequency === freq
+                      ? 'border-accent text-accent bg-accent/10'
+                      : 'border-hi text-muted hover:border-accent/40'
+                  }`}
                 >
                   {freq}
                 </button>
