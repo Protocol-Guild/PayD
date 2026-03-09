@@ -9,7 +9,7 @@ interface ContractorInfo {
 }
 
 export class InvoicePDFService {
-  generateInvoicePDF(invoice: Invoice, contractorInfo: ContractorInfo): PDFKit.PDFDocument {
+  generateInvoicePDF(invoice: Invoice, contractorInfo: ContractorInfo): PDFDocument {
     const doc = new PDFDocument({ margin: 50 });
 
     // Header

@@ -10,11 +10,11 @@ const pool = new Pool({ connectionString: config.DATABASE_URL });
 export class InvoiceController {
   async createInvoice(req: Request, res: Response) {
     try {
-      const data = createInvoiceSchema.parse(req.body);
+      const parsed = createInvoiceSchema.parse(req.body);
       const contractorId = req.user!.id;
       const organizationId = req.user!.organizationId!;
 
-      const invoice = await invoiceService.createInvoice(contractorId, organizationId, data);
+      const invoice = await invoiceService.createInvoice(contractorId, organizationId, parsed);
       res.status(201).json(invoice);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to create invoice';
@@ -63,7 +63,7 @@ export class InvoiceController {
 
   async getInvoiceById(req: Request, res: Response) {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseInt(String(req.params.id));
       const organizationId = req.user!.organizationId!;
 
       const invoice = await invoiceService.getInvoiceById(id, organizationId);
@@ -81,12 +81,12 @@ export class InvoiceController {
 
   async reviewInvoice(req: Request, res: Response) {
     try {
-      const id = parseInt(req.params.id);
-      const data = reviewInvoiceSchema.parse(req.body);
+      const id = parseInt(String(req.params.id));
+      const parsed = reviewInvoiceSchema.parse(req.body);
       const organizationId = req.user!.organizationId!;
       const reviewerId = req.user!.id;
 
-      const invoice = await invoiceService.reviewInvoice(id, organizationId, reviewerId, data);
+      const invoice = await invoiceService.reviewInvoice(id, organizationId, reviewerId, parsed);
       res.json(invoice);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to review invoice';
@@ -107,7 +107,7 @@ export class InvoiceController {
 
   async downloadInvoicePDF(req: Request, res: Response) {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseInt(String(req.params.id));
       const organizationId = req.user!.organizationId!;
 
       const invoice = await invoiceService.getInvoiceById(id, organizationId);
