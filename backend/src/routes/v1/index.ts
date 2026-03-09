@@ -18,7 +18,7 @@ import taxRoutes from '../taxRoutes.js';
 import multiSigRoutes from '../multiSigRoutes.js';
 import rateLimitRoutes from '../rateLimitRoutes.js';
 import freezeRoutes from '../freezeRoutes.js';
-import claimableBalanceRoutes from '../claimableBalanceRoutes.js';
+import contractUpgradeRoutes from '../contractUpgradeRoutes.js';
 
 const router = Router();
 
@@ -39,6 +39,6 @@ router.use('/taxes', dataRateLimit(), taxRoutes);
 router.use('/multisig', apiRateLimit(), multiSigRoutes);
 router.use('/rate-limit', apiRateLimit(), rateLimitRoutes);
 router.use('/freeze', apiRateLimit(), freezeRoutes);
-router.use('/claims', apiRateLimit(), claimableBalanceRoutes);
+router.use('/contracts', apiRateLimit(), contractUpgradeRoutes);
 
 export default router;

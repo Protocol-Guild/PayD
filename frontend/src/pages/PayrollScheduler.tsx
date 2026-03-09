@@ -12,6 +12,29 @@ import { useTranslation } from 'react-i18next';
 import { Card, Heading, Text, Button, Input, Select } from '@stellar/design-system';
 import { SchedulingWizard } from '../components/SchedulingWizard';
 import { CountdownTimer } from '../components/CountdownTimer';
+import {
+  getSchedules,
+  createSchedule,
+  deleteSchedule,
+  ScheduleRecord,
+} from '../services/scheduleApi';
+import { BulkPaymentStatusTracker } from '../components/BulkPaymentStatusTracker';
+
+interface EmployeePreference {
+  id: string;
+  name: string;
+  amount: string;
+  currency: string;
+  wallet: string;
+}
+
+interface SchedulingConfig {
+  frequency: 'weekly' | 'biweekly' | 'monthly';
+  dayOfWeek?: number;
+  dayOfMonth?: number;
+  timeOfDay: string;
+  preferences: EmployeePreference[];
+}
 
 interface PayrollFormState {
   employeeName: string;
@@ -56,6 +79,7 @@ const initialFormState: PayrollFormState = {
 };
 
 export default function PayrollScheduler() {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
   const { t } = useTranslation();
   const { notifySuccess, notifyError, notifyWarning } = useNotification();
   const { socket, subscribeToTransaction, unsubscribeFromTransaction } = useSocket();
@@ -101,23 +125,53 @@ export default function PayrollScheduler() {
     if (saved) {
       setFormData(saved);
     }
+    void fetchActiveSchedules();
   }, [loadSavedData]);
 
-  const handleScheduleComplete = (config: { frequency: string; timeOfDay: string }) => {
-    setActiveSchedule(config);
-    setIsWizardOpen(false);
-    notifySuccess(
-      'Payroll schedule configured!',
-      `Frequency: ${config.frequency}, time: ${config.timeOfDay}`
-    );
+  const fetchActiveSchedules = async () => {
+    setIsLoadingSchedules(true);
+    try {
+      const { schedules } = await getSchedules({ status: 'active' });
+      setDbSchedules(schedules);
+      if (schedules.length > 0) {
+        // Set the most imminent one as active for the countdown
+        const imminent = schedules[0];
+        setActiveSchedule({ frequency: imminent.frequency, timeOfDay: imminent.timeOfDay });
+        setNextRunDate(new Date(imminent.nextRunTimestamp));
+      } else {
+        setActiveSchedule(null);
+        setNextRunDate(null);
+      }
+    } catch (err) {
+      console.error('Failed to fetch schedules:', err);
+    } finally {
+      setIsLoadingSchedules(false);
+    }
+  };
 
-    // Compute next run for countdown demo
-    const d = new Date();
-    if (config.frequency === 'monthly') d.setMonth(d.getMonth() + 1);
-    else if (config.frequency === 'weekly') d.setDate(d.getDate() + 7);
-    else d.setDate(d.getDate() + 14);
+  const handleScheduleComplete = async (config: SchedulingConfig) => {
+    try {
+      const input = {
+        frequency: config.frequency,
+        timeOfDay: config.timeOfDay,
+        startDate: new Date().toISOString().split('T')[0], // Default to today
+        paymentConfig: {
+          recipients: config.preferences.map((p: EmployeePreference) => ({
+            walletAddress: p.wallet,
+            amount: p.amount,
+            assetCode: p.currency,
+          })),
+        },
+      };
 
-    setNextRunDate(d);
+      const result = await createSchedule(input);
+      notifySuccess('Payroll schedule configured!', `Ref ID: ${result.id}`);
+      setIsWizardOpen(false);
+      void fetchActiveSchedules();
+    } catch (err) {
+      console.error('Failed to create schedule:', err);
+      notifyError('Failed to create schedule', 'Please try again later.');
+    }
   };
 
   const handleChange = (
@@ -146,10 +200,14 @@ export default function PayrollScheduler() {
       }
     };
 
-    socket.on('transaction:update', handleTransactionUpdate);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const activeSocket = socket;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    activeSocket.on('transaction:update', handleTransactionUpdate);
 
     return () => {
-      socket.off('transaction:update', handleTransactionUpdate);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      activeSocket.off('transaction:update', handleTransactionUpdate);
     };
   }, [socket, notifySuccess]);
 
@@ -266,6 +324,17 @@ export default function PayrollScheduler() {
     }
   };
 
+  const handleCancelSchedule = async (id: number) => {
+    try {
+      await deleteSchedule(id);
+      notifySuccess('Schedule cancelled', 'The automation has been halted.');
+      void fetchActiveSchedules();
+    } catch (err) {
+      console.error('Failed to cancel schedule:', err);
+      notifyError('Cancellation failed', 'Unable to reach the server.');
+    }
+  };
+
   const handleRemoveClaim = (id: string) => {
     unsubscribeFromTransaction(id);
     const updatedClaims = pendingClaims.filter((c) => c.id !== id);
@@ -278,7 +347,9 @@ export default function PayrollScheduler() {
       <div className="w-full mb-12 flex items-end justify-between border-b border-hi pb-8">
         <div>
           <Heading as="h1" size="lg" weight="bold" addlClassName="mb-2 tracking-tight">
+            {/* eslint-disable-next-line @typescript-eslint/no-unsafe-call */}
             {t('payroll.title', 'Workforce')}{' '}
+            {/* eslint-disable-next-line @typescript-eslint/no-unsafe-call */}
             <span className="text-accent">{t('payroll.titleHighlight', 'Scheduler')}</span>
           </Heading>
           <Text
@@ -287,6 +358,7 @@ export default function PayrollScheduler() {
             weight="regular"
             addlClassName="text-muted font-mono tracking-wider uppercase"
           >
+            {/* eslint-disable-next-line @typescript-eslint/no-unsafe-call */}
             {t('payroll.subtitle', 'Automated distribution engine')}
           </Text>
         </div>
@@ -346,7 +418,9 @@ export default function PayrollScheduler() {
 
       {isWizardOpen ? (
         <SchedulingWizard
-          onComplete={handleScheduleComplete}
+          onComplete={(config) => {
+            void handleScheduleComplete(config);
+          }}
           onCancel={() => setIsWizardOpen(false)}
         />
       ) : (
@@ -364,6 +438,7 @@ export default function PayrollScheduler() {
                 <Input
                   id="employeeName"
                   fieldSize="md"
+                  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
                   label={t('payroll.employeeName', 'Employee Name')}
                   name="employeeName"
                   value={formData.employeeName}
@@ -388,6 +463,7 @@ export default function PayrollScheduler() {
                 <Input
                   id="amount"
                   fieldSize="md"
+                  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
                   label={t('payroll.amountLabel', 'Amount (USD equivalent)')}
                   name="amount"
                   value={formData.amount}
@@ -400,12 +476,15 @@ export default function PayrollScheduler() {
                 <Select
                   id="frequency"
                   fieldSize="md"
+                  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
                   label={t('payroll.distributionFrequency', 'Distribution Frequency')}
                   name="frequency"
                   value={formData.frequency}
                   onChange={handleChange}
                 >
+                  {/* eslint-disable-next-line @typescript-eslint/no-unsafe-call */}
                   <option value="weekly">{t('payroll.frequencyWeekly', 'Weekly')}</option>
+                  {/* eslint-disable-next-line @typescript-eslint/no-unsafe-call */}
                   <option value="monthly">{t('payroll.frequencyMonthly', 'Monthly')}</option>
                 </Select>
               </div>
@@ -414,6 +493,7 @@ export default function PayrollScheduler() {
                 <Input
                   id="startDate"
                   fieldSize="md"
+                  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
                   label={t('payroll.commencementDate', 'Commencement Date')}
                   name="startDate"
                   type="date"
@@ -433,7 +513,8 @@ export default function PayrollScheduler() {
                   >
                     {isSimulating
                       ? 'Simulating...'
-                      : t('payroll.submit', 'Initialize and Validate')}
+                      : // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+                        t('payroll.submit', 'Initialize and Validate')}
                   </Button>
                 ) : (
                   <Button
@@ -520,17 +601,107 @@ export default function PayrollScheduler() {
         </div>
       )}
 
+      <div className="w-full mb-12">
+        <Heading as="h2" size="sm" weight="bold" addlClassName="mb-4">
+          Scheduled Automations
+        </Heading>
+        {isLoadingSchedules ? (
+          <div className="flex justify-center p-8">
+            <span className="animate-spin text-accent">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <path d="M22 12a10 10 0 0 1-10 10" />
+              </svg>
+            </span>
+          </div>
+        ) : dbSchedules.length === 0 ? (
+          <Card>
+            <Text as="p" size="sm" weight="regular" addlClassName="text-muted p-4">
+              No active payroll schedules found in the database.
+            </Text>
+          </Card>
+        ) : (
+          <ul className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {dbSchedules.map((schedule) => (
+              <li key={schedule.id} className="card glass noise relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-3">
+                  <span className="px-2 py-0.5 rounded-full bg-success/20 text-success text-[10px] font-bold uppercase tracking-widest">
+                    {schedule.status}
+                  </span>
+                </div>
+                <div className="p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center text-accent">
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-base capitalize">
+                        {schedule.frequency} Distribution
+                      </h4>
+                      <p className="text-xs text-muted font-mono">{schedule.timeOfDay} UTC</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 mb-6">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted">Next Run</span>
+                      <span className="font-mono text-text">
+                        {new Date(schedule.nextRunTimestamp).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted">Recipients</span>
+                      <span className="font-bold text-text">
+                        {schedule.paymentConfig.recipients.length} Employees
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      void handleCancelSchedule(schedule.id);
+                    }}
+                    className="w-full py-2 bg-danger/10 hover:bg-danger/20 text-danger text-xs font-bold rounded-lg transition-colors"
+                  >
+                    Cancel Automation
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
       <div className="w-full">
         <Heading as="h2" size="sm" weight="bold" addlClassName="mb-4">
-          Pending Claims
+          Recent Manual Claims
         </Heading>
         <Card>
           {pendingClaims.length === 0 ? (
             <Text as="p" size="sm" weight="regular" addlClassName="text-muted">
-              No pending claimable balances.
+              No recent manual claimable balances.
             </Text>
           ) : (
-            <ul className="flex flex-col gap-4">
+            <ul className="flex flex-col gap-4 p-4">
               {pendingClaims.map((claim: PendingClaim) => (
                 <li key={claim.id} className="border border-hi p-4 rounded-lg">
                   <div className="flex justify-between mb-2">
@@ -571,6 +742,10 @@ export default function PayrollScheduler() {
             </ul>
           )}
         </Card>
+      </div>
+
+      <div className="w-full">
+        <BulkPaymentStatusTracker organizationId={1} />
       </div>
     </div>
   );

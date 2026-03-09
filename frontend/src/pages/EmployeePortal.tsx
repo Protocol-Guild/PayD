@@ -25,7 +25,6 @@ import {
 } from '../services/currencyConversion';
 import styles from './EmployeePortal.module.css';
 import { useWallet } from '../hooks/useWallet';
-import { fetchPendingClaims, type PendingClaimRecord } from '../services/claimsApi';
 
 /* ── Helper: status badge ────────── */
 function StatusBadge({ status }: { status: EmployeeTransaction['status'] }) {
