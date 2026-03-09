@@ -8,11 +8,14 @@ import { generateWallet } from '../services/stellar';
 import { useTranslation } from 'react-i18next';
 import { useNotification } from '../hooks/useNotification';
 
+import api from '../utils/api';
+
 interface EmployeeFormState {
   fullName: string;
   walletAddress: string;
   role: string;
   currency: string;
+  email: string; // Added email
 }
 
 interface EmployeeItem {
@@ -30,62 +33,52 @@ const initialFormState: EmployeeFormState = {
   walletAddress: '',
   role: 'contractor',
   currency: 'USDC',
+  email: '',
 };
-
-const mockEmployees: EmployeeItem[] = [
-  {
-    id: '1',
-    name: 'Wilfred G.',
-    email: 'wilfred@example.com',
-    imageUrl: '',
-    position: 'Lead Developer',
-    wallet: 'GDUKMGUGKAAZBAMNSMUA4Y6G4XDSZPSZ3SW5UN3ARVMO6QSRDWP5YLEXT2U2D6',
-    status: 'Active',
-  },
-  {
-    id: '2',
-    name: 'Chinelo A.',
-    email: 'chinelo@example.com',
-    imageUrl: '',
-    position: 'Product Manager',
-    wallet: 'GDUKMGUGKAAZBAMNSMUA4Y6G4XDSZPSZ3SW5UN3ARVMO6QSRDWP5YLEXT2U2D6',
-    status: 'Active',
-  },
-  {
-    id: '3',
-    name: 'Emeka N.',
-    email: 'emeka@example.com',
-    imageUrl: 'https://i.pravatar.cc/150?img=3',
-    position: 'UX Designer',
-    wallet: 'GDUKMGUGKAAZBAMNSMUA4Y6G4XDSZPSZ3SW5UN3ARVMO6QSRDWP5YLEXT2U2D6',
-    status: 'Active',
-  },
-  {
-    id: '4',
-    name: 'Fatima K.',
-    email: 'fatima@example.com',
-    imageUrl: '',
-    position: 'HR Specialist',
-    wallet: 'GDUKMGUGKAAZBAMNSMUA4Y6G4XDSZPSZ3SW5UN3ARVMO6QSRDWP5YLEXT2U2D6',
-    status: 'Active',
-  },
-];
 
 export default function EmployeeEntry() {
   const [isAdding, setIsAdding] = useState(false);
   const [formData, setFormData] = useState<EmployeeFormState>(initialFormState);
+  const [employees, setEmployees] = useState<EmployeeItem[]>([]);
+  const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState<{
     message: string;
     secretKey?: string;
     walletAddress?: string;
     employeeName?: string;
   } | null>(null);
+  
   const { notifySuccess } = useNotification();
   const { saving, lastSaved, loadSavedData } = useAutosave<EmployeeFormState>(
     'employee-entry-draft',
     formData
   );
   const { t } = useTranslation();
+
+  const fetchEmployees = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/employees');
+      // Backend returns { data: [...], pagination: {...} }
+      const mapped = response.data.data.map((emp: any) => ({
+        id: String(emp.id),
+        name: `${emp.first_name} ${emp.last_name}`,
+        email: emp.email,
+        position: emp.position || emp.job_title || 'Employee',
+        wallet: emp.wallet_address,
+        status: emp.status === 'active' ? 'Active' : 'Inactive',
+      }));
+      setEmployees(mapped);
+    } catch (error) {
+      console.error('Failed to fetch employees:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEmployees();
+  }, []);
 
   useEffect(() => {
     const saved = loadSavedData();
@@ -96,40 +89,62 @@ export default function EmployeeEntry() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev: EmployeeFormState) => ({ ...prev, [name]: value }));
   };
 
   const handleSelectChange = (name: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev: EmployeeFormState) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.SyntheticEvent) => {
+const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
-    void (() => {
+    void (async () => {
       let generatedWallet: { publicKey: string; secretKey: string } | undefined;
       if (!formData.walletAddress) {
         generatedWallet = generateWallet();
-        setFormData((prev) => ({
-          ...prev,
-          walletAddress: generatedWallet!.publicKey,
-        }));
       }
 
-      const submitData = {
-        ...formData,
-        walletAddress: generatedWallet ? generatedWallet.publicKey : formData.walletAddress,
+      const walletAddress = generatedWallet ? generatedWallet.publicKey : formData.walletAddress;
+
+      // Split name into first and last
+      const nameParts = formData.fullName.trim().split(' ');
+      const firstName = nameParts[0] || 'Unknown';
+      const lastName = nameParts.slice(1).join(' ') || 'Employee';
+
+      const payload = {
+        first_name: firstName,
+        last_name: lastName,
+        email: formData.email,
+        wallet_address: walletAddress,
+        position: formData.role, // Mapping role to position for now as per minimal demo
+        base_salary: 0, // Default for now
+        base_currency: formData.currency,
+        status: 'active',
       };
 
-      console.log('Form submitted, employee saved:', submitData);
+      try {
+        await api.post('/employees', payload);
+        
+        notifySuccess(
+          `${formData.fullName} added successfully!`,
+          generatedWallet ? 'A new Stellar wallet was generated for this employee.' : undefined
+        );
 
-      notifySuccess(`${submitData.fullName} added successfully!`);
+        setNotification({
+          message: `Employee ${formData.fullName} added successfully! ${
+            generatedWallet ? 'A wallet was created for them.' : ''
+          }`,
+          secretKey: generatedWallet?.secretKey,
+          walletAddress,
+          employeeName: formData.fullName,
+        });
 
-      setNotification({
-        message: 'Employee added successfully!',
-        secretKey: generatedWallet?.secretKey,
-        walletAddress: submitData.walletAddress,
-        employeeName: submitData.fullName,
-      });
+        // Reset form and refresh list
+        setFormData(initialFormState);
+        fetchEmployees();
+      } catch (error) {
+        console.error('Failed to add employee:', error);
+      }
     })();
   };
 
@@ -235,6 +250,17 @@ export default function EmployeeEntry() {
               required
             />
             <Input
+              id="email"
+              fieldSize="md"
+              label="Email Address"
+              name="email"
+              type="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="jane.smith@example.com"
+              required
+            />
+            <Input
               id="walletAddress"
               fieldSize="md"
               label="Stellar Wallet Address (Optional)"
@@ -249,7 +275,7 @@ export default function EmployeeEntry() {
               fieldSize="md"
               label="Role"
               value={formData.role}
-              onChange={(e) => handleSelectChange('role', e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleSelectChange('role', e.target.value)}
             >
               <option value="contractor">Contractor</option>
               <option value="full-time">Full Time</option>
@@ -260,7 +286,7 @@ export default function EmployeeEntry() {
               fieldSize="md"
               label="Preferred Currency"
               value={formData.currency}
-              onChange={(e) => handleSelectChange('currency', e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleSelectChange('currency', e.target.value)}
             >
               <option value="USDC">USDC</option>
               <option value="XLM">XLM</option>
@@ -297,11 +323,17 @@ export default function EmployeeEntry() {
         </button>
       </div>
 
-      <EmployeeList
-        employees={mockEmployees}
-        onEmployeeClick={(employee) => console.log('Clicked:', employee.name)}
-        onAddEmployee={(employee) => console.log('Added:', employee)}
-      />
+      {loading ? (
+        <div className="flex justify-center p-12">
+          <div className="w-12 h-12 border-4 border-accent border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      ) : (
+        <EmployeeList
+          employees={employees}
+          onEmployeeClick={(employee: EmployeeItem) => console.log('Clicked:', employee.name)}
+          onAddEmployee={(employee: EmployeeItem) => console.log('Added:', employee)}
+        />
+      )}
     </div>
   );
 }
