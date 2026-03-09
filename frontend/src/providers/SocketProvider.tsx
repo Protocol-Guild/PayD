@@ -54,16 +54,37 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
+  const subscribeToAdminPayments = () => {
+    if (socket && connected) {
+      socket.emit('subscribe:admin:payments');
+    }
+  };
+
+  const unsubscribeFromAdminPayments = () => {
+    if (socket && connected) {
+      socket.emit('unsubscribe:admin:payments');
+    }
+  };
+
+  const requestPaymentStats = () => {
+    if (socket && connected) {
+      socket.emit('request:payment:stats');
+    }
+  };
+
   return (
-    <SocketContext
+    <SocketContext.Provider
       value={{
         socket,
         connected,
         subscribeToTransaction,
         unsubscribeFromTransaction,
+        subscribeToAdminPayments,
+        unsubscribeFromAdminPayments,
+        requestPaymentStats,
       }}
     >
       {children}
-    </SocketContext>
+    </SocketContext.Provider>
   );
 };
