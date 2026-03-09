@@ -28,6 +28,22 @@ interface EmployeeItem {
   status?: 'Active' | 'Inactive';
 }
 
+interface BackendEmployee {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  position?: string;
+  job_title?: string;
+  wallet_address?: string;
+  status: 'active' | 'inactive';
+}
+
+interface EmployeesResponse {
+  data: BackendEmployee[];
+  pagination?: unknown;
+}
+
 const initialFormState: EmployeeFormState = {
   fullName: '',
   walletAddress: '',
@@ -58,9 +74,9 @@ export default function EmployeeEntry() {
   const fetchEmployees = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/employees');
+      const response = await api.get<EmployeesResponse>('/employees');
       // Backend returns { data: [...], pagination: {...} }
-      const mapped = response.data.data.map((emp: any) => ({
+      const mapped: EmployeeItem[] = response.data.data.map((emp) => ({
         id: String(emp.id),
         name: `${emp.first_name} ${emp.last_name}`,
         email: emp.email,
@@ -69,15 +85,15 @@ export default function EmployeeEntry() {
         status: emp.status === 'active' ? 'Active' : 'Inactive',
       }));
       setEmployees(mapped);
-    } catch (error) {
-      console.error('Failed to fetch employees:', error);
+    } catch (err) {
+      console.error('Failed to fetch employees:', err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchEmployees();
+    void fetchEmployees();
   }, []);
 
   useEffect(() => {
@@ -98,54 +114,52 @@ export default function EmployeeEntry() {
 
 const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
-    void (async () => {
-      let generatedWallet: { publicKey: string; secretKey: string } | undefined;
-      if (!formData.walletAddress) {
-        generatedWallet = generateWallet();
-      }
+    let generatedWallet: { publicKey: string; secretKey: string } | undefined;
+    if (!formData.walletAddress) {
+      generatedWallet = generateWallet();
+    }
 
-      const walletAddress = generatedWallet ? generatedWallet.publicKey : formData.walletAddress;
+    const walletAddress = generatedWallet ? generatedWallet.publicKey : formData.walletAddress;
 
-      // Split name into first and last
-      const nameParts = formData.fullName.trim().split(' ');
-      const firstName = nameParts[0] || 'Unknown';
-      const lastName = nameParts.slice(1).join(' ') || 'Employee';
+    // Split name into first and last
+    const nameParts = formData.fullName.trim().split(' ');
+    const firstName = nameParts[0] || 'Unknown';
+    const lastName = nameParts.slice(1).join(' ') || 'Employee';
 
-      const payload = {
-        first_name: firstName,
-        last_name: lastName,
-        email: formData.email,
-        wallet_address: walletAddress,
-        position: formData.role, // Mapping role to position for now as per minimal demo
-        base_salary: 0, // Default for now
-        base_currency: formData.currency,
-        status: 'active',
-      };
+    const payload = {
+      first_name: firstName,
+      last_name: lastName,
+      email: formData.email,
+      wallet_address: walletAddress,
+      position: formData.role, // Mapping role to position for now as per minimal demo
+      base_salary: 0, // Default for now
+      base_currency: formData.currency,
+      status: 'active',
+    };
 
-      try {
-        await api.post('/employees', payload);
-        
-        notifySuccess(
-          `${formData.fullName} added successfully!`,
-          generatedWallet ? 'A new Stellar wallet was generated for this employee.' : undefined
-        );
+    try {
+      await api.post('/employees', payload);
+      
+      notifySuccess(
+        `${formData.fullName} added successfully!`,
+        generatedWallet ? 'A new Stellar wallet was generated for this employee.' : undefined
+      );
 
-        setNotification({
-          message: `Employee ${formData.fullName} added successfully! ${
-            generatedWallet ? 'A wallet was created for them.' : ''
-          }`,
-          secretKey: generatedWallet?.secretKey,
-          walletAddress,
-          employeeName: formData.fullName,
-        });
+      setNotification({
+        message: `Employee ${formData.fullName} added successfully! ${
+          generatedWallet ? 'A wallet was created for them.' : ''
+        }`,
+        secretKey: generatedWallet?.secretKey,
+        walletAddress,
+        employeeName: formData.fullName,
+      });
 
-        // Reset form and refresh list
-        setFormData(initialFormState);
-        fetchEmployees();
-      } catch (error) {
-        console.error('Failed to add employee:', error);
-      }
-    })();
+      // Reset form and refresh list
+      setFormData(initialFormState);
+      void fetchEmployees();
+    } catch (err) {
+      console.error('Failed to add employee:', err);
+    }
   };
 
   if (isAdding) {
@@ -236,7 +250,7 @@ const handleSubmit = async (e: React.SyntheticEvent) => {
 
         <Card>
           <form
-            onSubmit={handleSubmit}
+            onSubmit={(e) => void handleSubmit(e)}
             style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}
           >
             <Input
