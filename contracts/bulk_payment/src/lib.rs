@@ -170,18 +170,28 @@ impl BulkPaymentContract {
             return Err(ContractError::BatchTooLarge);
         }
 
-        let mut total: i128 = 0;
+        let mut total_requested: i128 = 0;
         for op in payments.iter() {
             if op.amount > 0 {
-                total = total.checked_add(op.amount).ok_or(ContractError::AmountOverflow)?;
+                total_requested = total_requested
+                    .checked_add(op.amount)
+                    .ok_or(ContractError::AmountOverflow)?;
             }
         }
 
         let token_client = token::Client::new(&env, &token);
         let contract_addr = env.current_contract_address();
-        token_client.transfer(&sender, &contract_addr, &total);
 
-        let mut remaining = total;
+        // Pull only what the sender can actually cover. This makes the partial mode
+        // behave as a true best-effort batch rather than reverting on insufficient funds.
+        let sender_balance = token_client.balance(&sender);
+        let total_to_pull = core::cmp::min(total_requested, sender_balance);
+
+        if total_to_pull > 0 {
+            token_client.transfer(&sender, &contract_addr, &total_to_pull);
+        }
+
+        let mut remaining = total_to_pull;
         let mut success_count: u32 = 0;
         let mut fail_count: u32 = 0;
         let mut total_sent: i128 = 0;
