@@ -269,6 +269,7 @@ async function verifySchema(): Promise<void> {
 
         const expectedForeignKeys = [
             { table: 'schedules', column: 'organization_id', foreign_table: 'organizations', foreign_column: 'id' },
+            { table: 'schedules', column: 'user_id', foreign_table: 'users', foreign_column: 'id' },
             { table: 'execution_history', column: 'schedule_id', foreign_table: 'schedules', foreign_column: 'id' },
         ];
 
@@ -301,6 +302,7 @@ async function verifySchema(): Promise<void> {
             { name: 'idx_schedules_next_run', pattern: /schedules.*next_run_timestamp.*status/i },
             { name: 'idx_schedules_org_id', pattern: /schedules.*organization_id/i },
             { name: 'idx_schedules_status', pattern: /schedules.*status/i },
+            { name: 'idx_schedules_user_id', pattern: /schedules.*user_id/i },
             { name: 'idx_execution_schedule_id', pattern: /execution_history.*schedule_id/i },
             { name: 'idx_execution_status', pattern: /execution_history.*status/i },
             { name: 'idx_execution_executed_at', pattern: /execution_history.*executed_at/i },
@@ -363,7 +365,33 @@ async function verifySchema(): Promise<void> {
                 }
             }
 
-            // Test 3: Try to insert execution_history with invalid schedule_id (should fail)
+            // Test 3: Try to insert a schedule with invalid user_id (should fail)
+            try {
+                await client.query('BEGIN');
+                await client.query(
+                    `INSERT INTO schedules (
+                        organization_id, user_id, frequency, time_of_day, 
+                        start_date, payment_config, next_run_timestamp, status
+                    ) VALUES (
+                        (SELECT id FROM organizations LIMIT 1), 999999, 'once', '10:00:00', 
+                        CURRENT_DATE, '{"recipients": []}'::jsonb, 
+                        CURRENT_TIMESTAMP, 'active'
+                    )`
+                );
+                await client.query('ROLLBACK');
+                console.error('✗ Foreign key constraint schedules.user_id -> users.id is NOT enforced');
+                allChecksPass = false;
+            } catch (err) {
+                await client.query('ROLLBACK');
+                if (err instanceof Error && err.message.includes('foreign key constraint')) {
+                    console.log('✓ Foreign key constraint schedules.user_id -> users.id is enforced');
+                } else {
+                    console.error(`✗ Unexpected error testing foreign key: ${err instanceof Error ? err.message : String(err)}`);
+                    allChecksPass = false;
+                }
+            }
+
+            // Test 4: Try to insert execution_history with invalid schedule_id (should fail)
             try {
                 await client.query('BEGIN');
                 await client.query(

@@ -25,6 +25,7 @@ import contractRoutes from './routes/contractRoutes.js';
 // My Routes
 import scheduleRoutes from './routes/scheduleRoutes.js';
 import contractEventRoutes from './routes/contractEventRoutes.js';
+import certificateRoutes from './routes/certificateRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -66,6 +67,7 @@ app.use('/api', contractRoutes);
 // Feature specific routes
 app.use('/api/schedules', scheduleRoutes);
 app.use('/api/events', contractEventRoutes);
+app.use('/api/certificates', certificateRoutes);
 
 // 404 handler
 app.use((req, res) => {
