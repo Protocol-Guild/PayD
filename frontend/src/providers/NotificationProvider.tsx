@@ -1,4 +1,5 @@
-import React, { useCallback } from 'react';
+import * as React from 'react';
+import { useCallback } from 'react';
 import { toast } from 'sonner';
 import { NotificationContext } from '../hooks/useNotification';
 
@@ -18,8 +19,13 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     (toast as any).error(message, { description });
   }, []);
 
+  const notifyWarning = useCallback((message: string, description?: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
+    (toast as any).warning(message, { description });
+  }, []);
+
   return (
-    <NotificationContext value={{ notify, notifySuccess, notifyError }}>
+    <NotificationContext value={{ notify, notifySuccess, notifyError, notifyWarning }}>
       {children}
     </NotificationContext>
   );

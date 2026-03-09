@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { ChangeEvent } from 'react';
 import {
   ArrowUpRight,
   RefreshCw,
@@ -25,6 +25,13 @@ import {
 } from '../services/currencyConversion';
 import styles from './EmployeePortal.module.css';
 import { useWallet } from '../hooks/useWallet';
+import { fetchPendingClaims, type PendingClaimRecord } from '../services/claimsApi';
+import {
+  checkTrustline,
+  createTrustlineTransaction,
+  USDC_ISSUER,
+  EURC_ISSUER,
+} from '../services/stellar';
 
 /* ── Helper: status badge ────────── */
 function StatusBadge({ status }: { status: EmployeeTransaction['status'] }) {
@@ -57,7 +64,7 @@ function TypeBadge({ type }: { type: EmployeeTransaction['type'] }) {
 function LoadingSkeleton() {
   return (
     <div>
-      {['s1', 's2', 's3', 's4', 's5'].map((id) => (
+      {['s1', 's2', 's3', 's4', 's5'].map((id: string) => (
         <div key={id} className={`${styles.skeleton} ${styles.skeletonRow}`} />
       ))}
     </div>
@@ -72,6 +79,9 @@ const EmployeePortal: React.FC = () => {
   const [pendingClaims, setPendingClaims] = React.useState<PendingClaimRecord[]>([]);
   const [isClaiming, setIsClaiming] = React.useState<string | null>(null);
   const [pendingClaimsError, setPendingClaimsError] = React.useState<string | null>(null);
+  const [missingTrustlines, setMissingTrustlines] = React.useState<string[]>([]);
+  const [isEstablishing, setIsEstablishing] = React.useState<string | null>(null);
+
   const {
     transactions,
     balance,
@@ -96,8 +106,44 @@ const EmployeePortal: React.FC = () => {
   // Calculate stats
   const totalReceived = balance?.orgUsd || 0;
   const totalTransactions = transactions.length;
-  const pendingCount = transactions.filter((t) => t.status === 'pending').length;
-  const lastPayment = transactions.find((t) => t.status === 'completed');
+  const pendingCount = transactions.filter(
+    (t: EmployeeTransaction) => t.status === 'pending'
+  ).length;
+  const lastPayment = transactions.find((t: EmployeeTransaction) => t.status === 'completed');
+
+  // Check trustlines on address change
+  React.useEffect(() => {
+    if (!address) {
+      setMissingTrustlines([]);
+      return;
+    }
+
+    let cancelled = false;
+    async function checkEmployeeTrustlines() {
+      const [hasUSDC, hasEURC] = await Promise.all([
+        checkTrustline(address!, 'USDC', USDC_ISSUER),
+        checkTrustline(address!, 'EURC', EURC_ISSUER),
+      ]);
+
+      const results = [
+        { code: 'USDC', has: hasUSDC },
+        { code: 'EURC', has: hasEURC },
+      ];
+
+      if (!cancelled) {
+        setMissingTrustlines(
+          results
+            .filter((r: { code: string; has: boolean }) => !r.has)
+            .map((r: { code: string; has: boolean }) => r.code)
+        );
+      }
+    }
+
+    void checkEmployeeTrustlines();
+    return () => {
+      cancelled = true;
+    };
+  }, [address]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -113,10 +159,11 @@ const EmployeePortal: React.FC = () => {
         setPendingClaimsError(null);
         const claims = await fetchPendingClaims(address);
         if (!cancelled) setPendingClaims(claims);
-      } catch (e) {
+      } catch (e: unknown) {
         if (!cancelled) {
           setPendingClaims([]);
-          setPendingClaimsError(e instanceof Error ? e.message : 'Failed to load pending claims');
+          const errorMessage = e instanceof Error ? e.message : 'Failed to load pending claims';
+          setPendingClaimsError(errorMessage);
         }
       }
     }
@@ -127,7 +174,7 @@ const EmployeePortal: React.FC = () => {
     };
   }, [address]);
 
-  const handleClaim = async (claimId: string, balanceId: string | null) => {
+  const handleClaim = async (claimId: string) => {
     setIsClaiming(claimId);
     clearContractError();
     try {
@@ -135,7 +182,7 @@ const EmployeePortal: React.FC = () => {
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
       // Simulate a contract error for testing if the amount is '777'
-      const claim = pendingClaims.find((c) => c.id === claimId);
+      const claim = pendingClaims.find((c: PendingClaimRecord) => c.id === claimId);
       if (claim?.amount === '777') {
         const mockErrorXdr = 'AAAABAAAAAEAAAABAAAABQ=='; // ScvError(ScError{type: SCE_CONTRACT, code: 5})
         handleContractError(mockErrorXdr);
@@ -145,12 +192,39 @@ const EmployeePortal: React.FC = () => {
       notifySuccess('Claim successful!', 'The funds have been transferred to your wallet.');
 
       // Remove the claimed item from the list
-      setPendingClaims((prev) => prev.filter((c) => c.id !== claimId));
-    } catch (err) {
+      setPendingClaims((prev: PendingClaimRecord[]) =>
+        prev.filter((c: PendingClaimRecord) => c.id !== claimId)
+      );
+    } catch (err: unknown) {
       console.error(err);
       notifyError('Claim failed', 'A contract error occurred. Please review the details below.');
     } finally {
       setIsClaiming(null);
+    }
+  };
+
+  const handleEstablishTrustline = async (assetCode: string) => {
+    if (!address) return;
+    setIsEstablishing(assetCode);
+    try {
+      const issuer = assetCode === 'USDC' ? USDC_ISSUER : EURC_ISSUER;
+      const txResult = createTrustlineTransaction(address, assetCode, issuer);
+
+      if (!txResult.success) throw new Error('Failed to create transaction');
+
+      // For demo, we simulate the network delay
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      notifySuccess(
+        `${assetCode} Trustline Established`,
+        'You can now receive payroll in this asset.'
+      );
+      setMissingTrustlines((prev: string[]) => prev.filter((c: string) => c !== assetCode));
+    } catch (err: unknown) {
+      console.error(err);
+      notifyError('Failed to establish trustline', 'Please try again.');
+    } finally {
+      setIsEstablishing(null);
     }
   };
 
@@ -212,9 +286,9 @@ const EmployeePortal: React.FC = () => {
             <select
               className={styles.currencySelect}
               value={selectedCurrency}
-              onChange={(e) => setSelectedCurrency(e.target.value)}
+              onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedCurrency(e.target.value)}
             >
-              {Object.entries(currencies).map(([code, name]) => (
+              {Object.entries(currencies).map(([code, name]: [string, string]) => (
                 <option key={code} value={code}>
                   {code} — {name}
                 </option>
@@ -290,6 +364,45 @@ const EmployeePortal: React.FC = () => {
         </div>
       </div>
 
+      {/* ── Missing Trustlines ────────── */}
+      {missingTrustlines.length > 0 && (
+        <div className="w-full card glass noise p-6 border-orange-500/20 bg-orange-500/5">
+          <div className="flex items-center gap-3 mb-4">
+            <AlertCircle className="w-5 h-5 text-orange-500" />
+            <h2 className="text-lg font-bold text-orange-100">Setup Required</h2>
+          </div>
+          <p className="text-sm text-orange-100/70 mb-6">
+            To receive payments in certain assets, you must first establish a trustline with the
+            issuer. This is a standard Stellar security feature.
+          </p>
+          <div className="flex flex-wrap gap-4">
+            {missingTrustlines.map((code: string) => (
+              <div
+                key={code}
+                className="flex flex-col gap-3 p-4 rounded-xl bg-black/40 border border-hi min-w-[200px]"
+              >
+                <div className="text-sm font-bold">{code}</div>
+                <div className="text-xs text-[var(--muted)] mb-1">Stellar Asset Trustline</div>
+                <button
+                  onClick={() => {
+                    void handleEstablishTrustline(code);
+                  }}
+                  disabled={isEstablishing === code}
+                  className="w-full px-4 py-2 rounded-lg bg-[var(--accent)] text-white text-xs font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isEstablishing === code ? (
+                    <RefreshCw className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Wallet className="w-3 h-3" />
+                  )}
+                  Establish Trustline
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ── Error Banner ─────────────── */}
       {error && (
         <div className="flex items-center gap-3 p-4 rounded-xl bg-[rgba(255,123,114,0.08)] border border-[rgba(255,123,114,0.2)]">
@@ -308,17 +421,18 @@ const EmployeePortal: React.FC = () => {
                 type="button"
                 onClick={() => {
                   if (address) {
-                    void fetchPendingClaims(address)
-                      .then((claims) => {
+                    void (async () => {
+                      try {
+                        const claims = await fetchPendingClaims(address);
                         setPendingClaimsError(null);
                         setPendingClaims(claims);
-                      })
-                      .catch((e) => {
+                      } catch (e: unknown) {
                         setPendingClaims([]);
-                        setPendingClaimsError(
-                          e instanceof Error ? e.message : 'Failed to refresh pending claims'
-                        );
-                      });
+                        const errorMessage =
+                          e instanceof Error ? e.message : 'Failed to refresh pending claims';
+                        setPendingClaimsError(errorMessage);
+                      }
+                    })();
                   }
                 }}
                 className="px-3 py-1.5 rounded-lg bg-black/20 hover:bg-black/40 border border-hi text-xs font-semibold"
@@ -335,10 +449,10 @@ const EmployeePortal: React.FC = () => {
           ) : (
             <div className="flex flex-col gap-3">
               <div className="text-sm text-[var(--muted)]">
-                If you have a pending claim, add the ORGUSD trustline in your wallet and then claim
-                the balance.
+                If you have a pending claim, add the trustline in your wallet and then claim the
+                balance.
               </div>
-              {pendingClaims.map((c) => (
+              {pendingClaims.map((c: PendingClaimRecord) => (
                 <div
                   key={c.id}
                   className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 p-3 rounded-xl bg-black/20 border border-hi"
@@ -355,7 +469,9 @@ const EmployeePortal: React.FC = () => {
                     Balance ID: {c.stellar_balance_id || '—'}
                   </div>
                   <button
-                    onClick={() => void handleClaim(c.id, c.stellar_balance_id)}
+                    onClick={() => {
+                      void handleClaim(c.id);
+                    }}
                     disabled={isClaiming === c.id}
                     className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-bold hover:opacity-90 transition-all disabled:opacity-50 flex items-center gap-2"
                   >
@@ -387,14 +503,14 @@ const EmployeePortal: React.FC = () => {
                 className={styles.searchInput}
                 style={{ paddingLeft: 28 }}
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
               />
             </div>
 
             <select
               className={styles.filterSelect}
               value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
+              onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterStatus(e.target.value)}
             >
               <option value="all">All Status</option>
               <option value="completed">Completed</option>
@@ -405,7 +521,7 @@ const EmployeePortal: React.FC = () => {
             <select
               className={styles.filterSelect}
               value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
+              onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterType(e.target.value)}
             >
               <option value="all">All Types</option>
               <option value="salary">Salary</option>
@@ -450,7 +566,7 @@ const EmployeePortal: React.FC = () => {
             <p className={styles.emptyDesc}>Try adjusting your filters or check back later.</p>
           </div>
         ) : (
-          transactions.map((tx) => (
+          transactions.map((tx: EmployeeTransaction) => (
             <div key={tx.id} className={styles.txRow}>
               {/* Date */}
               <div>
@@ -522,15 +638,17 @@ const EmployeePortal: React.FC = () => {
             >
               ‹
             </button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-              <button
-                key={p}
-                className={`${styles.pageBtn} ${p === currentPage ? styles.pageBtnActive : ''}`}
-                onClick={() => setCurrentPage(p)}
-              >
-                {p}
-              </button>
-            ))}
+            {Array.from({ length: totalPages }, (_: unknown, i: number) => i + 1).map(
+              (p: number) => (
+                <button
+                  key={p}
+                  className={`${styles.pageBtn} ${p === currentPage ? styles.pageBtnActive : ''}`}
+                  onClick={() => setCurrentPage(p)}
+                >
+                  {p}
+                </button>
+              )
+            )}
             <button
               className={styles.pageBtn}
               onClick={() => setCurrentPage(currentPage + 1)}

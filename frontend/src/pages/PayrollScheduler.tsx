@@ -7,7 +7,11 @@ import { ContractErrorPanel } from '../components/ContractErrorPanel';
 import { useNotification } from '../hooks/useNotification';
 import { useContractError } from '../hooks/useContractError';
 import { useSocket } from '../hooks/useSocket';
-import { createClaimableBalanceTransaction, generateWallet, checkTrustline } from '../services/stellar';
+import {
+  createClaimableBalanceTransaction,
+  generateWallet,
+  checkTrustline,
+} from '../services/stellar';
 import { useTranslation } from 'react-i18next';
 import { Card, Heading, Text, Button, Input, Select } from '@stellar/design-system';
 import { SchedulingWizard } from '../components/SchedulingWizard';
@@ -177,7 +181,7 @@ export default function PayrollScheduler() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev: PayrollFormState) => ({ ...prev, [name]: value }));
     if (simulationResult) resetSimulation();
     clearContractError();
     setTrustlineMissing(false);
@@ -188,8 +192,8 @@ export default function PayrollScheduler() {
 
     const handleTransactionUpdate = (data: { transactionId: string; status: string }) => {
       console.log('Received transaction update:', data);
-      setPendingClaims((prev) =>
-        prev.map((claim) =>
+      setPendingClaims((prev: PendingClaim[]) =>
+        (prev || []).map((claim: PendingClaim) =>
           claim.id === data.transactionId ? { ...claim, status: data.status } : claim
         )
       );
@@ -210,7 +214,10 @@ export default function PayrollScheduler() {
 
   const handleInitialize = async () => {
     if (!formData.employeeName || !formData.amount || !formData.walletAddress) {
-      notifyError('Missing required fields', 'Please provide employee name, amount, and wallet address.');
+      notifyError(
+        'Missing required fields',
+        'Please provide employee name, amount, and wallet address.'
+      );
       return;
     }
 
@@ -315,7 +322,10 @@ export default function PayrollScheduler() {
       setFormData(initialFormState);
     } catch (err) {
       console.error(err);
-      notifyError('Broadcast failed', 'A contract error occurred. Please review the details below.');
+      notifyError(
+        'Broadcast failed',
+        'A contract error occurred. Please review the details below.'
+      );
     } finally {
       setIsBroadcasting(false);
     }
@@ -565,7 +575,16 @@ export default function PayrollScheduler() {
               {trustlineMissing && (
                 <div className="mb-4 p-3 rounded-lg bg-orange-500/10 border border-orange-500/30 flex items-start gap-3">
                   <div className="mt-0.5">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#f97316"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
                       <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
                       <line x1="12" y1="9" x2="12" y2="13" />
                       <line x1="12" y1="17" x2="12.01" y2="17" />
@@ -575,8 +594,14 @@ export default function PayrollScheduler() {
                     <Text as="p" size="xs" weight="bold" addlClassName="text-orange-500 mb-1">
                       Trustline Missing
                     </Text>
-                    <Text as="p" size="xs" weight="regular" addlClassName="text-orange-200/70 leading-relaxed">
-                      Employee does not have a USDC trustline. Payment will be held as a claimable balance.
+                    <Text
+                      as="p"
+                      size="xs"
+                      weight="regular"
+                      addlClassName="text-orange-200/70 leading-relaxed"
+                    >
+                      Employee does not have a USDC trustline. Payment will be held as a claimable
+                      balance.
                     </Text>
                   </div>
                 </div>
@@ -594,7 +619,9 @@ export default function PayrollScheduler() {
               <ul className="text-xs text-muted space-y-2 list-disc pl-4 font-medium">
                 <li>Insufficient XLM balance for fees</li>
                 <li>Invalid sequence numbers</li>
-                <li className={trustlineMissing ? "text-orange-400 font-bold" : ""}>Missing trustlines for tokens</li>
+                <li className={trustlineMissing ? 'text-orange-400 font-bold' : ''}>
+                  Missing trustlines for tokens
+                </li>
                 <li>Account eligibility status</li>
               </ul>
             </div>
