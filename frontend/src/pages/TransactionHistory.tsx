@@ -5,6 +5,7 @@ import {
   type HistoryFilters,
   type TimelineItem,
 } from '../services/transactionHistory.js';
+import { CertificateDownloadButton } from '../components/CertificateDownloadButton.js';
 
 const DEFAULT_FILTERS: HistoryFilters = {
   search: '',
@@ -238,7 +239,12 @@ export default function TransactionHistory() {
                   Amount: {item.amount} {item.asset}
                 </p>
                 {item.txHash ? (
-                  <p className="text-xs text-blue-400 font-mono mt-1 break-all">{item.txHash}</p>
+                  <>
+                    <p className="text-xs text-blue-400 font-mono mt-1 break-all">{item.txHash}</p>
+                    <div className="mt-2 flex justify-end">
+                      <CertificateDownloadButton transactionHash={item.txHash} />
+                    </div>
+                  </>
                 ) : null}
               </div>
             ))}

@@ -310,9 +310,18 @@ export default function PayrollScheduler() {
       <div className="w-full mb-12 flex items-end justify-between border-b border-hi pb-8">
         <div>
           <Heading as="h1" size="lg" weight="bold" addlClassName="mb-2 tracking-tight">
+<<<<<<< feat/employer-dashboard-layout
             {}
             {t('payroll.title', 'Workforce')} {}
             <span className="text-accent">{t('payroll.titleHighlight', 'Scheduler')}</span>
+=======
+            {/* eslint-disable-next-line @typescript-eslint/no-unsafe-call */}
+            {t('payroll.title', 'Workforce')}{' '}
+            <span className="text-accent">
+              {/* eslint-disable-next-line @typescript-eslint/no-unsafe-call */}
+              {t('payroll.titleHighlight', 'Scheduler')}
+            </span>
+>>>>>>> main
           </Heading>
           <Text
             as="p"
