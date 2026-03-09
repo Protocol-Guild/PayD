@@ -3,7 +3,9 @@ import { AutosaveIndicator } from '../components/AutosaveIndicator';
 import { useAutosave } from '../hooks/useAutosave';
 import { useTransactionSimulation } from '../hooks/useTransactionSimulation';
 import { TransactionSimulationPanel } from '../components/TransactionSimulationPanel';
+import { ContractErrorPanel } from '../components/ContractErrorPanel';
 import { useNotification } from '../hooks/useNotification';
+import { useContractError } from '../hooks/useContractError';
 import { useSocket } from '../hooks/useSocket';
 import { createClaimableBalanceTransaction, generateWallet } from '../services/stellar';
 import { useTranslation } from 'react-i18next';
@@ -87,8 +89,7 @@ export default function PayrollScheduler() {
     timeOfDay: string;
   } | null>(null);
   const [nextRunDate, setNextRunDate] = useState<Date | null>(null);
-  const [dbSchedules, setDbSchedules] = useState<ScheduleRecord[]>([]);
-  const [isLoadingSchedules, setIsLoadingSchedules] = useState(false);
+  const { contractError, handleContractError, clearContractError } = useContractError();
 
   const [pendingClaims, setPendingClaims] = useState<PendingClaim[]>(() => {
     const saved = localStorage.getItem('pending-claims');
@@ -176,6 +177,7 @@ export default function PayrollScheduler() {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (simulationResult) resetSimulation();
+    clearContractError();
   };
 
   useEffect(() => {
@@ -213,11 +215,19 @@ export default function PayrollScheduler() {
     const mockXdr =
       'AAAAAgAAAABmF8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
 
-    await simulate({ envelopeXdr: mockXdr });
+    const simResult = await simulate({ envelopeXdr: mockXdr });
+
+    // If simulation result contains a resultXdr error, parse it
+    if (simResult && !simResult.success && simResult.resultXdr) {
+      handleContractError(simResult.resultXdr);
+    } else {
+      clearContractError();
+    }
   };
 
   const handleBroadcast = async () => {
     setIsBroadcasting(true);
+    clearContractError();
     try {
       const mockRecipientPublicKey = generateWallet().publicKey;
 
@@ -230,11 +240,20 @@ export default function PayrollScheduler() {
       );
 
       if (!result.success) {
+        // In a real scenario, we might have a resultXdr here from a failed submission
+        handleContractError(undefined, 'Failed to create claimable balance');
         throw new Error('Failed to create claimable balance');
       }
 
       // Simulate a brief delay for network broadcast
       await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      // Simulate a contract error for testing if amount is 403
+      if (formData.amount === '403') {
+        const mockErrorXdr = 'AAAABAAAAAEAAAABAAAABQ=='; // ScvError(ScError{type: SCE_CONTRACT, code: 5})
+        handleContractError(mockErrorXdr);
+        throw new Error('Contract invocation failed');
+      }
 
       // Add to pending claims
       const newClaim: PendingClaim = {
@@ -281,7 +300,7 @@ export default function PayrollScheduler() {
       setFormData(initialFormState);
     } catch (err) {
       console.error(err);
-      notifyError('Broadcast failed', 'Please check your network connection and try again.');
+      notifyError('Broadcast failed', 'A contract error occurred. Please review the details below.');
     } finally {
       setIsBroadcasting(false);
     }
@@ -406,6 +425,7 @@ export default function PayrollScheduler() {
               className="w-full grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 card glass noise p-4 sm:p-6"
             >
               <div className="md:col-span-2">
+                <ContractErrorPanel error={contractError} />
                 <Input
                   id="employeeName"
                   fieldSize="md"
