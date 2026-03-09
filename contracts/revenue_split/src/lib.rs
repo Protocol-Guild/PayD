@@ -1,6 +1,6 @@
 #![no_std]
 
-use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, Vec, token};
+use soroban_sdk::{contract, contracterror, contractimpl, contracttype, Address, Env, Vec, token};
 
 #[cfg(test)]
 mod test;
@@ -9,6 +9,19 @@ mod test;
 pub enum DataKey {
     Admin,
     Recipients,
+}
+
+#[contracterror]
+#[derive(Copy, Clone, Debug, PartialEq)]
+#[repr(u32)]
+pub enum ContractError {
+    AlreadyInitialized = 1,
+    NotInitialized = 2,
+    Unauthorized = 3,
+    EmptyRecipients = 4,
+    DuplicateRecipient = 5,
+    SharesMustSumToTotal = 6,
+    InvalidAmount = 7,
 }
 
 #[derive(Clone)]
@@ -26,53 +39,56 @@ pub struct RevenueSplitContract;
 #[contractimpl]
 impl RevenueSplitContract {
     /// Initialize the contract with an admin and an initial set of recipients/shares.
-    pub fn init(env: Env, admin: Address, shares: Vec<RecipientShare>) {
+    pub fn init(env: Env, admin: Address, shares: Vec<RecipientShare>) -> Result<(), ContractError> {
         if env.storage().instance().has(&DataKey::Admin) {
-            panic!("Already initialized");
+            return Err(ContractError::AlreadyInitialized);
         }
-        
-        let mut total_bp = 0;
-        for share in shares.iter() {
-            total_bp += share.basis_points;
-        }
-        
-        if total_bp != TOTAL_BASIS_POINTS {
-            panic!("Shares must sum to 10000 basis points");
-        }
+
+        // Ensure the provided admin signs initialization.
+        admin.require_auth();
+
+        Self::validate_shares(&env, &shares)?;
 
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage().instance().set(&DataKey::Recipients, &shares);
+        Ok(())
     }
 
     /// Allows the current admin to set a new admin.
-    pub fn set_admin(env: Env, new_admin: Address) {
-        let admin: Address = env.storage().instance().get(&DataKey::Admin).expect("Not initialized");
-        admin.require_auth();
+    pub fn set_admin(env: Env, new_admin: Address) -> Result<(), ContractError> {
+        Self::require_admin(&env)?;
         env.storage().instance().set(&DataKey::Admin, &new_admin);
+        Ok(())
     }
 
     /// Updates the recipient splits dynamically (admin only).
-    pub fn update_recipients(env: Env, new_shares: Vec<RecipientShare>) {
-        let admin: Address = env.storage().instance().get(&DataKey::Admin).expect("Not initialized");
-        admin.require_auth();
+    pub fn update_recipients(env: Env, new_shares: Vec<RecipientShare>) -> Result<(), ContractError> {
+        Self::require_admin(&env)?;
 
-        let mut total_bp = 0;
-        for share in new_shares.iter() {
-            total_bp += share.basis_points;
-        }
-        
-        if total_bp != TOTAL_BASIS_POINTS {
-            panic!("Shares must sum to 10000 basis points");
-        }
+        Self::validate_shares(&env, &new_shares)?;
 
         env.storage().instance().set(&DataKey::Recipients, &new_shares);
+        Ok(())
     }
 
     /// Distributes a specific token amount from a sender to the listed recipients based on their shares.
-    pub fn distribute(env: Env, token: Address, from: Address, amount: i128) {
+    pub fn distribute(env: Env, token: Address, from: Address, amount: i128) -> Result<(), ContractError> {
+        if !env.storage().instance().has(&DataKey::Admin) {
+            return Err(ContractError::NotInitialized);
+        }
+
+        if amount <= 0 {
+            return Err(ContractError::InvalidAmount);
+        }
+
         from.require_auth();
-        
-        let shares: Vec<RecipientShare> = env.storage().instance().get(&DataKey::Recipients).expect("Not initialized");
+
+        let shares: Vec<RecipientShare> = env
+            .storage()
+            .instance()
+            .get(&DataKey::Recipients)
+            .ok_or(ContractError::NotInitialized)?;
+
         let client = token::Client::new(&env, &token);
 
         let mut amount_distributed = 0;
@@ -95,5 +111,46 @@ impl RevenueSplitContract {
                 }
             }
         }
+
+        Ok(())
+    }
+
+    fn require_admin(env: &Env) -> Result<Address, ContractError> {
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(ContractError::NotInitialized)?;
+
+        // require_auth traps on failure; we also convert missing init to a typed error above.
+        admin.require_auth();
+        Ok(admin)
+    }
+
+    fn validate_shares(env: &Env, shares: &Vec<RecipientShare>) -> Result<(), ContractError> {
+        if shares.len() == 0 {
+            return Err(ContractError::EmptyRecipients);
+        }
+
+        let mut total_bp: u32 = 0;
+        let mut seen: Vec<Address> = Vec::new(env);
+
+        for share in shares.iter() {
+            total_bp = total_bp.wrapping_add(share.basis_points);
+
+            // Prevent duplicates; duplicates create ambiguity and can cause unexpected dust behavior.
+            for addr in seen.iter() {
+                if addr == share.destination {
+                    return Err(ContractError::DuplicateRecipient);
+                }
+            }
+            seen.push_back(share.destination.clone());
+        }
+
+        if total_bp != TOTAL_BASIS_POINTS {
+            return Err(ContractError::SharesMustSumToTotal);
+        }
+
+        Ok(())
     }
 }
