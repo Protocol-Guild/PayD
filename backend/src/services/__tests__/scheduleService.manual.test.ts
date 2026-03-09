@@ -18,7 +18,7 @@ function testCalculateNextRun() {
   try {
     const startDate = new Date('2024-01-15');
     const result = service.calculateNextRun('once', '14:30', startDate);
-    
+
     if (
       result.getFullYear() === 2024 &&
       result.getMonth() === 0 &&
@@ -43,7 +43,7 @@ function testCalculateNextRun() {
   try {
     const startDate = new Date('2024-01-15');
     const result = service.calculateNextRun('weekly', '10:00', startDate);
-    
+
     if (
       result.getFullYear() === 2024 &&
       result.getMonth() === 0 &&
@@ -69,7 +69,7 @@ function testCalculateNextRun() {
     const startDate = new Date('2024-01-15');
     const lastRun = new Date('2024-02-05');
     const result = service.calculateNextRun('weekly', '15:45', startDate, lastRun);
-    
+
     if (
       result.getFullYear() === 2024 &&
       result.getMonth() === 1 &&
@@ -94,7 +94,7 @@ function testCalculateNextRun() {
   try {
     const startDate = new Date('2024-01-15');
     const result = service.calculateNextRun('biweekly', '08:30', startDate);
-    
+
     if (
       result.getFullYear() === 2024 &&
       result.getMonth() === 0 &&
@@ -119,7 +119,7 @@ function testCalculateNextRun() {
   try {
     const startDate = new Date('2024-01-15');
     const result = service.calculateNextRun('monthly', '11:00', startDate);
-    
+
     if (
       result.getFullYear() === 2024 &&
       result.getMonth() === 1 &&
@@ -144,7 +144,7 @@ function testCalculateNextRun() {
   try {
     const startDate = new Date('2024-12-15');
     const result = service.calculateNextRun('monthly', '09:00', startDate);
-    
+
     if (
       result.getFullYear() === 2025 &&
       result.getMonth() === 0 &&
@@ -169,7 +169,7 @@ function testCalculateNextRun() {
   try {
     const startDate = new Date('2024-01-15');
     const result = service.calculateNextRun('weekly', '00:00', startDate);
-    
+
     if (result.getHours() === 0 && result.getMinutes() === 0) {
       console.log('✓ Test 7 passed: Handles midnight time correctly');
       passed++;
@@ -188,7 +188,7 @@ function testCalculateNextRun() {
   try {
     const startDate = new Date('2024-01-15');
     const result = service.calculateNextRun('weekly', '23:59', startDate);
-    
+
     if (result.getHours() === 23 && result.getMinutes() === 59) {
       console.log('✓ Test 8 passed: Handles end of day time correctly');
       passed++;

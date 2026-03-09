@@ -1,8 +1,8 @@
+/// <reference types="jest" />
 import { ScheduleExecutor } from '../scheduleExecutor';
 import { StellarService } from '../stellarService';
 import { scheduleService } from '../scheduleService';
 import type { Schedule, ExecutionResult } from '../../types/schedule';
-import { Keypair } from '@stellar/stellar-sdk';
 
 // Mock dependencies
 jest.mock('../../config/database.js', () => ({
@@ -15,7 +15,7 @@ jest.mock('../../config/database.js', () => ({
 jest.mock('../stellarService');
 jest.mock('../scheduleService');
 jest.mock('node-cron', () => ({
-  schedule: jest.fn((expression, callback) => ({
+  schedule: jest.fn((_expression: string, _callback: () => void) => ({
     stop: jest.fn(),
   })),
 }));
@@ -30,7 +30,6 @@ describe('ScheduleExecutor', () => {
   const mockStellarService = StellarService as jest.Mocked<typeof StellarService>;
   const mockScheduleService = scheduleService as jest.Mocked<typeof scheduleService>;
 
-  const mockConnect = jest.fn();
   const mockRelease = jest.fn();
   const mockClientQuery = jest.fn();
 
@@ -58,10 +57,7 @@ describe('ScheduleExecutor', () => {
     it('should set up cron job to run every minute', () => {
       executor.initialize();
 
-      expect(mockCron.schedule).toHaveBeenCalledWith(
-        '* * * * *',
-        expect.any(Function)
-      );
+      expect(mockCron.schedule).toHaveBeenCalledWith('* * * * *', expect.any(Function));
     });
 
     it('should log initialization message', () => {
@@ -69,9 +65,7 @@ describe('ScheduleExecutor', () => {
 
       executor.initialize();
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Cron job initialized')
-      );
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Cron job initialized'));
 
       consoleSpy.mockRestore();
     });
@@ -115,6 +109,7 @@ describe('ScheduleExecutor', () => {
               },
             ],
           },
+          timezone: 'America/New_York',
           nextRunTimestamp: new Date(),
           lastRunTimestamp: null,
           status: 'active',
@@ -137,7 +132,7 @@ describe('ScheduleExecutor', () => {
       await executor.processDueSchedules();
 
       expect(mockClientQuery).toHaveBeenCalledWith(
-        expect.stringContaining('WHERE next_run_timestamp <= NOW() AND status = \'active\'')
+        expect.stringContaining("WHERE next_run_timestamp <= NOW() AND status = 'active'")
       );
       expect(executor.executeSchedule).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -180,6 +175,7 @@ describe('ScheduleExecutor', () => {
               },
             ],
           },
+          timezone: 'America/New_York',
           nextRunTimestamp: new Date(),
           lastRunTimestamp: null,
           status: 'active',
@@ -203,6 +199,7 @@ describe('ScheduleExecutor', () => {
               },
             ],
           },
+          timezone: 'America/New_York',
           nextRunTimestamp: new Date(),
           lastRunTimestamp: null,
           status: 'active',
@@ -244,6 +241,7 @@ describe('ScheduleExecutor', () => {
               },
             ],
           },
+          timezone: 'America/New_York',
           nextRunTimestamp: new Date(),
           lastRunTimestamp: null,
           status: 'active',
@@ -267,6 +265,7 @@ describe('ScheduleExecutor', () => {
               },
             ],
           },
+          timezone: 'America/New_York',
           nextRunTimestamp: new Date(),
           lastRunTimestamp: null,
           status: 'active',
@@ -277,7 +276,8 @@ describe('ScheduleExecutor', () => {
 
       mockClientQuery.mockResolvedValueOnce({ rows: mockSchedules });
 
-      jest.spyOn(executor, 'executeSchedule')
+      jest
+        .spyOn(executor, 'executeSchedule')
         .mockRejectedValueOnce(new Error('Execution failed'))
         .mockResolvedValueOnce({
           success: true,
@@ -320,6 +320,7 @@ describe('ScheduleExecutor', () => {
         ],
         memo: 'Test payment',
       },
+      timezone: 'America/New_York',
       nextRunTimestamp: new Date(),
       lastRunTimestamp: undefined,
       status: 'active',
@@ -331,8 +332,8 @@ describe('ScheduleExecutor', () => {
       const mockTransaction = { build: jest.fn().mockReturnValue({ sign: jest.fn() }) };
       const mockBuilder = { build: jest.fn().mockReturnValue(mockTransaction) };
 
-      mockStellarService.buildTransaction.mockResolvedValue(mockBuilder as any);
-      mockStellarService.signTransaction.mockReturnValue(mockTransaction as any);
+      mockStellarService.buildTransaction.mockResolvedValue(mockBuilder as never);
+      mockStellarService.signTransaction.mockReturnValue(mockTransaction as never);
       mockStellarService.submitTransaction.mockResolvedValue({
         hash: 'abc123',
         ledger: 12345,
@@ -349,9 +350,7 @@ describe('ScheduleExecutor', () => {
     });
 
     it('should handle execution failure', async () => {
-      mockStellarService.buildTransaction.mockRejectedValue(
-        new Error('Insufficient balance')
-      );
+      mockStellarService.buildTransaction.mockRejectedValue(new Error('Insufficient balance'));
       mockStellarService.parseError.mockReturnValue({
         type: 'HorizonError',
         message: 'Insufficient balance',
@@ -473,9 +472,9 @@ describe('ScheduleExecutor', () => {
         .mockResolvedValueOnce({ rows: [] }) // BEGIN
         .mockRejectedValueOnce(new Error('Database error')); // INSERT fails
 
-      await expect(
-        executor.recordExecution(scheduleId, executionResult)
-      ).rejects.toThrow('Database error');
+      await expect(executor.recordExecution(scheduleId, executionResult)).rejects.toThrow(
+        'Database error'
+      );
 
       expect(mockClientQuery).toHaveBeenCalledWith('ROLLBACK');
       expect(mockRelease).toHaveBeenCalled();
@@ -489,9 +488,9 @@ describe('ScheduleExecutor', () => {
 
       mockClientQuery.mockRejectedValueOnce(new Error('Connection error'));
 
-      await expect(
-        executor.recordExecution(scheduleId, executionResult)
-      ).rejects.toThrow('Connection error');
+      await expect(executor.recordExecution(scheduleId, executionResult)).rejects.toThrow(
+        'Connection error'
+      );
 
       expect(mockRelease).toHaveBeenCalled();
     });

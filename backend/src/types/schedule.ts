@@ -72,26 +72,19 @@ export interface ExecutionHistory {
 
 // Type guard for ScheduleFrequency
 export function isScheduleFrequency(value: unknown): value is ScheduleFrequency {
-  return (
-    typeof value === 'string' &&
-    ['once', 'weekly', 'biweekly', 'monthly'].includes(value)
-  );
+  return typeof value === 'string' && ['once', 'weekly', 'biweekly', 'monthly'].includes(value);
 }
 
 // Type guard for ScheduleStatus
 export function isScheduleStatus(value: unknown): value is ScheduleStatus {
   return (
-    typeof value === 'string' &&
-    ['active', 'completed', 'cancelled', 'failed'].includes(value)
+    typeof value === 'string' && ['active', 'completed', 'cancelled', 'failed'].includes(value)
   );
 }
 
 // Type guard for ExecutionStatus
 export function isExecutionStatus(value: unknown): value is ExecutionStatus {
-  return (
-    typeof value === 'string' &&
-    ['success', 'failed', 'partial'].includes(value)
-  );
+  return typeof value === 'string' && ['success', 'failed', 'partial'].includes(value);
 }
 
 // API Request/Response Types

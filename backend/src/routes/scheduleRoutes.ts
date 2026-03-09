@@ -16,11 +16,7 @@ router.use(isolateOrganization);
  * @body {CreateScheduleRequest} Schedule configuration
  * @returns {CreateScheduleResponse} Created schedule with ID and next run timestamp
  */
-router.post(
-  '/',
-  authorizeRoles('EMPLOYER'),
-  ScheduleController.createSchedule
-);
+router.post('/', authorizeRoles('EMPLOYER'), ScheduleController.createSchedule);
 
 /**
  * @route GET /api/schedules
@@ -31,11 +27,7 @@ router.post(
  * @query {number} limit - Optional items per page
  * @returns {GetSchedulesResponse} List of schedules with pagination metadata
  */
-router.get(
-  '/',
-  authorizeRoles('EMPLOYER'),
-  ScheduleController.getSchedules
-);
+router.get('/', authorizeRoles('EMPLOYER'), ScheduleController.getSchedules);
 
 /**
  * @route DELETE /api/schedules/:id
@@ -46,10 +38,6 @@ router.get(
  * @returns {404} Schedule not found
  * @returns {403} User doesn't own this schedule
  */
-router.delete(
-  '/:id',
-  authorizeRoles('EMPLOYER'),
-  ScheduleController.deleteSchedule
-);
+router.delete('/:id', authorizeRoles('EMPLOYER'), ScheduleController.deleteSchedule);
 
 export default router;

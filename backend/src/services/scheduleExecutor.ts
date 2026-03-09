@@ -96,7 +96,9 @@ export class ScheduleExecutor {
           // We can check if last_run_timestamp is very close to now AND next_run_timestamp hasn't updated yet
           // But a better way is to rely on the transaction in recordExecution which updates the status/nextRun
 
-          console.log(`[ScheduleExecutor] Executing schedule ID ${schedule.id} (Scheduled for: ${schedule.nextRunTimestamp.toISOString()})`);
+          console.log(
+            `[ScheduleExecutor] Executing schedule ID ${schedule.id} (Scheduled for: ${schedule.nextRunTimestamp.toISOString()})`
+          );
 
           // Execute the schedule
           const executionResult = await this.executeSchedule(schedule);
@@ -106,7 +108,9 @@ export class ScheduleExecutor {
 
           if (executionResult.success) {
             successCount++;
-            console.log(`[ScheduleExecutor] Schedule ID ${schedule.id} executed successfully. Hash: ${executionResult.transactionHash}`);
+            console.log(
+              `[ScheduleExecutor] Schedule ID ${schedule.id} executed successfully. Hash: ${executionResult.transactionHash}`
+            );
           } else {
             failureCount++;
             console.error(

@@ -1,6 +1,10 @@
 import { Router } from 'express';
 import { throttlingMiddleware } from '../../middlewares/throttlingMiddleware.js';
-import { authRateLimit, apiRateLimit, dataRateLimit } from '../../middlewares/rateLimitMiddleware.js';
+import {
+  authRateLimit,
+  apiRateLimit,
+  dataRateLimit,
+} from '../../middlewares/rateLimitMiddleware.js';
 import searchRoutes from '../searchRoutes.js';
 import employeeRoutes from '../employeeRoutes.js';
 import paymentRoutes from '../paymentRoutes.js';

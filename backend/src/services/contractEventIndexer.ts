@@ -31,13 +31,15 @@ export class ContractEventIndexer {
     }
 
     console.log('[ContractEventIndexer] Initializing...');
-    console.log(`[ContractEventIndexer] Monitoring contracts: ${this.CONTRACTS_TO_INDEX.join(', ')}`);
-    
+    console.log(
+      `[ContractEventIndexer] Monitoring contracts: ${this.CONTRACTS_TO_INDEX.join(', ')}`
+    );
+
     this.isRunning = true;
-    
+
     // Run immediately on startup
     await this.pollAndIndexEvents();
-    
+
     // Then poll at regular intervals
     this.intervalId = setInterval(async () => {
       await this.pollAndIndexEvents();
@@ -86,13 +88,15 @@ export class ContractEventIndexer {
    */
   private async indexContractEvents(contractId: string, fromLedger: number): Promise<void> {
     const events = await this.fetchEventsFromRPC(contractId, fromLedger);
-    
+
     if (events.length === 0) {
       console.log(`[ContractEventIndexer] No new events for contract ${contractId}`);
       return;
     }
 
-    console.log(`[ContractEventIndexer] Found ${events.length} new events for contract ${contractId}`);
+    console.log(
+      `[ContractEventIndexer] Found ${events.length} new events for contract ${contractId}`
+    );
 
     const client = await pool.connect();
     try {
@@ -118,7 +122,9 @@ export class ContractEventIndexer {
       }
 
       await client.query('COMMIT');
-      console.log(`[ContractEventIndexer] Indexed ${insertedCount} events, skipped ${skippedCount} duplicates`);
+      console.log(
+        `[ContractEventIndexer] Indexed ${insertedCount} events, skipped ${skippedCount} duplicates`
+      );
     } catch (error) {
       await client.query('ROLLBACK');
       throw error;
@@ -130,7 +136,10 @@ export class ContractEventIndexer {
   /**
    * Fetch events from Soroban RPC
    */
-  private async fetchEventsFromRPC(contractId: string, startLedger: number): Promise<SorobanEvent[]> {
+  private async fetchEventsFromRPC(
+    contractId: string,
+    startLedger: number
+  ): Promise<SorobanEvent[]> {
     try {
       const response = await fetch(this.RPC_URL, {
         method: 'POST',
@@ -160,7 +169,10 @@ export class ContractEventIndexer {
         throw new Error(`RPC request failed: ${response.status} ${response.statusText}`);
       }
 
-      const data = (await response.json()) as { error?: { message?: string }; result?: GetEventsResponse };
+      const data = (await response.json()) as {
+        error?: { message?: string };
+        result?: GetEventsResponse;
+      };
 
       if (data.error) {
         throw new Error(`RPC error: ${data.error.message || 'Unknown RPC error'}`);
@@ -281,7 +293,9 @@ export class ContractEventIndexer {
   private decodeSorobanScVal(scValXdrBase64: string): unknown {
     try {
       const scVal = StellarSdk.xdr.ScVal.fromXDR(scValXdrBase64, 'base64');
-      const scValToNative = (StellarSdk as any).scValToNative as ((val: any) => unknown) | undefined;
+      const scValToNative = (StellarSdk as any).scValToNative as
+        | ((val: any) => unknown)
+        | undefined;
 
       if (typeof scValToNative === 'function') {
         return this.sanitizeForJson(scValToNative(scVal));

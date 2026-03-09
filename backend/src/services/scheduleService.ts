@@ -23,7 +23,7 @@ export class ScheduleService {
     timeOfDay: string,
     startDate: Date,
     timezone: string,
-    lastRun?: Date,
+    lastRun?: Date
   ): Date {
     const [hours, minutes] = timeOfDay.split(':').map(Number);
 
@@ -90,7 +90,7 @@ export class ScheduleService {
   async createSchedule(
     organizationId: number,
     userId: number,
-    scheduleData: CreateScheduleRequest,
+    scheduleData: CreateScheduleRequest
   ): Promise<Schedule> {
     // Validate schedule data
     this.validateScheduleData(scheduleData);
@@ -108,7 +108,7 @@ export class ScheduleService {
         scheduleData.frequency,
         scheduleData.timeOfDay,
         startDate,
-        scheduleData.timezone,
+        scheduleData.timezone
       );
 
       // Insert schedule into database
@@ -230,7 +230,7 @@ export class ScheduleService {
       if (!DateTime.local().setZone(scheduleData.timezone).isValid) {
         throw new Error('Invalid timezone');
       }
-    } catch (e) {
+    } catch {
       throw new Error(`Invalid timezone: ${scheduleData.timezone}`);
     }
 
@@ -259,10 +259,7 @@ export class ScheduleService {
     }
   }
 
-  async getActiveSchedules(
-    organizationId: number,
-    filters?: ScheduleFilters,
-  ): Promise<Schedule[]> {
+  async getActiveSchedules(organizationId: number, filters?: ScheduleFilters): Promise<Schedule[]> {
     const client = await pool.connect();
     try {
       // Default filter values
@@ -298,14 +295,13 @@ export class ScheduleService {
       const result = await client.query(query, values);
 
       // Parse dates and JSON from database
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return result.rows.map((row: any) => ({
         ...row,
         startDate: new Date(row.startDate),
         endDate: row.endDate ? new Date(row.endDate) : undefined,
         nextRunTimestamp: new Date(row.nextRunTimestamp),
-        lastRunTimestamp: row.lastRunTimestamp
-          ? new Date(row.lastRunTimestamp)
-          : undefined,
+        lastRunTimestamp: row.lastRunTimestamp ? new Date(row.lastRunTimestamp) : undefined,
         createdAt: new Date(row.createdAt),
         updatedAt: new Date(row.updatedAt),
       }));
@@ -314,10 +310,7 @@ export class ScheduleService {
     }
   }
 
-  async cancelSchedule(
-    scheduleId: number,
-    organizationId: number,
-  ): Promise<void> {
+  async cancelSchedule(scheduleId: number, organizationId: number): Promise<void> {
     const client = await pool.connect();
     try {
       // Query the schedule by ID
@@ -331,8 +324,7 @@ export class ScheduleService {
 
       // Check if schedule exists
       if (selectResult.rows.length === 0) {
-        const error = new Error('Schedule not found') as any;
-        error.statusCode = 404;
+        const error = Object.assign(new Error('Schedule not found'), { statusCode: 404 });
         throw error;
       }
 
@@ -340,8 +332,10 @@ export class ScheduleService {
 
       // Verify schedule belongs to the organization
       if (schedule.organizationId !== organizationId) {
-        const error = new Error('Access denied: Schedule belongs to a different organization') as any;
-        error.statusCode = 403;
+        const error = Object.assign(
+          new Error('Access denied: Schedule belongs to a different organization'),
+          { statusCode: 403 }
+        );
         throw error;
       }
 
@@ -358,10 +352,7 @@ export class ScheduleService {
     }
   }
 
-  async updateAfterExecution(
-    scheduleId: number,
-    executionResult: ExecutionResult,
-  ): Promise<void> {
+  async updateAfterExecution(scheduleId: number, executionResult: ExecutionResult): Promise<void> {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
@@ -408,7 +399,7 @@ export class ScheduleService {
             schedule.timeOfDay,
             new Date(schedule.startDate),
             schedule.timezone,
-            executionTime, // Use execution time as lastRun
+            executionTime // Use execution time as lastRun
           );
         }
       }
@@ -424,12 +415,7 @@ export class ScheduleService {
         WHERE id = $4
       `;
 
-      await client.query(updateQuery, [
-        executionTime,
-        newStatus,
-        nextRunTimestamp,
-        scheduleId,
-      ]);
+      await client.query(updateQuery, [executionTime, newStatus, nextRunTimestamp, scheduleId]);
 
       await client.query('COMMIT');
     } catch (error) {

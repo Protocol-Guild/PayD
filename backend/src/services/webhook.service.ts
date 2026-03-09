@@ -12,7 +12,11 @@ export interface WebhookSubscription {
 const subscriptions: WebhookSubscription[] = [];
 
 export class WebhookService {
-  static async subscribe(url: string, secret: string, events: string[]): Promise<WebhookSubscription> {
+  static async subscribe(
+    url: string,
+    secret: string,
+    events: string[]
+  ): Promise<WebhookSubscription> {
     const subscription: WebhookSubscription = {
       id: Math.random().toString(36).substring(2, 11),
       url,

@@ -1,4 +1,3 @@
-
 import { Router } from 'express';
 import { ContractRegistryController } from '../controllers/contractRegistryController.js';
 

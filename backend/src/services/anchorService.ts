@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Keypair, Transaction, Networks, Utils } from '@stellar/stellar-sdk';
+import { Keypair, Transaction } from '@stellar/stellar-sdk';
 import { StellarService } from './stellarService.js';
 
 export interface AnchorInfo {
@@ -74,13 +74,12 @@ export class AnchorService {
       this.anchorCache[domain].token = token;
     }
     return token;
-
   }
 
   /**
    * Fetches SEP-31 /info
    */
-  static async getSEP31Info(domain: string): Promise<any> {
+  static async getSEP31Info(domain: string): Promise<Record<string, unknown>> {
     const info = await this.getAnchorInfo(domain);
     if (!info.sep31Endpoint) throw new Error('Anchor does not support SEP-31');
 
@@ -91,7 +90,11 @@ export class AnchorService {
   /**
    * Initiates a cross-asset payment via SEP-31 /transactions
    */
-  static async initiatePayment(domain: string, token: string, paymentData: any): Promise<any> {
+  static async initiatePayment(
+    domain: string,
+    token: string,
+    paymentData: Record<string, unknown>
+  ): Promise<Record<string, unknown>> {
     const info = await this.getAnchorInfo(domain);
     if (!info.sep31Endpoint) throw new Error('Anchor endpoint not found');
 
@@ -108,7 +111,11 @@ export class AnchorService {
   /**
    * Gets specific SEP-31 transaction status
    */
-  static async getTransaction(domain: string, token: string, id: string): Promise<any> {
+  static async getTransaction(
+    domain: string,
+    token: string,
+    id: string
+  ): Promise<Record<string, unknown>> {
     const info = await this.getAnchorInfo(domain);
     const response = await axios.get(`${info.sep31Endpoint}/transactions/${id}`, {
       headers: { Authorization: `Bearer ${token}` },

@@ -9,7 +9,7 @@ jest.mock('../../config/database.js', () => ({
   },
   pool: {
     query: jest.fn(),
-  }
+  },
 }));
 
 import pool from '../../config/database.js';
@@ -41,7 +41,7 @@ describe('TransactionAuditService', () => {
 
       await TransactionAuditService.list(1, 20, undefined, {
         dateStart: '2026-01-01',
-        dateEnd: '2026-01-31'
+        dateEnd: '2026-01-31',
       });
 
       const dataQuery = (mockPool.query as jest.Mock).mock.calls[0];
@@ -59,7 +59,7 @@ describe('TransactionAuditService', () => {
       (mockPool.query as jest.Mock).mockResolvedValueOnce({ rows: [{ count: '0' }] });
 
       await TransactionAuditService.list(1, 20, undefined, {
-        status: 'Completed'
+        status: 'Completed',
       });
 
       const dataQuery = (mockPool.query as jest.Mock).mock.calls[0];
@@ -72,7 +72,7 @@ describe('TransactionAuditService', () => {
       (mockPool.query as jest.Mock).mockResolvedValueOnce({ rows: [{ count: '0' }] });
 
       await TransactionAuditService.list(1, 20, undefined, {
-        employeeId: 'emp-123'
+        employeeId: 'emp-123',
       });
 
       const dataQuery = (mockPool.query as jest.Mock).mock.calls[0];
@@ -85,7 +85,7 @@ describe('TransactionAuditService', () => {
       (mockPool.query as jest.Mock).mockResolvedValueOnce({ rows: [{ count: '0' }] });
 
       await TransactionAuditService.list(1, 20, undefined, {
-        asset: 'USDC'
+        asset: 'USDC',
       });
 
       const dataQuery = (mockPool.query as jest.Mock).mock.calls[0];

@@ -12,25 +12,16 @@ router.use(isolateOrganization);
 /**
  * @route GET /api/events/indexer/status
  */
-router.get(
-  '/indexer/status',
-  ContractEventController.getIndexerStatus
-);
+router.get('/indexer/status', ContractEventController.getIndexerStatus);
 
 /**
  * @route GET /api/events/:contractId
  */
-router.get(
-  '/:contractId',
-  ContractEventController.getEventsByContract
-);
+router.get('/:contractId', ContractEventController.getEventsByContract);
 
 /**
  * @route GET /api/events
  */
-router.get(
-  '/',
-  ContractEventController.getAllEvents
-);
+router.get('/', ContractEventController.getAllEvents);
 
 export default router;

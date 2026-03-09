@@ -8,9 +8,7 @@ export interface JWTPayload {
   role: UserRole;
 }
 
-declare global {
-  namespace Express {
-    // eslint-disable-next-line @typescript-eslint/no-empty-interface
-    interface User extends JWTPayload { }
-  }
+declare module 'express-serve-static-core' {
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+  interface User extends JWTPayload {}
 }

@@ -66,7 +66,7 @@ export class ExportController {
       );
       res.setHeader('Content-Disposition', `attachment; filename="payroll-batch-${batchId}.xlsx"`);
 
-      await ExportService.generatePayrollExcel((batchId as string), batchData.data, res);
+      await ExportService.generatePayrollExcel(batchId as string, batchData.data, res);
     } catch (error) {
       logger.error('Failed to generate Excel report', { error });
 

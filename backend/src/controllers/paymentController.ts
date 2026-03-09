@@ -82,7 +82,8 @@ export class PaymentController {
       typeof destAssets !== 'string'
     ) {
       return res.status(400).json({
-        error: 'Missing or invalid query params: sourceAsset, sourceAmount, destAssets must be strings'
+        error:
+          'Missing or invalid query params: sourceAsset, sourceAmount, destAssets must be strings',
       });
     }
 
@@ -96,7 +97,8 @@ export class PaymentController {
       } else {
         // Format parsing: CODE:ISSUER
         const parts = sourceAsset.split(':');
-        if (parts.length !== 2) throw new Error('Invalid sourceAsset format. Use CODE:ISSUER or XLM');
+        if (parts.length !== 2)
+          throw new Error('Invalid sourceAsset format. Use CODE:ISSUER or XLM');
         sourceAssetObj = new Asset(parts[0] as string, parts[1] as string);
       }
 
@@ -114,9 +116,8 @@ export class PaymentController {
         .call();
 
       res.json({
-        paths: pathsResponse.records
+        paths: pathsResponse.records,
       });
-
     } catch (error: any) {
       console.error('Pathfinding Error:', error);
       res.status(500).json({ error: error.message || 'Error fetching conversion paths' });
