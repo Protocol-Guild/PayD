@@ -57,9 +57,12 @@ class ContractService {
             `Failed to fetch contract registry after ${this.MAX_RETRIES} attempts:`,
             errorMessage
           );
-          throw new Error(
+          const newError = new Error(
             `Failed to fetch contracts after ${this.MAX_RETRIES} attempts: ${errorMessage}`
           );
+          // Attach cause for error chaining (ES2022 feature, but works at runtime)
+          Object.assign(newError, { cause: error });
+          throw newError;
         }
 
         // Exponential backoff: 1s, 2s, 4s

@@ -114,19 +114,19 @@ export default function TransactionHistory() {
   };
 
   return (
-    <div className="flex-1 flex flex-col p-6 lg:p-12 max-w-7xl mx-auto w-full">
-      <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between border-b border-zinc-800 pb-6 gap-4">
-        <div>
-          <h1 className="text-4xl font-black mb-2 tracking-tight">
+    <div className="flex-1 flex flex-col p-4 sm:p-6 lg:p-12 max-w-7xl mx-auto w-full">
+      <div className="mb-6 sm:mb-8 flex flex-col md:flex-row md:items-end justify-between border-b border-zinc-800 pb-4 sm:pb-6 gap-4">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black mb-2 tracking-tight">
             Transaction <span className="text-accent">History</span>
           </h1>
-          <p className="text-zinc-500 font-mono text-sm tracking-wider uppercase">
+          <p className="text-zinc-500 font-mono text-xs sm:text-sm tracking-wider uppercase">
             Unified classic + contract event timeline
           </p>
         </div>
         <button
           onClick={() => setShowFilters((prev) => !prev)}
-          className="px-4 py-2 rounded-lg font-bold flex items-center gap-2 bg-zinc-800/50 text-white hover:bg-zinc-800 transition-all"
+          className="px-4 py-3 rounded-lg font-bold flex items-center justify-center gap-2 bg-zinc-800/50 text-white hover:bg-zinc-800 transition-all touch-manipulation min-h-[44px] text-sm sm:text-base"
         >
           <Filter size={18} />
           Filters {activeFilterCount > 0 ? `(${activeFilterCount})` : ''}
@@ -134,8 +134,8 @@ export default function TransactionHistory() {
       </div>
 
       {showFilters && (
-        <div className="bg-[#16161a] border border-zinc-800 rounded-xl p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="bg-[#16161a] border border-zinc-800 rounded-xl p-4 sm:p-6 mb-4 sm:mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4" />
               <input
@@ -202,14 +202,14 @@ export default function TransactionHistory() {
         </div>
       )}
 
-      <div className="bg-[#16161a] border border-zinc-800 rounded-xl p-5 flex-1">
-        {error ? <p className="text-sm text-red-400 mb-4">{error}</p> : null}
+      <div className="bg-[#16161a] border border-zinc-800 rounded-xl p-3 sm:p-5 flex-1">
+        {error ? <p className="text-xs sm:text-sm text-red-400 mb-4 p-2">{error}</p> : null}
         {isLoading ? <TimelineSkeleton /> : null}
 
         {!isLoading && items.length === 0 ? (
-          <div className="text-zinc-500 text-center py-16">
-            <Activity className="w-8 h-8 opacity-30 mx-auto mb-3" />
-            <p className="text-sm">No records found for current filters.</p>
+          <div className="text-zinc-500 text-center py-12 sm:py-16">
+            <Activity className="w-6 h-6 sm:w-8 sm:h-8 opacity-30 mx-auto mb-3" />
+            <p className="text-xs sm:text-sm">No records found for current filters.</p>
           </div>
         ) : null}
 
@@ -218,29 +218,31 @@ export default function TransactionHistory() {
             {items.map((item) => (
               <div
                 key={item.id}
-                className="rounded-xl border border-zinc-800 p-4 hover:bg-zinc-900/40 transition-colors"
+                className="rounded-xl border border-zinc-800 p-3 sm:p-4 hover:bg-zinc-900/40 transition-colors"
               >
                 <div className="flex flex-wrap items-center gap-2 mb-2">
-                  <span className="px-2 py-0.5 rounded-md text-[11px] border border-zinc-700 text-zinc-300">
+                  <span className="px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] border border-zinc-700 text-zinc-300">
                     {item.badge}
                   </span>
                   <span
-                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold uppercase ${getStatusClass(item.status)}`}
+                    className={`px-2 sm:px-2.5 py-1 rounded-md text-[10px] sm:text-[11px] font-bold uppercase ${getStatusClass(item.status)}`}
                   >
                     {item.status}
                   </span>
-                  <span className="text-xs text-zinc-500">
+                  <span className="text-[10px] sm:text-xs text-zinc-500">
                     {new Date(item.createdAt).toLocaleString()}
                   </span>
                 </div>
-                <p className="text-sm font-semibold">{item.label}</p>
-                <p className="text-xs text-zinc-400 mt-1">Actor: {item.actor}</p>
-                <p className="text-xs text-zinc-400">
+                <p className="text-xs sm:text-sm font-semibold mb-1">{item.label}</p>
+                <p className="text-[10px] sm:text-xs text-zinc-400">Actor: {item.actor}</p>
+                <p className="text-[10px] sm:text-xs text-zinc-400">
                   Amount: {item.amount} {item.asset}
                 </p>
                 {item.txHash ? (
                   <>
-                    <p className="text-xs text-blue-400 font-mono mt-1 break-all">{item.txHash}</p>
+                    <p className="text-[10px] sm:text-xs text-blue-400 font-mono mt-1 break-all">
+                      {item.txHash}
+                    </p>
                     <div className="mt-2 flex justify-end">
                       <CertificateDownloadButton transactionHash={item.txHash} />
                     </div>
@@ -252,13 +254,13 @@ export default function TransactionHistory() {
         ) : null}
 
         {!isLoading && hasMore ? (
-          <div className="mt-5 flex justify-center">
+          <div className="mt-4 sm:mt-5 flex justify-center">
             <button
               onClick={() => {
                 void loadMore();
               }}
               disabled={isLoadingMore}
-              className="px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-sm font-semibold disabled:opacity-70"
+              className="px-6 py-3 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-sm font-semibold disabled:opacity-70 transition-colors touch-manipulation min-h-[44px]"
             >
               {isLoadingMore ? 'Loading...' : 'Load More'}
             </button>
