@@ -88,7 +88,7 @@ impl CrossAssetPaymentContract {
             .get(&DataKey::Payment(payment_id))
             .expect("Payment not found");
 
-        record.status = new_status;
+        record.status = new_status.clone();
         env.storage().instance().set(&DataKey::Payment(payment_id), &record);
 
         env.events().publish(
