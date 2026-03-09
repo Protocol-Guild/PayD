@@ -16,6 +16,8 @@ import VestingEscrow from './pages/VestingEscrow';
 import RevenueSplitDashboard from './pages/RevenueSplitDashboard';
 
 import EmployeePortal from './pages/EmployeePortal';
+import ContractorPortal from './pages/ContractorPortal';
+import InvoiceApproval from './pages/InvoiceApproval';
 import Login from './pages/Login';
 import AuthCallback from './pages/AuthCallback';
 import { useTranslation } from 'react-i18next';
@@ -98,6 +100,36 @@ function App() {
               }
             >
               <EmployeePortal />
+            </ErrorBoundary>
+          }
+        />
+        <Route
+          path="/contractor"
+          element={
+            <ErrorBoundary
+              fallback={
+                <ErrorFallback
+                  title="Contractor Portal Error"
+                  description="Something went wrong loading your portal."
+                />
+              }
+            >
+              <ContractorPortal />
+            </ErrorBoundary>
+          }
+        />
+        <Route
+          path="/invoices"
+          element={
+            <ErrorBoundary
+              fallback={
+                <ErrorFallback
+                  title="Invoice Approval Error"
+                  description="Something went wrong loading invoices."
+                />
+              }
+            >
+              <InvoiceApproval />
             </ErrorBoundary>
           }
         />
