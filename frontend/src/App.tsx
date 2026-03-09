@@ -16,6 +16,7 @@ import AdminPanel from './pages/AdminPanel';
 import VestingEscrow from './pages/VestingEscrow';
 import RevenueSplitDashboard from './pages/RevenueSplitDashboard';
 import Forecasting from './pages/Forecasting';
+import CashFlowForecast from './pages/CashFlowForecast';
 
 import EmployeePortal from './pages/EmployeePortal';
 import Login from './pages/Login';
