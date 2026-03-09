@@ -15,6 +15,7 @@ import TransactionHistory from './pages/TransactionHistory';
 import AdminPanel from './pages/AdminPanel';
 import VestingEscrow from './pages/VestingEscrow';
 import RevenueSplitDashboard from './pages/RevenueSplitDashboard';
+import Forecasting from './pages/Forecasting';
 
 import EmployeePortal from './pages/EmployeePortal';
 import Login from './pages/Login';
@@ -170,6 +171,14 @@ function App() {
           element={
             <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
               <TransactionHistory />
+            </ErrorBoundary>
+          }
+        />
+        <Route
+          path="/forecast"
+          element={
+            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
+              <Forecasting />
             </ErrorBoundary>
           }
         />
