@@ -100,7 +100,10 @@ function parseTypedResult<TResult>(
     return parser(raw);
   } catch (error) {
     const parserMessage = error instanceof Error ? error.message : 'Unknown parser error';
-    throw new Error(`Unable to decode contract result: ${parserMessage}`);
+    const newError = new Error(`Unable to decode contract result: ${parserMessage}`);
+    // Attach cause for error chaining (ES2022 feature, but works at runtime)
+    Object.assign(newError, { cause: error });
+    throw newError;
   }
 }
 

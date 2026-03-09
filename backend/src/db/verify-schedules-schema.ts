@@ -328,10 +328,31 @@ async function verifySchema(): Promise<void> {
       }
     }
 
-    // ─── Check 6: Verify indexes ──────────────────────────────────────────
-    console.log('\n─── Check 6: Indexes ───');
-    const indexes = await client.query<IndexInfo>(
-      `SELECT indexname, indexdef
+        const expectedForeignKeys = [
+            { table: 'schedules', column: 'organization_id', foreign_table: 'organizations', foreign_column: 'id' },
+            { table: 'schedules', column: 'user_id', foreign_table: 'users', foreign_column: 'id' },
+            { table: 'execution_history', column: 'schedule_id', foreign_table: 'schedules', foreign_column: 'id' },
+        ];
+
+        for (const expected of expectedForeignKeys) {
+            const actual = foreignKeys.rows.find(
+                fk => fk.table_name === expected.table &&
+                      fk.column_name === expected.column &&
+                      fk.foreign_table_name === expected.foreign_table &&
+                      fk.foreign_column_name === expected.foreign_column
+            );
+            if (!actual) {
+                console.error(`✗ Foreign key ${expected.table}.${expected.column} -> ${expected.foreign_table}.${expected.foreign_column} is missing`);
+                allChecksPass = false;
+            } else {
+                console.log(`✓ Foreign key ${expected.table}.${expected.column} -> ${expected.foreign_table}.${expected.foreign_column} exists`);
+            }
+        }
+
+        // ─── Check 6: Verify indexes ──────────────────────────────────────────
+        console.log('\n─── Check 6: Indexes ───');
+        const indexes = await client.query<IndexInfo>(
+            `SELECT indexname, indexdef
              FROM pg_indexes
              WHERE schemaname = 'public'
              AND tablename IN ('schedules', 'execution_history')
@@ -360,8 +381,28 @@ async function verifySchema(): Promise<void> {
       }
     }
 
-    // ─── Check 7: Test foreign key constraints work ───────────────────────
-    console.log('\n─── Check 7: Foreign Key Constraint Functionality ───');
+        const expectedIndexes = [
+            { name: 'idx_schedules_next_run', pattern: /schedules.*next_run_timestamp.*status/i },
+            { name: 'idx_schedules_org_id', pattern: /schedules.*organization_id/i },
+            { name: 'idx_schedules_status', pattern: /schedules.*status/i },
+            { name: 'idx_schedules_user_id', pattern: /schedules.*user_id/i },
+            { name: 'idx_execution_schedule_id', pattern: /execution_history.*schedule_id/i },
+            { name: 'idx_execution_status', pattern: /execution_history.*status/i },
+            { name: 'idx_execution_executed_at', pattern: /execution_history.*executed_at/i },
+        ];
+
+        for (const expected of expectedIndexes) {
+            const actual = indexes.rows.find(idx => idx.indexname === expected.name);
+            if (!actual) {
+                console.error(`✗ Index '${expected.name}' is missing`);
+                allChecksPass = false;
+            } else if (!expected.pattern.test(actual.indexdef)) {
+                console.error(`✗ Index '${expected.name}' has wrong definition: ${actual.indexdef}`);
+                allChecksPass = false;
+            } else {
+                console.log(`✓ Index '${expected.name}' exists with correct definition`);
+            }
+        }
 
     // Test 1: Verify organizations table exists (required for FK)
     const orgsExists = await client.query(
@@ -390,31 +431,51 @@ async function verifySchema(): Promise<void> {
                         CURRENT_DATE, '{"recipients": []}'::jsonb, 
                         CURRENT_TIMESTAMP, 'active'
                     )`
-        );
-        await client.query('ROLLBACK');
-        console.error(
-          '✗ Foreign key constraint schedules.organization_id -> organizations.id is NOT enforced'
-        );
-        allChecksPass = false;
-      } catch (err) {
-        await client.query('ROLLBACK');
-        if (err instanceof Error && err.message.includes('foreign key constraint')) {
-          console.log(
-            '✓ Foreign key constraint schedules.organization_id -> organizations.id is enforced'
-          );
-        } else {
-          console.error(
-            `✗ Unexpected error testing foreign key: ${err instanceof Error ? err.message : String(err)}`
-          );
-          allChecksPass = false;
-        }
-      }
+                );
+                await client.query('ROLLBACK');
+                console.error('✗ Foreign key constraint schedules.organization_id -> organizations.id is NOT enforced');
+                allChecksPass = false;
+            } catch (err) {
+                await client.query('ROLLBACK');
+                if (err instanceof Error && err.message.includes('foreign key constraint')) {
+                    console.log('✓ Foreign key constraint schedules.organization_id -> organizations.id is enforced');
+                } else {
+                    console.error(`✗ Unexpected error testing foreign key: ${err instanceof Error ? err.message : String(err)}`);
+                    allChecksPass = false;
+                }
+            }
 
-      // Test 3: Try to insert execution_history with invalid schedule_id (should fail)
-      try {
-        await client.query('BEGIN');
-        await client.query(
-          `INSERT INTO execution_history (
+            // Test 3: Try to insert a schedule with invalid user_id (should fail)
+            try {
+                await client.query('BEGIN');
+                await client.query(
+                    `INSERT INTO schedules (
+                        organization_id, user_id, frequency, time_of_day, 
+                        start_date, payment_config, next_run_timestamp, status
+                    ) VALUES (
+                        (SELECT id FROM organizations LIMIT 1), 999999, 'once', '10:00:00', 
+                        CURRENT_DATE, '{"recipients": []}'::jsonb, 
+                        CURRENT_TIMESTAMP, 'active'
+                    )`
+                );
+                await client.query('ROLLBACK');
+                console.error('✗ Foreign key constraint schedules.user_id -> users.id is NOT enforced');
+                allChecksPass = false;
+            } catch (err) {
+                await client.query('ROLLBACK');
+                if (err instanceof Error && err.message.includes('foreign key constraint')) {
+                    console.log('✓ Foreign key constraint schedules.user_id -> users.id is enforced');
+                } else {
+                    console.error(`✗ Unexpected error testing foreign key: ${err instanceof Error ? err.message : String(err)}`);
+                    allChecksPass = false;
+                }
+            }
+
+            // Test 4: Try to insert execution_history with invalid schedule_id (should fail)
+            try {
+                await client.query('BEGIN');
+                await client.query(
+                    `INSERT INTO execution_history (
                         schedule_id, status
                     ) VALUES (
                         999999, 'success'
