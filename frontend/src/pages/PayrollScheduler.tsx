@@ -316,9 +316,7 @@ export default function PayrollScheduler() {
             addlClassName="mb-2 tracking-tight text-2xl sm:text-3xl lg:text-4xl"
           >
             {t('payroll.title', 'Workforce')}{' '}
-            <span className="text-accent">
-              {t('payroll.titleHighlight', 'Scheduler')}
-            </span>
+            <span className="text-accent">{t('payroll.titleHighlight', 'Scheduler')}</span>
           </Heading>
           <Text
             as="p"

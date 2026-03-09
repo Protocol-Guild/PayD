@@ -147,7 +147,9 @@ export default function Forecasting() {
           <Input
             id="monthsForward"
             value={String(monthsForward)}
-            onChange={(e) => setMonthsForward(Math.min(6, Math.max(3, Number(e.target.value) || 6)))}
+            onChange={(e) =>
+              setMonthsForward(Math.min(6, Math.max(3, Number(e.target.value) || 6)))
+            }
             label="Months"
             type="number"
             fieldSize="sm"
@@ -158,13 +160,13 @@ export default function Forecasting() {
             isLoading={isLoading}
             onClick={() =>
               void (async () => {
-            try {
-              const f = await getForecast(monthsForward);
-              setForecast(f);
-            } catch (e: unknown) {
-              notifyError(getErrorMessage(e) || 'Failed to refresh');
-            }
-          })()
+                try {
+                  const f = await getForecast(monthsForward);
+                  setForecast(f);
+                } catch (e: unknown) {
+                  notifyError(getErrorMessage(e) || 'Failed to refresh');
+                }
+              })()
             }
           >
             Refresh
@@ -180,8 +182,8 @@ export default function Forecasting() {
             </Heading>
             {liquidity ? (
               <Text size="sm" as="p">
-                Available: {liquidity.availableBalance} {liquidity.assetCode} · Required (next 2 runs):{' '}
-                {liquidity.requiredNext2Runs} {liquidity.assetCode}
+                Available: {liquidity.availableBalance} {liquidity.assetCode} · Required (next 2
+                runs): {liquidity.requiredNext2Runs} {liquidity.assetCode}
               </Text>
             ) : (
               <Text size="sm" as="p">
@@ -213,7 +215,13 @@ export default function Forecasting() {
               <XAxis dataKey="month" />
               <YAxis />
               <Tooltip />
-              <Line type="monotone" dataKey="projectedTotalLiability" stroke="#4af0b8" strokeWidth={2} dot={false} />
+              <Line
+                type="monotone"
+                dataKey="projectedTotalLiability"
+                stroke="#4af0b8"
+                strokeWidth={2}
+                dot={false}
+              />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -228,7 +236,9 @@ export default function Forecasting() {
             id="distributionAccount"
             label="Distribution Account"
             value={settingsDraft.distributionAccount}
-            onChange={(e) => setSettingsDraft((s) => ({ ...s, distributionAccount: e.target.value }))}
+            onChange={(e) =>
+              setSettingsDraft((s) => ({ ...s, distributionAccount: e.target.value }))
+            }
             fieldSize="sm"
           />
           <Input
