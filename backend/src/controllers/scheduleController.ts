@@ -152,8 +152,9 @@ export class ScheduleController {
         return;
       }
 
-      const scheduleId = parseInt(req.params.id as string);
-      if (isNaN(scheduleId)) {
+      const scheduleIdRaw = req.params.id;
+      const scheduleId = Number.parseInt(String(scheduleIdRaw), 10);
+      if (Number.isNaN(scheduleId)) {
         res.status(400).json({
           error: {
             code: ErrorCode.VALIDATION_ERROR,
