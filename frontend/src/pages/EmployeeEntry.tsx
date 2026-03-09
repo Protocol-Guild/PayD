@@ -103,38 +103,34 @@ export default function EmployeeEntry() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.SyntheticEvent) => {
     e.preventDefault();
+    void (() => {
+      let generatedWallet: { publicKey: string; secretKey: string } | undefined;
+      if (!formData.walletAddress) {
+        generatedWallet = generateWallet();
+        setFormData((prev) => ({
+          ...prev,
+          walletAddress: generatedWallet!.publicKey,
+        }));
+      }
 
-    let generatedWallet: { publicKey: string; secretKey: string } | undefined;
-    if (!formData.walletAddress) {
-      generatedWallet = generateWallet();
-      setFormData((prev) => ({
-        ...prev,
-        walletAddress: generatedWallet!.publicKey,
-      }));
-    }
+      const submitData = {
+        ...formData,
+        walletAddress: generatedWallet ? generatedWallet.publicKey : formData.walletAddress,
+      };
 
-    const submitData = {
-      ...formData,
-      walletAddress: generatedWallet ? generatedWallet.publicKey : formData.walletAddress,
-    };
+      console.log('Form submitted, employee saved:', submitData);
 
-    console.log('Form submitted, employee saved:', submitData);
+      notifySuccess(`${submitData.fullName} added successfully!`);
 
-    notifySuccess(
-      `${submitData.fullName} added successfully!`,
-      generatedWallet ? 'A new Stellar wallet was generated for this employee.' : undefined
-    );
-
-    setNotification({
-      message: `Employee ${submitData.fullName} added successfully! ${
-        generatedWallet ? 'A wallet was created for them.' : ''
-      }`,
-      secretKey: generatedWallet?.secretKey,
-      walletAddress: submitData.walletAddress,
-      employeeName: submitData.fullName,
-    });
+      setNotification({
+        message: 'Employee added successfully!',
+        secretKey: generatedWallet?.secretKey,
+        walletAddress: submitData.walletAddress,
+        employeeName: submitData.fullName,
+      });
+    })();
   };
 
   if (isAdding) {
