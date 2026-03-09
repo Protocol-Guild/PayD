@@ -55,11 +55,14 @@
     "vite-plugin-wasm": "^3.5.0"
   },
   "lint-staged": {
-    "frontend/**/*.{ts,tsx}": [
-      "bash -c 'cd frontend && eslint --fix \"$@\"' --",
+    "frontend/src/**/*.{ts,tsx}": [
+      "bash -c 'cd frontend && npx eslint --fix \"$@\"' --",
       "prettier --write --ignore-unknown"
     ],
-    "**/*.{json,md,yml,yaml}": [
+    "**/*.{json,md,yml,yaml,css,scss}": [
+      "prettier --write --ignore-unknown"
+    ],
+    "src/**/*.{ts,tsx}": [
       "prettier --write --ignore-unknown"
     ]
   }

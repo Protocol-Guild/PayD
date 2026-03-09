@@ -71,11 +71,5 @@
     "vite-plugin-node-polyfills": "^0.24.0",
     "vite-plugin-wasm": "^3.5.0",
     "vitest": "^4.0.18"
-  },
-  "lint-staged": {
-    "src/**/*.{ts,tsx}": [
-      "eslint --fix",
-      "prettier --write"
-    ]
   }
 }
