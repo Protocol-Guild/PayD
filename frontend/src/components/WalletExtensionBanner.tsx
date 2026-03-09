@@ -4,10 +4,10 @@ import { useWallet } from '../hooks/useWallet';
 import { useTranslation } from 'react-i18next';
 
 export const WalletExtensionBanner: React.FC = () => {
-  const { isExtensionAvailable } = useWallet();
+  const { walletExtensionAvailable } = useWallet();
   const { t } = useTranslation();
 
-  if (isExtensionAvailable) return null;
+  if (walletExtensionAvailable) return null;
 
   return (
     <div className="bg-amber-500/10 border-b border-amber-500/20 px-6 py-3 flex items-center justify-between gap-4">
