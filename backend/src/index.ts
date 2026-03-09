@@ -14,7 +14,7 @@ const server = createServer(app);
 // Initialize Socket.IO
 initializeSocket(server);
 
-const PORT = config.port || process.env.PORT || 4000;
+const PORT = config.port || process.env.PORT || 3000;
 
 server.listen(PORT, () => {
   logger.info(`Server running on port ${PORT}`);

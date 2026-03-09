@@ -1,13 +1,17 @@
-module.exports = {
-  parser: '@typescript-eslint/parser',
-  extends: ['eslint:recommended', 'plugin:@typescript-eslint/recommended'],
-  parserOptions: {
+import js from '@eslint/js';
+import tseslint from 'typescript-eslint';
+import globals from 'globals';
+
+export default tseslint.config(js.configs.recommended, ...tseslint.configs.recommended, {
+  languageOptions: {
     ecmaVersion: 2020,
     sourceType: 'module',
-  },
-  env: {
-    node: true,
-    es2020: true,
+    globals: {
+      ...globals.node,
+    },
+    parserOptions: {
+      tsconfigRootDir: import.meta.dirname,
+    },
   },
   rules: {
     '@typescript-eslint/no-explicit-any': 'warn',
@@ -17,4 +21,4 @@ module.exports = {
     'prefer-const': 'error',
     'no-var': 'error',
   },
-};
+});

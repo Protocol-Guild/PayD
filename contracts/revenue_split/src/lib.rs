@@ -61,8 +61,16 @@ impl RevenueSplitContract {
         Ok(())
     }
 
+    /// Read the current recipient splits.
+    pub fn get_allocations(env: Env) -> Vec<RecipientShare> {
+        env.storage()
+            .instance()
+            .get(&DataKey::Recipients)
+            .unwrap_or_else(|| Vec::new(&env))
+    }
+
     /// Updates the recipient splits dynamically (admin only).
-    pub fn update_recipients(env: Env, new_shares: Vec<RecipientShare>) -> Result<(), ContractError> {
+    pub fn set_allocations(env: Env, new_shares: Vec<RecipientShare>) -> Result<(), ContractError> {
         Self::require_admin(&env)?;
 
         Self::validate_shares(&env, &new_shares)?;

@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
-import { ScheduleService } from '../services/scheduleService';
-import { createScheduleSchema, scheduleQuerySchema } from '../schemas/scheduleSchema';
+import { ScheduleService } from '../services/scheduleService.js';
+import { createScheduleSchema, scheduleQuerySchema } from '../schemas/scheduleSchema.js';
 import { z } from 'zod';
-import { ErrorCode } from '../types/schedule';
-import logger from '../utils/logger';
+import { ErrorCode } from '../types/schedule.js';
+import logger from '../utils/logger.js';
 
 const scheduleService = new ScheduleService();
 
@@ -31,11 +31,7 @@ export class ScheduleController {
       const validatedData = createScheduleSchema.parse(req.body);
 
       // Create schedule
-      const schedule = await scheduleService.createSchedule(
-        organizationId,
-        userId,
-        validatedData
-      );
+      const schedule = await scheduleService.createSchedule(organizationId, userId, validatedData);
 
       // Format response
       const response = {
@@ -56,7 +52,7 @@ export class ScheduleController {
           error: {
             code: ErrorCode.VALIDATION_ERROR,
             message: 'Validation failed',
-            details: error.errors,
+            details: error.issues,
           },
         });
       } else if (error instanceof Error) {
@@ -123,7 +119,7 @@ export class ScheduleController {
           error: {
             code: ErrorCode.VALIDATION_ERROR,
             message: 'Invalid query parameters',
-            details: error.errors,
+            details: error.issues,
           },
         });
       } else if (error instanceof Error) {
@@ -156,7 +152,7 @@ export class ScheduleController {
         return;
       }
 
-      const scheduleId = parseInt(req.params.id);
+      const scheduleId = parseInt(req.params.id as string);
       if (isNaN(scheduleId)) {
         res.status(400).json({
           error: {
