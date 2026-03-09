@@ -378,13 +378,13 @@ export function BulkPaymentStatusTracker({ organizationId }: BulkPaymentStatusTr
                       <div>
                         <span className="text-muted">Successful:</span>
                         <span className="ml-1 text-emerald-400 font-bold">
-                          {summary.summary.successful}
+                          {summary.items.filter((item) => item.status === 'completed').length}
                         </span>
                       </div>
                       <div>
                         <span className="text-muted">Failed:</span>
                         <span className="ml-1 text-red-400 font-bold">
-                          {summary.summary.failed}
+                          {summary.items.filter((item) => item.status === 'failed').length}
                         </span>
                       </div>
                       {summary.items.filter((item) => item.status === 'failed').length > 0 && (
