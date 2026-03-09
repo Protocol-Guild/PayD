@@ -1,5 +1,7 @@
 import { Pool } from 'pg';
 import pool from '../config/database.js';
+import { createTaxComplianceProvider } from './taxCompliance/factory.js';
+import type { TaxComplianceProvider } from './taxCompliance/types.js';
 
 export interface TaxRule {
   id: number;
@@ -71,9 +73,44 @@ export interface TaxReport {
 
 export class TaxService {
   private pool: Pool;
+  private taxComplianceProvider: TaxComplianceProvider;
 
   constructor(poolInstance: Pool = pool) {
     this.pool = poolInstance;
+
+    this.taxComplianceProvider = createTaxComplianceProvider(
+      async (organizationId: number, grossAmount: number) => {
+        const result = await this.calculateDeductionsRuleBased(organizationId, grossAmount);
+
+        return {
+          grossAmount: result.gross_amount,
+          totalTax: result.total_tax,
+          netAmount: result.net_amount,
+          deductions: result.deductions.map((d) => ({
+            name: d.rule_name,
+            type: d.type,
+            value: d.rule_value,
+            deductedAmount: d.deducted_amount,
+          })),
+        };
+      }
+    );
+  }
+
+  private async getEmployeeResidencyCountry(
+    organizationId: number,
+    employeeId: number
+  ): Promise<string | null> {
+    const result = await this.pool.query(
+      `SELECT country FROM employees WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL`,
+      [employeeId, organizationId]
+    );
+
+    if (!result.rows[0]) {
+      throw new Error('Employee not found');
+    }
+
+    return result.rows[0].country ?? null;
   }
 
   /**
@@ -169,7 +206,43 @@ export class TaxService {
    * Calculate all tax deductions for a given gross amount using an organization's active rules.
    * Rules are applied in priority order (ascending).
    */
-  async calculateDeductions(organizationId: number, grossAmount: number): Promise<DeductionResult> {
+  async calculateDeductions(
+    organizationId: number,
+    grossAmount: number,
+    employeeId?: number,
+    currency?: string
+  ): Promise<DeductionResult> {
+    if (employeeId !== undefined) {
+      const residencyCountry = await this.getEmployeeResidencyCountry(organizationId, employeeId);
+      const result = await this.taxComplianceProvider.calculate({
+        organizationId,
+        employeeId,
+        employeeResidencyCountry: residencyCountry,
+        grossAmount,
+        currency,
+      });
+
+      return {
+        gross_amount: result.grossAmount,
+        deductions: result.deductions.map((d) => ({
+          rule_id: 0,
+          rule_name: d.name,
+          type: d.type,
+          rule_value: d.value,
+          deducted_amount: d.deductedAmount,
+        })),
+        total_tax: result.totalTax,
+        net_amount: result.netAmount,
+      };
+    }
+
+    return this.calculateDeductionsRuleBased(organizationId, grossAmount);
+  }
+
+  private async calculateDeductionsRuleBased(
+    organizationId: number,
+    grossAmount: number
+  ): Promise<DeductionResult> {
     const rules = await this.getRules(organizationId);
     const deductions: TaxDeduction[] = [];
     let totalTax = 0;

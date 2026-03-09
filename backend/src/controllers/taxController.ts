@@ -127,7 +127,7 @@ export class TaxController {
    * Calculate tax deductions for a given gross amount
    */
   static async calculateDeductions(req: Request, res: Response) {
-    const { organization_id, gross_amount } = req.body;
+    const { organization_id, gross_amount, employee_id, currency } = req.body;
 
     if (!organization_id || gross_amount === undefined) {
       return res
@@ -140,7 +140,12 @@ export class TaxController {
     }
 
     try {
-      const result = await taxService.calculateDeductions(Number(organization_id), gross_amount);
+      const result = await taxService.calculateDeductions(
+        Number(organization_id),
+        gross_amount,
+        employee_id !== undefined ? Number(employee_id) : undefined,
+        currency
+      );
       res.json(result);
     } catch (error: any) {
       console.error('Calculate deductions error:', error);
