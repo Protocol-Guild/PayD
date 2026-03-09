@@ -79,7 +79,6 @@ const initialFormState: PayrollFormState = {
 };
 
 export default function PayrollScheduler() {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
   const { t } = useTranslation();
   const { notifySuccess, notifyError, notifyWarning } = useNotification();
   const { socket, subscribeToTransaction, unsubscribeFromTransaction } = useSocket();
@@ -200,13 +199,11 @@ export default function PayrollScheduler() {
       }
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const activeSocket = socket;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+
     activeSocket.on('transaction:update', handleTransactionUpdate);
 
     return () => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       activeSocket.off('transaction:update', handleTransactionUpdate);
     };
   }, [socket, notifySuccess]);
@@ -343,31 +340,43 @@ export default function PayrollScheduler() {
   };
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-start p-12 max-w-6xl mx-auto w-full">
-      <div className="w-full mb-12 flex items-end justify-between border-b border-hi pb-8">
-        <div>
-          <Heading as="h1" size="lg" weight="bold" addlClassName="mb-2 tracking-tight">
+    <div className="flex-1 flex flex-col items-center justify-start p-4 sm:p-6 lg:p-12 max-w-6xl mx-auto w-full">
+      <div className="w-full mb-6 sm:mb-8 lg:mb-12 flex flex-col sm:flex-row sm:items-end sm:justify-between border-b border-hi pb-4 sm:pb-6 lg:pb-8 gap-4">
+        <div className="flex-1 min-w-0">
+          <Heading
+            as="h1"
+            size="lg"
+            weight="bold"
+            addlClassName="mb-2 tracking-tight text-2xl sm:text-3xl lg:text-4xl"
+          >
             {/* eslint-disable-next-line @typescript-eslint/no-unsafe-call */}
             {t('payroll.title', 'Workforce')}{' '}
-            {/* eslint-disable-next-line @typescript-eslint/no-unsafe-call */}
-            <span className="text-accent">{t('payroll.titleHighlight', 'Scheduler')}</span>
+            <span className="text-accent">
+              {/* eslint-disable-next-line @typescript-eslint/no-unsafe-call */}
+              {t('payroll.titleHighlight', 'Scheduler')}
+            </span>
           </Heading>
           <Text
             as="p"
             size="sm"
             weight="regular"
-            addlClassName="text-muted font-mono tracking-wider uppercase"
+            addlClassName="text-muted font-mono tracking-wider uppercase text-xs sm:text-sm"
           >
-            {/* eslint-disable-next-line @typescript-eslint/no-unsafe-call */}
+            {}
             {t('payroll.subtitle', 'Automated distribution engine')}
           </Text>
         </div>
-        <div className="flex flex-col items-end gap-2">
+        <div className="flex flex-row sm:flex-col items-center sm:items-end gap-3 sm:gap-2">
           <AutosaveIndicator saving={saving} lastSaved={lastSaved} />
-          <button onClick={() => setIsWizardOpen(true)}>
+          <button
+            onClick={() => setIsWizardOpen(true)}
+            className="p-2.5 rounded-lg hover:bg-white/5 transition-colors touch-manipulation"
+            style={{ minHeight: '44px', minWidth: '44px' }}
+            aria-label="Open scheduling wizard"
+          >
             <svg
-              width="14"
-              height="14"
+              width="18"
+              height="18"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -383,13 +392,14 @@ export default function PayrollScheduler() {
       </div>
 
       {activeSchedule && (
-        <div className="w-full mb-12 bg-black/20 border border-success/30 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+        <div className="w-full mb-6 sm:mb-8 lg:mb-12 bg-black/20 border border-success/30 rounded-xl sm:rounded-2xl p-4 sm:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6 relative overflow-hidden">
           <div className="absolute top-0 left-0 w-1 h-full bg-success"></div>
-          <div>
-            <h3 className="text-success font-black text-lg mb-1 flex items-center gap-2">
+          <div className="flex-1 min-w-0">
+            <h3 className="text-success font-black text-base sm:text-lg mb-1 flex items-center gap-2">
               <svg
-                width="18"
-                height="18"
+                width="16"
+                height="16"
+                className="sm:w-[18px] sm:h-[18px]"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -401,13 +411,13 @@ export default function PayrollScheduler() {
               </svg>
               Automation Active
             </h3>
-            <p className="text-muted text-sm">
+            <p className="text-muted text-xs sm:text-sm break-words">
               Scheduled to run{' '}
               <span className="font-bold text-text capitalize">{activeSchedule.frequency}</span> at{' '}
               <span className="font-mono text-text">{activeSchedule.timeOfDay}</span>
             </p>
           </div>
-          <div className="bg-bg border border-hi rounded-xl p-4 shadow-inner">
+          <div className="bg-bg border border-hi rounded-xl p-3 sm:p-4 shadow-inner w-full md:w-auto">
             <span className="block text-[10px] uppercase font-bold text-muted mb-2 tracking-widest text-center">
               Next Scheduled Run
             </span>
@@ -424,21 +434,20 @@ export default function PayrollScheduler() {
           onCancel={() => setIsWizardOpen(false)}
         />
       ) : (
-        <div className="w-full grid grid-cols-1 lg:grid-cols-5 gap-8 mb-12">
+        <div className="w-full grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6 lg:gap-8 mb-6 sm:mb-8 lg:mb-12">
           <div className="lg:col-span-3">
             <form
               onSubmit={(e: React.FormEvent) => {
                 e.preventDefault();
                 void handleInitialize();
               }}
-              className="w-full grid grid-cols-1 md:grid-cols-2 gap-6 card glass noise"
+              className="w-full grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 card glass noise p-4 sm:p-6"
             >
               <div className="md:col-span-2">
                 <ContractErrorPanel error={contractError} />
                 <Input
                   id="employeeName"
                   fieldSize="md"
-                  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
                   label={t('payroll.employeeName', 'Employee Name')}
                   name="employeeName"
                   value={formData.employeeName}
@@ -463,7 +472,6 @@ export default function PayrollScheduler() {
                 <Input
                   id="amount"
                   fieldSize="md"
-                  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
                   label={t('payroll.amountLabel', 'Amount (USD equivalent)')}
                   name="amount"
                   value={formData.amount}
@@ -476,15 +484,14 @@ export default function PayrollScheduler() {
                 <Select
                   id="frequency"
                   fieldSize="md"
-                  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
                   label={t('payroll.distributionFrequency', 'Distribution Frequency')}
                   name="frequency"
                   value={formData.frequency}
                   onChange={handleChange}
                 >
-                  {/* eslint-disable-next-line @typescript-eslint/no-unsafe-call */}
+                  {}
                   <option value="weekly">{t('payroll.frequencyWeekly', 'Weekly')}</option>
-                  {/* eslint-disable-next-line @typescript-eslint/no-unsafe-call */}
+                  {}
                   <option value="monthly">{t('payroll.frequencyMonthly', 'Monthly')}</option>
                 </Select>
               </div>
@@ -493,7 +500,6 @@ export default function PayrollScheduler() {
                 <Input
                   id="startDate"
                   fieldSize="md"
-                  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
                   label={t('payroll.commencementDate', 'Commencement Date')}
                   name="startDate"
                   type="date"
@@ -513,8 +519,7 @@ export default function PayrollScheduler() {
                   >
                     {isSimulating
                       ? 'Simulating...'
-                      : // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-                        t('payroll.submit', 'Initialize and Validate')}
+                      : t('payroll.submit', 'Initialize and Validate')}
                   </Button>
                 ) : (
                   <Button
@@ -601,8 +606,8 @@ export default function PayrollScheduler() {
         </div>
       )}
 
-      <div className="w-full mb-12">
-        <Heading as="h2" size="sm" weight="bold" addlClassName="mb-4">
+      <div className="w-full mb-6 sm:mb-8 lg:mb-12">
+        <Heading as="h2" size="sm" weight="bold" addlClassName="mb-4 text-lg sm:text-xl">
           Scheduled Automations
         </Heading>
         {isLoadingSchedules ? (
@@ -623,12 +628,17 @@ export default function PayrollScheduler() {
           </div>
         ) : dbSchedules.length === 0 ? (
           <Card>
-            <Text as="p" size="sm" weight="regular" addlClassName="text-muted p-4">
+            <Text
+              as="p"
+              size="sm"
+              weight="regular"
+              addlClassName="text-muted p-4 text-xs sm:text-sm"
+            >
               No active payroll schedules found in the database.
             </Text>
           </Card>
         ) : (
-          <ul className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <ul className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {dbSchedules.map((schedule) => (
               <li key={schedule.id} className="card glass noise relative overflow-hidden group">
                 <div className="absolute top-0 right-0 p-3">
@@ -680,7 +690,7 @@ export default function PayrollScheduler() {
                     onClick={() => {
                       void handleCancelSchedule(schedule.id);
                     }}
-                    className="w-full py-2 bg-danger/10 hover:bg-danger/20 text-danger text-xs font-bold rounded-lg transition-colors"
+                    className="w-full py-3 bg-danger/10 hover:bg-danger/20 text-danger text-xs font-bold rounded-lg transition-colors touch-manipulation min-h-[44px]"
                   >
                     Cancel Automation
                   </button>
@@ -691,29 +701,34 @@ export default function PayrollScheduler() {
         )}
       </div>
 
-      <div className="w-full">
-        <Heading as="h2" size="sm" weight="bold" addlClassName="mb-4">
+      <div className="w-full mb-6 sm:mb-8 lg:mb-12">
+        <Heading as="h2" size="sm" weight="bold" addlClassName="mb-4 text-lg sm:text-xl">
           Recent Manual Claims
         </Heading>
         <Card>
           {pendingClaims.length === 0 ? (
-            <Text as="p" size="sm" weight="regular" addlClassName="text-muted">
+            <Text
+              as="p"
+              size="sm"
+              weight="regular"
+              addlClassName="text-muted p-4 text-xs sm:text-sm"
+            >
               No recent manual claimable balances.
             </Text>
           ) : (
-            <ul className="flex flex-col gap-4 p-4">
+            <ul className="flex flex-col gap-3 sm:gap-4 p-4 sm:p-6">
               {pendingClaims.map((claim: PendingClaim) => (
-                <li key={claim.id} className="border border-hi p-4 rounded-lg">
-                  <div className="flex justify-between mb-2">
-                    <Heading as="h3" size="xs" weight="bold">
+                <li key={claim.id} className="border border-hi p-3 sm:p-4 rounded-lg">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-0 mb-3">
+                    <Heading as="h3" size="xs" weight="bold" addlClassName="text-sm sm:text-base">
                       {claim.employeeName}
                     </Heading>
-                    <span className="bg-accent/20 text-accent px-2 py-1 rounded-full text-xs">
+                    <span className="bg-accent/20 text-accent px-2 py-1 rounded-full text-xs self-start sm:self-auto">
                       {claim.status}
                     </span>
                   </div>
-                  <div className="text-sm text-muted flex justify-between items-center">
-                    <div>
+                  <div className="text-xs sm:text-sm text-muted flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                    <div className="flex-1 min-w-0 space-y-1">
                       <Text as="p" size="xs" weight="regular">
                         Amount: {claim.amount} USDC
                       </Text>
@@ -732,7 +747,7 @@ export default function PayrollScheduler() {
                     </div>
                     <button
                       onClick={() => handleRemoveClaim(claim.id)}
-                      className="text-danger hover:text-danger/80 text-sm font-medium"
+                      className="text-danger hover:text-danger/80 text-sm font-medium py-2 px-4 rounded-lg hover:bg-danger/10 transition-colors touch-manipulation min-h-[44px] self-start sm:self-auto"
                     >
                       Cancel
                     </button>
@@ -744,7 +759,7 @@ export default function PayrollScheduler() {
         </Card>
       </div>
 
-      <div className="w-full">
+      <div className="w-full mb-6 sm:mb-8 lg:mb-12">
         <BulkPaymentStatusTracker organizationId={1} />
       </div>
     </div>
