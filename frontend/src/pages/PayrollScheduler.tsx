@@ -7,7 +7,7 @@ import { ContractErrorPanel } from '../components/ContractErrorPanel';
 import { useNotification } from '../hooks/useNotification';
 import { useContractError } from '../hooks/useContractError';
 import { useSocket } from '../hooks/useSocket';
-import { createClaimableBalanceTransaction, generateWallet } from '../services/stellar';
+import { createClaimableBalanceTransaction, generateWallet, checkTrustline } from '../services/stellar';
 import { useTranslation } from 'react-i18next';
 import { Card, Heading, Text, Button, Input, Select } from '@stellar/design-system';
 import { SchedulingWizard } from '../components/SchedulingWizard';
@@ -15,6 +15,7 @@ import { CountdownTimer } from '../components/CountdownTimer';
 
 interface PayrollFormState {
   employeeName: string;
+  walletAddress: string;
   amount: string;
   frequency: 'weekly' | 'monthly';
   startDate: string;
@@ -35,6 +36,7 @@ const formatDate = (dateString: string) => {
 interface PendingClaim {
   id: string;
   employeeName: string;
+  walletAddress: string;
   amount: string;
   dateScheduled: string;
   claimantPublicKey: string;
@@ -46,6 +48,7 @@ const MOCK_EMPLOYER_SECRET = 'SD3X5K7G7XV4K5V3M2G5QXH434M3VX6O5P3QVQO3L2PQSQQQQQ
 
 const initialFormState: PayrollFormState = {
   employeeName: '',
+  walletAddress: '',
   amount: '',
   frequency: 'monthly',
   startDate: '',
@@ -54,7 +57,7 @@ const initialFormState: PayrollFormState = {
 
 export default function PayrollScheduler() {
   const { t } = useTranslation();
-  const { notifySuccess, notifyError } = useNotification();
+  const { notifySuccess, notifyError, notifyWarning } = useNotification();
   const { socket, subscribeToTransaction, unsubscribeFromTransaction } = useSocket();
   const [formData, setFormData] = useState<PayrollFormState>(initialFormState);
   const [isBroadcasting, setIsBroadcasting] = useState(false);
@@ -64,6 +67,7 @@ export default function PayrollScheduler() {
     timeOfDay: string;
   } | null>(null);
   const [nextRunDate, setNextRunDate] = useState<Date | null>(null);
+  const [trustlineMissing, setTrustlineMissing] = useState(false);
   const { contractError, handleContractError, clearContractError } = useContractError();
 
   const [pendingClaims, setPendingClaims] = useState<PendingClaim[]>(() => {
@@ -123,6 +127,7 @@ export default function PayrollScheduler() {
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (simulationResult) resetSimulation();
     clearContractError();
+    setTrustlineMissing(false);
   };
 
   useEffect(() => {
@@ -149,9 +154,21 @@ export default function PayrollScheduler() {
   }, [socket, notifySuccess]);
 
   const handleInitialize = async () => {
-    if (!formData.employeeName || !formData.amount) {
-      notifyError('Missing required fields', 'Please provide employee name and amount.');
+    if (!formData.employeeName || !formData.amount || !formData.walletAddress) {
+      notifyError('Missing required fields', 'Please provide employee name, amount, and wallet address.');
       return;
+    }
+
+    // Pre-flight check: Verify USDC trustline
+    const hasTrustline = await checkTrustline(formData.walletAddress, 'USDC');
+    if (!hasTrustline) {
+      setTrustlineMissing(true);
+      notifyWarning(
+        'Trustline missing!',
+        `${formData.employeeName} does not have a USDC trustline. You can proceed, but the payment will be held as a claimable balance.`
+      );
+    } else {
+      setTrustlineMissing(false);
     }
 
     // Mock XDR for simulation demonstration
@@ -172,18 +189,17 @@ export default function PayrollScheduler() {
     setIsBroadcasting(true);
     clearContractError();
     try {
-      const mockRecipientPublicKey = generateWallet().publicKey;
+      const recipientPublicKey = formData.walletAddress || generateWallet().publicKey;
 
       // Integrate claimable balance logic from Issue #44
       const result = createClaimableBalanceTransaction(
         MOCK_EMPLOYER_SECRET,
-        mockRecipientPublicKey,
+        recipientPublicKey,
         String(formData.amount),
         'USDC'
       );
 
       if (!result.success) {
-        // In a real scenario, we might have a resultXdr here from a failed submission
         handleContractError(undefined, 'Failed to create claimable balance');
         throw new Error('Failed to create claimable balance');
       }
@@ -202,9 +218,10 @@ export default function PayrollScheduler() {
       const newClaim: PendingClaim = {
         id: Math.random().toString(36).substr(2, 9),
         employeeName: formData.employeeName,
+        walletAddress: formData.walletAddress,
         amount: formData.amount,
         dateScheduled: formData.startDate || new Date().toISOString().split('T')[0],
-        claimantPublicKey: mockRecipientPublicKey,
+        claimantPublicKey: recipientPublicKey,
         status: 'Pending Claim',
       };
 
@@ -355,6 +372,18 @@ export default function PayrollScheduler() {
                 />
               </div>
 
+              <div className="md:col-span-2">
+                <Input
+                  id="walletAddress"
+                  fieldSize="md"
+                  label={t('payroll.walletAddress', 'Wallet Address')}
+                  name="walletAddress"
+                  value={formData.walletAddress}
+                  onChange={handleChange}
+                  placeholder="G..."
+                />
+              </div>
+
               <div>
                 <Input
                   id="amount"
@@ -450,6 +479,27 @@ export default function PayrollScheduler() {
                 </svg>
                 Pre-flight Validation
               </Heading>
+
+              {trustlineMissing && (
+                <div className="mb-4 p-3 rounded-lg bg-orange-500/10 border border-orange-500/30 flex items-start gap-3">
+                  <div className="mt-0.5">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                      <line x1="12" y1="9" x2="12" y2="13" />
+                      <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                  </div>
+                  <div>
+                    <Text as="p" size="xs" weight="bold" addlClassName="text-orange-500 mb-1">
+                      Trustline Missing
+                    </Text>
+                    <Text as="p" size="xs" weight="regular" addlClassName="text-orange-200/70 leading-relaxed">
+                      Employee does not have a USDC trustline. Payment will be held as a claimable balance.
+                    </Text>
+                  </div>
+                </div>
+              )}
+
               <Text
                 as="p"
                 size="xs"
@@ -462,7 +512,7 @@ export default function PayrollScheduler() {
               <ul className="text-xs text-muted space-y-2 list-disc pl-4 font-medium">
                 <li>Insufficient XLM balance for fees</li>
                 <li>Invalid sequence numbers</li>
-                <li>Missing trustlines for tokens</li>
+                <li className={trustlineMissing ? "text-orange-400 font-bold" : ""}>Missing trustlines for tokens</li>
                 <li>Account eligibility status</li>
               </ul>
             </div>
@@ -504,9 +554,9 @@ export default function PayrollScheduler() {
                         size="xs"
                         weight="regular"
                         addlClassName="font-mono truncate max-w-[200px]"
-                        title={claim.claimantPublicKey}
+                        title={claim.walletAddress}
                       >
-                        To: {claim.claimantPublicKey}
+                        To: {claim.walletAddress}
                       </Text>
                     </div>
                     <button
