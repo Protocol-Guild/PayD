@@ -17,7 +17,7 @@ function testCalculateNextRun() {
   // Test 1: Once frequency
   try {
     const startDate = new Date('2024-01-15');
-    const result = service.calculateNextRun('once', '14:30', startDate);
+    const result = service.calculateNextRun('once', '14:30', startDate, 'UTC');
     
     if (
       result.getFullYear() === 2024 &&
@@ -42,7 +42,7 @@ function testCalculateNextRun() {
   // Test 2: Weekly frequency without lastRun
   try {
     const startDate = new Date('2024-01-15');
-    const result = service.calculateNextRun('weekly', '10:00', startDate);
+    const result = service.calculateNextRun('weekly', '10:00', startDate, 'UTC');
     
     if (
       result.getFullYear() === 2024 &&
@@ -68,7 +68,7 @@ function testCalculateNextRun() {
   try {
     const startDate = new Date('2024-01-15');
     const lastRun = new Date('2024-02-05');
-    const result = service.calculateNextRun('weekly', '15:45', startDate, lastRun);
+    const result = service.calculateNextRun('weekly', '15:45', startDate, 'UTC', lastRun);
     
     if (
       result.getFullYear() === 2024 &&
@@ -93,7 +93,7 @@ function testCalculateNextRun() {
   // Test 4: Biweekly frequency
   try {
     const startDate = new Date('2024-01-15');
-    const result = service.calculateNextRun('biweekly', '08:30', startDate);
+    const result = service.calculateNextRun('biweekly', '08:30', startDate, 'UTC');
     
     if (
       result.getFullYear() === 2024 &&
@@ -118,7 +118,7 @@ function testCalculateNextRun() {
   // Test 5: Monthly frequency
   try {
     const startDate = new Date('2024-01-15');
-    const result = service.calculateNextRun('monthly', '11:00', startDate);
+    const result = service.calculateNextRun('monthly', '11:00', startDate, 'UTC');
     
     if (
       result.getFullYear() === 2024 &&
@@ -143,7 +143,7 @@ function testCalculateNextRun() {
   // Test 6: Monthly frequency with year boundary
   try {
     const startDate = new Date('2024-12-15');
-    const result = service.calculateNextRun('monthly', '09:00', startDate);
+    const result = service.calculateNextRun('monthly', '09:00', startDate, 'UTC');
     
     if (
       result.getFullYear() === 2025 &&
@@ -168,7 +168,7 @@ function testCalculateNextRun() {
   // Test 7: Midnight time
   try {
     const startDate = new Date('2024-01-15');
-    const result = service.calculateNextRun('weekly', '00:00', startDate);
+    const result = service.calculateNextRun('weekly', '00:00', startDate, 'UTC');
     
     if (result.getHours() === 0 && result.getMinutes() === 0) {
       console.log('✓ Test 7 passed: Handles midnight time correctly');
@@ -187,7 +187,7 @@ function testCalculateNextRun() {
   // Test 8: End of day time
   try {
     const startDate = new Date('2024-01-15');
-    const result = service.calculateNextRun('weekly', '23:59', startDate);
+    const result = service.calculateNextRun('weekly', '23:59', startDate, 'UTC');
     
     if (result.getHours() === 23 && result.getMinutes() === 59) {
       console.log('✓ Test 8 passed: Handles end of day time correctly');

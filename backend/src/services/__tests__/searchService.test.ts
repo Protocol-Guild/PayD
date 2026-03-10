@@ -331,7 +331,7 @@ describe('SearchService', () => {
 
       expect(result.data[0]).toHaveProperty('employee_first_name');
       expect(result.data[0]).toHaveProperty('employee_last_name');
-      expect(result.data[0].employee_first_name).toBe('John');
+      expect(result.data[0]?.employee_first_name).toBe('John');
 
       const dataQueryCall = (mockPool.query as jest.Mock).mock.calls[1];
       expect(dataQueryCall[0]).toContain('LEFT JOIN employees');

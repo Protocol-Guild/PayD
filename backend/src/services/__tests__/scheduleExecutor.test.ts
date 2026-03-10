@@ -308,6 +308,7 @@ describe('ScheduleExecutor', () => {
       userId: 1,
       frequency: 'weekly',
       timeOfDay: '14:30',
+      timezone: 'UTC',
       startDate: new Date('2024-01-15'),
       endDate: undefined,
       paymentConfig: {
