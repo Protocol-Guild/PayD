@@ -6,9 +6,8 @@ export interface SocketContextType {
   connected: boolean;
   subscribeToTransaction: (transactionId: string) => void;
   unsubscribeFromTransaction: (transactionId: string) => void;
-  subscribeToAdminPayments: () => void;
-  unsubscribeFromAdminPayments: () => void;
-  requestPaymentStats: () => void;
+  subscribeToOrganization: (organizationId: number) => void;
+  unsubscribeFromOrganization: (organizationId: number) => void;
 }
 
 export const SocketContext = createContext<SocketContextType | undefined>(undefined);

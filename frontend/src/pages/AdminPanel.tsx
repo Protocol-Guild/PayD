@@ -241,39 +241,43 @@ export default function AdminPanel() {
   // -----------------------------------------------------------------------
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-start p-12 max-w-5xl mx-auto w-full">
+    <div className="flex-1 flex flex-col items-center justify-start p-4 sm:p-6 lg:p-12 max-w-5xl mx-auto w-full">
       {/* Header */}
-      <div className="w-full mb-8 flex items-end justify-between border-b border-hi pb-8">
+      <div className="w-full mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-end sm:justify-between border-b border-hi pb-4 sm:pb-8 gap-4">
         <div>
-          <h1 className="text-4xl font-black mb-2 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black mb-2 tracking-tight">
             Security <span className="text-red-500">Center</span>
           </h1>
-          <p className="text-muted font-mono text-sm tracking-wider uppercase">
+          <p className="text-muted font-mono text-xs sm:text-sm tracking-wider uppercase">
             Asset Freeze & Administrative Controls
           </p>
         </div>
       </div>
 
       {/* Tab bar */}
-      <div className="w-full mb-8 flex gap-4 border-b border-hi overflow-x-auto">
+      <div className="w-full mb-6 sm:mb-8 flex gap-2 sm:gap-4 border-b border-hi overflow-x-auto -mx-4 sm:-mx-6 lg:-mx-12 px-4 sm:px-6 lg:px-12 scrollbar-hide">
         {(Object.keys(TAB_LABELS) as ActiveTab[]).map((tab) => (
-          <button key={tab} onClick={() => setActiveTab(tab)} className={tabClass(tab)}>
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`${tabClass(tab)} whitespace-nowrap min-h-[44px] touch-manipulation`}
+            style={{ minWidth: '44px' }}
+          >
             {tab === 'contracts' && <Code2 className="inline w-3.5 h-3.5 mr-1.5 -mt-0.5" />}
-            {tab === 'payments' && <TrendingUp className="inline w-3.5 h-3.5 mr-1.5 -mt-0.5" />}
-            {TAB_LABELS[tab]}
+            <span className="text-xs sm:text-sm">{TAB_LABELS[tab]}</span>
           </button>
         ))}
       </div>
 
       {/* Tab panels */}
-      <div className="w-full border border-hi rounded-2xl p-8 bg-black/10 backdrop-blur-md">
+      <div className="w-full border border-hi rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-8 bg-black/10 backdrop-blur-md">
         {/* ── Account Control ─────────────────────────────────────── */}
         {activeTab === 'account' && (
-          <div className="flex flex-col gap-6 max-w-2xl">
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              <ShieldAlert className="w-5 h-5 text-red-500" /> Account Level Freeze
+          <div className="flex flex-col gap-4 sm:gap-6 max-w-2xl">
+            <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" /> Account Level Freeze
             </h2>
-            <p className="text-sm text-muted">
+            <p className="text-xs sm:text-sm text-muted">
               Instantly block or restore an individual account's ability to transact with your
               asset.
             </p>
@@ -291,7 +295,7 @@ export default function AdminPanel() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className={LABEL_CLASS}>Asset Code</label>
                   <input
@@ -328,18 +332,18 @@ export default function AdminPanel() {
               </div>
             </div>
 
-            <div className="flex gap-4 mt-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-4">
               <button
                 disabled={accountLoading}
                 onClick={() => void handleAccountAction('freeze')}
-                className="flex-1 py-4 bg-red-500/20 text-red-500 border border-red-500/50 font-black rounded-xl hover:bg-red-500 hover:text-white transition-all shadow-lg uppercase tracking-widest text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 py-3 sm:py-4 bg-red-500/20 text-red-500 border border-red-500/50 font-black rounded-xl hover:bg-red-500 hover:text-white transition-all shadow-lg uppercase tracking-widest text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation min-h-[44px]"
               >
                 {accountLoading ? 'Processing...' : 'Freeze Account'}
               </button>
               <button
                 disabled={accountLoading}
                 onClick={() => void handleAccountAction('unfreeze')}
-                className="flex-1 py-4 bg-emerald-500/20 text-emerald-500 border border-emerald-500/50 font-black rounded-xl hover:bg-emerald-500 hover:text-white transition-all shadow-lg uppercase tracking-widest text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 py-3 sm:py-4 bg-emerald-500/20 text-emerald-500 border border-emerald-500/50 font-black rounded-xl hover:bg-emerald-500 hover:text-white transition-all shadow-lg uppercase tracking-widest text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation min-h-[44px]"
               >
                 {accountLoading ? 'Processing...' : 'Unfreeze Account'}
               </button>
@@ -349,17 +353,17 @@ export default function AdminPanel() {
 
         {/* ── Global Asset Control ─────────────────────────────────── */}
         {activeTab === 'global' && (
-          <div className="flex flex-col gap-6 max-w-2xl">
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-red-500" /> Global Asset Freeze
+          <div className="flex flex-col gap-4 sm:gap-6 max-w-2xl">
+            <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" /> Global Asset Freeze
             </h2>
-            <div className="bg-red-500/10 border border-red-500/30 p-4 rounded-xl text-red-400 text-sm">
+            <div className="bg-red-500/10 border border-red-500/30 p-3 sm:p-4 rounded-xl text-red-400 text-xs sm:text-sm">
               <strong>WARNING:</strong> This will freeze ALL accounts holding this asset. Reserve
               for systemic security breaches only.
             </div>
 
             <div className="grid gap-4 mt-2">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className={LABEL_CLASS}>Asset Code</label>
                   <input
@@ -396,18 +400,18 @@ export default function AdminPanel() {
               </div>
             </div>
 
-            <div className="flex gap-4 mt-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-4">
               <button
                 disabled={globalLoading}
                 onClick={() => void handleGlobalAction('freeze')}
-                className="flex-1 py-4 bg-red-600/30 text-red-400 border border-red-500/50 font-black rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-lg uppercase tracking-widest text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 py-3 sm:py-4 bg-red-600/30 text-red-400 border border-red-500/50 font-black rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-lg uppercase tracking-widest text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation min-h-[44px]"
               >
                 {globalLoading ? 'Processing...' : 'Engage Global Freeze'}
               </button>
               <button
                 disabled={globalLoading}
                 onClick={() => void handleGlobalAction('unfreeze')}
-                className="flex-1 py-4 bg-emerald-500/20 text-emerald-500 border border-emerald-500/50 font-black rounded-xl hover:bg-emerald-500 hover:text-white transition-all shadow-lg uppercase tracking-widest text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 py-3 sm:py-4 bg-emerald-500/20 text-emerald-500 border border-emerald-500/50 font-black rounded-xl hover:bg-emerald-500 hover:text-white transition-all shadow-lg uppercase tracking-widest text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation min-h-[44px]"
               >
                 {globalLoading ? 'Processing...' : 'Lift Global Freeze'}
               </button>
@@ -417,11 +421,11 @@ export default function AdminPanel() {
 
         {/* ── Status Check ─────────────────────────────────────────── */}
         {activeTab === 'status' && (
-          <div className="flex flex-col gap-6 max-w-2xl">
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              <Search className="w-5 h-5 text-accent" /> Trustline Status
+          <div className="flex flex-col gap-4 sm:gap-6 max-w-2xl">
+            <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
+              <Search className="w-4 h-4 sm:w-5 sm:h-5 text-accent" /> Trustline Status
             </h2>
-            <p className="text-sm text-muted">
+            <p className="text-xs sm:text-sm text-muted">
               Verify whether an account's trustline is currently frozen for a given asset.
             </p>
 
@@ -438,7 +442,7 @@ export default function AdminPanel() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className={LABEL_CLASS}>Asset Code</label>
                   <input
@@ -466,19 +470,19 @@ export default function AdminPanel() {
             <button
               disabled={statusLoading}
               onClick={() => void handleStatusCheck()}
-              className="py-4 bg-black/20 border border-hi font-black rounded-xl hover:bg-black/40 transition-all shadow-lg uppercase tracking-widest text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full sm:w-auto py-3 sm:py-4 px-6 bg-black/20 border border-hi font-black rounded-xl hover:bg-black/40 transition-all shadow-lg uppercase tracking-widest text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation min-h-[44px]"
             >
               {statusLoading ? 'Checking...' : 'Check Status'}
             </button>
 
             {statusResult && (
-              <div className="p-6 border border-hi rounded-xl bg-black/20">
-                <div className="flex items-center gap-4 mb-5">
-                  <span className="text-sm font-bold uppercase tracking-widest text-muted">
+              <div className="p-4 sm:p-6 border border-hi rounded-xl bg-black/20">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-5">
+                  <span className="text-xs sm:text-sm font-bold uppercase tracking-widest text-muted">
                     Status
                   </span>
                   <span
-                    className={`px-3 py-1 rounded text-xs font-black uppercase tracking-widest border ${
+                    className={`px-3 py-1.5 rounded text-xs font-black uppercase tracking-widest border ${
                       statusResult.isFrozen
                         ? 'bg-red-500/20 text-red-500 border-red-500/30'
                         : 'bg-emerald-500/20 text-emerald-500 border-emerald-500/30'
@@ -487,27 +491,29 @@ export default function AdminPanel() {
                     {statusResult.isFrozen ? 'Frozen' : 'Active'}
                   </span>
                 </div>
-                <dl className="grid gap-2 text-sm">
-                  <div className="flex gap-2">
-                    <dt className="text-muted min-w-[110px]">Account</dt>
-                    <dd className="font-mono text-xs truncate">{statusResult.targetAccount}</dd>
+                <dl className="grid gap-3 text-xs sm:text-sm">
+                  <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
+                    <dt className="text-muted sm:min-w-[110px]">Account</dt>
+                    <dd className="font-mono text-xs break-all sm:truncate">
+                      {statusResult.targetAccount}
+                    </dd>
                   </div>
-                  <div className="flex gap-2">
-                    <dt className="text-muted min-w-[110px]">Asset</dt>
+                  <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
+                    <dt className="text-muted sm:min-w-[110px]">Asset</dt>
                     <dd className="font-bold">{statusResult.assetCode}</dd>
                   </div>
                   {statusResult.latestAction && (
                     <>
-                      <div className="flex gap-2">
-                        <dt className="text-muted min-w-[110px]">Last Action</dt>
+                      <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
+                        <dt className="text-muted sm:min-w-[110px]">Last Action</dt>
                         <dd className="capitalize">{statusResult.latestAction.action}</dd>
                       </div>
-                      <div className="flex gap-2">
-                        <dt className="text-muted min-w-[110px]">Reason</dt>
-                        <dd>{statusResult.latestAction.reason || '—'}</dd>
+                      <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
+                        <dt className="text-muted sm:min-w-[110px]">Reason</dt>
+                        <dd className="break-words">{statusResult.latestAction.reason || '—'}</dd>
                       </div>
-                      <div className="flex gap-2">
-                        <dt className="text-muted min-w-[110px]">Timestamp</dt>
+                      <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
+                        <dt className="text-muted sm:min-w-[110px]">Timestamp</dt>
                         <dd className="font-mono text-xs">
                           {new Date(statusResult.latestAction.created_at).toLocaleString()}
                         </dd>
@@ -525,10 +531,10 @@ export default function AdminPanel() {
 
         {/* ── Audit Logs ───────────────────────────────────────────── */}
         {activeTab === 'logs' && (
-          <div className="flex flex-col gap-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <Activity className="w-5 h-5 text-accent" /> Freeze Audit Logs
+          <div className="flex flex-col gap-4 sm:gap-6">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+              <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
+                <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-accent" /> Freeze Audit Logs
               </h2>
               <div className="flex items-center gap-3">
                 {logsTotal > 0 && (
@@ -540,14 +546,15 @@ export default function AdminPanel() {
                 <button
                   onClick={() => void loadLogs(logsPage)}
                   disabled={logsLoading}
-                  className="text-xs bg-black/20 px-3 py-1.5 rounded border border-hi hover:bg-black/40 disabled:opacity-50"
+                  className="text-xs bg-black/20 px-3 py-2 rounded border border-hi hover:bg-black/40 disabled:opacity-50 touch-manipulation min-h-[44px]"
                 >
                   {logsLoading ? 'Loading…' : 'Refresh'}
                 </button>
               </div>
             </div>
 
-            <div className="overflow-x-auto w-full">
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto w-full">
               <table className="w-full text-left border-collapse text-sm">
                 <thead>
                   <tr className="border-b border-hi text-muted uppercase tracking-wider text-[10px]">
@@ -604,25 +611,77 @@ export default function AdminPanel() {
               </table>
             </div>
 
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-3">
+              {logs.length === 0 ? (
+                <div className="p-8 text-center text-muted text-sm">
+                  {logsLoading ? 'Loading…' : 'No freeze logs found.'}
+                </div>
+              ) : (
+                logs.map((log: FreezeLog) => (
+                  <div
+                    key={log.id}
+                    className="border border-hi/50 rounded-lg p-4 bg-black/5 space-y-3"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-mono text-muted mb-1">
+                          {new Date(log.created_at).toLocaleString()}
+                        </div>
+                        <div className="text-xs font-mono break-all">{log.target_account}</div>
+                      </div>
+                      <span
+                        className={`px-2 py-1 rounded text-[10px] uppercase font-bold tracking-widest flex-shrink-0 ${
+                          log.action === 'freeze'
+                            ? 'bg-red-500/20 text-red-500'
+                            : 'bg-emerald-500/20 text-emerald-500'
+                        }`}
+                      >
+                        {log.action}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-muted">Asset:</span>
+                        <span className="ml-1 font-bold">{log.asset_code}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted">Scope:</span>
+                        <span className="ml-1 capitalize">{log.scope}</span>
+                      </div>
+                    </div>
+                    {log.reason && (
+                      <div className="text-xs">
+                        <span className="text-muted">Reason:</span>
+                        <div className="mt-1 text-text break-words">{log.reason}</div>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-4 pt-2">
+              <div className="flex items-center justify-center gap-3 sm:gap-4 pt-2">
                 <button
                   onClick={() => setLogsPage((p: number) => Math.max(1, p - 1))}
                   disabled={logsPage === 1 || logsLoading}
-                  className="flex items-center gap-1 px-3 py-1.5 text-xs border border-hi rounded hover:bg-black/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="flex items-center gap-1 px-4 py-2.5 text-xs border border-hi rounded hover:bg-black/20 disabled:opacity-40 disabled:cursor-not-allowed touch-manipulation min-h-[44px]"
                 >
-                  <ChevronLeft className="w-3 h-3" /> Previous
+                  <ChevronLeft className="w-4 h-4" />{' '}
+                  <span className="hidden sm:inline">Previous</span>
                 </button>
-                <span className="text-xs text-muted">
+                <span className="text-xs text-muted px-2">
                   Page {logsPage} of {totalPages}
                 </span>
                 <button
                   onClick={() => setLogsPage((p: number) => Math.min(totalPages, p + 1))}
                   disabled={logsPage === totalPages || logsLoading}
-                  className="flex items-center gap-1 px-3 py-1.5 text-xs border border-hi rounded hover:bg-black/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="flex items-center gap-1 px-4 py-2.5 text-xs border border-hi rounded hover:bg-black/20 disabled:opacity-40 disabled:cursor-not-allowed touch-manipulation min-h-[44px]"
                 >
-                  Next <ChevronRight className="w-3 h-3" />
+                  <span className="hidden sm:inline">Next</span>{' '}
+                  <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
             )}
