@@ -10,14 +10,8 @@
  * - Foreign key relationships
  */
 
-import { describe, test, beforeAll } from 'node:test';
-import assert from 'node:assert';
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const MIGRATIONS_DIR = path.resolve(__dirname, '../migrations');
 
@@ -30,12 +24,12 @@ describe('Migration Files - Structure Verification', () => {
       migrationContent = fs.readFileSync(migrationPath, 'utf8');
     });
 
-    test('should create schedules table', () => {
+    it('should create schedules table', () => {
       expect(migrationContent).toContain('CREATE TABLE');
       expect(migrationContent).toContain('schedules');
     });
 
-    test('should have all required columns', () => {
+    it('should have all required columns', () => {
       const requiredColumns = [
         'id',
         'organization_id',
@@ -57,24 +51,24 @@ describe('Migration Files - Structure Verification', () => {
       });
     });
 
-    test('should have primary key on id', () => {
+    it('should have primary key on id', () => {
       expect(migrationContent).toMatch(/id\s+SERIAL\s+PRIMARY KEY/i);
     });
 
-    test('should have foreign key to organizations', () => {
+    it('should have foreign key to organizations', () => {
       expect(migrationContent).toContain('REFERENCES organizations(id)');
       expect(migrationContent).toContain('ON DELETE CASCADE');
     });
 
-    test('should have CHECK constraint for frequency', () => {
+    it('should have CHECK constraint for frequency', () => {
       expect(migrationContent).toContain("CHECK (frequency IN ('once', 'weekly', 'biweekly', 'monthly'))");
     });
 
-    test('should have CHECK constraint for status', () => {
+    it('should have CHECK constraint for status', () => {
       expect(migrationContent).toContain("CHECK (status IN ('active', 'completed', 'cancelled', 'failed'))");
     });
 
-    test('should have correct data types', () => {
+    it('should have correct data types', () => {
       expect(migrationContent).toMatch(/frequency\s+VARCHAR\(20\)/i);
       expect(migrationContent).toMatch(/time_of_day\s+TIME/i);
       expect(migrationContent).toMatch(/start_date\s+DATE/i);
@@ -83,32 +77,32 @@ describe('Migration Files - Structure Verification', () => {
       expect(migrationContent).toMatch(/status\s+VARCHAR\(20\)/i);
     });
 
-    test('should have required indexes', () => {
+    it('should have required indexes', () => {
       expect(migrationContent).toContain('CREATE INDEX idx_schedules_next_run');
       expect(migrationContent).toContain('CREATE INDEX idx_schedules_org_id');
       expect(migrationContent).toContain('CREATE INDEX idx_schedules_status');
     });
 
-    test('should have composite index on next_run_timestamp and status', () => {
+    it('should have composite index on next_run_timestamp and status', () => {
       expect(migrationContent).toContain('idx_schedules_next_run ON schedules(next_run_timestamp, status)');
     });
 
-    test('should have default value for status', () => {
+    it('should have default value for status', () => {
       expect(migrationContent).toMatch(/status.*DEFAULT\s+'active'/i);
     });
 
-    test('should have default timestamps', () => {
+    it('should have default timestamps', () => {
       expect(migrationContent).toMatch(/created_at.*DEFAULT\s+CURRENT_TIMESTAMP/i);
       expect(migrationContent).toMatch(/updated_at.*DEFAULT\s+CURRENT_TIMESTAMP/i);
     });
 
-    test('should have updated_at trigger', () => {
+    it('should have updated_at trigger', () => {
       expect(migrationContent).toContain('CREATE TRIGGER update_schedules_updated_at');
       expect(migrationContent).toContain('BEFORE UPDATE ON schedules');
       expect(migrationContent).toContain('update_updated_at_column()');
     });
 
-    test('should use IF NOT EXISTS for idempotency', () => {
+    it('should use IF NOT EXISTS for idempotency', () => {
       expect(migrationContent).toContain('IF NOT EXISTS');
     });
   });
@@ -121,12 +115,12 @@ describe('Migration Files - Structure Verification', () => {
       migrationContent = fs.readFileSync(migrationPath, 'utf8');
     });
 
-    test('should create execution_history table', () => {
+    it('should create execution_history table', () => {
       expect(migrationContent).toContain('CREATE TABLE');
       expect(migrationContent).toContain('execution_history');
     });
 
-    test('should have all required columns', () => {
+    it('should have all required columns', () => {
       const requiredColumns = [
         'id',
         'schedule_id',
@@ -144,20 +138,20 @@ describe('Migration Files - Structure Verification', () => {
       });
     });
 
-    test('should have primary key on id', () => {
+    it('should have primary key on id', () => {
       expect(migrationContent).toMatch(/id\s+SERIAL\s+PRIMARY KEY/i);
     });
 
-    test('should have foreign key to schedules', () => {
+    it('should have foreign key to schedules', () => {
       expect(migrationContent).toContain('REFERENCES schedules(id)');
       expect(migrationContent).toContain('ON DELETE CASCADE');
     });
 
-    test('should have CHECK constraint for status', () => {
+    it('should have CHECK constraint for status', () => {
       expect(migrationContent).toContain("CHECK (status IN ('success', 'failed', 'partial'))");
     });
 
-    test('should have correct data types', () => {
+    it('should have correct data types', () => {
       expect(migrationContent).toMatch(/executed_at\s+TIMESTAMP/i);
       expect(migrationContent).toMatch(/status\s+VARCHAR\(20\)/i);
       expect(migrationContent).toMatch(/transaction_hash\s+VARCHAR\(64\)/i);
@@ -166,31 +160,31 @@ describe('Migration Files - Structure Verification', () => {
       expect(migrationContent).toMatch(/error_details\s+JSONB/i);
     });
 
-    test('should have required indexes', () => {
+    it('should have required indexes', () => {
       expect(migrationContent).toContain('CREATE INDEX idx_execution_schedule_id');
       expect(migrationContent).toContain('CREATE INDEX idx_execution_status');
       expect(migrationContent).toContain('CREATE INDEX idx_execution_executed_at');
     });
 
-    test('should have index on schedule_id for foreign key lookups', () => {
+    it('should have index on schedule_id for foreign key lookups', () => {
       expect(migrationContent).toContain('idx_execution_schedule_id ON execution_history(schedule_id)');
     });
 
-    test('should have default timestamp for executed_at', () => {
+    it('should have default timestamp for executed_at', () => {
       expect(migrationContent).toMatch(/executed_at.*DEFAULT\s+CURRENT_TIMESTAMP/i);
     });
 
-    test('should have default timestamp for created_at', () => {
+    it('should have default timestamp for created_at', () => {
       expect(migrationContent).toMatch(/created_at.*DEFAULT\s+CURRENT_TIMESTAMP/i);
     });
 
-    test('should use IF NOT EXISTS for idempotency', () => {
+    it('should use IF NOT EXISTS for idempotency', () => {
       expect(migrationContent).toContain('IF NOT EXISTS');
     });
   });
 
   describe('Migration File Ordering', () => {
-    test('schedules migration should come before execution_history', () => {
+    it('schedules migration should come before execution_history', () => {
       const files = fs.readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith('.sql')).sort();
       
       const schedulesIndex = files.findIndex((f) => f.includes('schedules'));
@@ -201,7 +195,7 @@ describe('Migration Files - Structure Verification', () => {
       expect(schedulesIndex).toBeLessThan(executionHistoryIndex);
     });
 
-    test('migration files should have numeric prefixes', () => {
+    it('migration files should have numeric prefixes', () => {
       const schedulesFile = '014_create_schedules.sql';
       const executionHistoryFile = '015_create_execution_history.sql';
 
@@ -211,7 +205,7 @@ describe('Migration Files - Structure Verification', () => {
   });
 
   describe('SQL Syntax Validation', () => {
-    test('014_create_schedules.sql should have valid SQL syntax', () => {
+    it('014_create_schedules.sql should have valid SQL syntax', () => {
       const migrationPath = path.join(MIGRATIONS_DIR, '014_create_schedules.sql');
       const content = fs.readFileSync(migrationPath, 'utf8');
 
@@ -225,7 +219,7 @@ describe('Migration Files - Structure Verification', () => {
       expect(openParens).toBe(closeParens);
     });
 
-    test('015_create_execution_history.sql should have valid SQL syntax', () => {
+    it('015_create_execution_history.sql should have valid SQL syntax', () => {
       const migrationPath = path.join(MIGRATIONS_DIR, '015_create_execution_history.sql');
       const content = fs.readFileSync(migrationPath, 'utf8');
 
@@ -241,7 +235,7 @@ describe('Migration Files - Structure Verification', () => {
   });
 
   describe('Schema Design Validation', () => {
-    test('schedules table should support all frequency types', () => {
+    it('schedules table should support all frequency types', () => {
       const migrationPath = path.join(MIGRATIONS_DIR, '014_create_schedules.sql');
       const content = fs.readFileSync(migrationPath, 'utf8');
 
@@ -251,7 +245,7 @@ describe('Migration Files - Structure Verification', () => {
       });
     });
 
-    test('schedules table should support all status types', () => {
+    it('schedules table should support all status types', () => {
       const migrationPath = path.join(MIGRATIONS_DIR, '014_create_schedules.sql');
       const content = fs.readFileSync(migrationPath, 'utf8');
 
@@ -261,7 +255,7 @@ describe('Migration Files - Structure Verification', () => {
       });
     });
 
-    test('execution_history should support all execution status types', () => {
+    it('execution_history should support all execution status types', () => {
       const migrationPath = path.join(MIGRATIONS_DIR, '015_create_execution_history.sql');
       const content = fs.readFileSync(migrationPath, 'utf8');
 
@@ -271,14 +265,14 @@ describe('Migration Files - Structure Verification', () => {
       });
     });
 
-    test('payment_config should use JSONB for flexibility', () => {
+    it('payment_config should use JSONB for flexibility', () => {
       const migrationPath = path.join(MIGRATIONS_DIR, '014_create_schedules.sql');
       const content = fs.readFileSync(migrationPath, 'utf8');
 
       expect(content).toMatch(/payment_config\s+JSONB\s+NOT NULL/i);
     });
 
-    test('error tracking should use JSONB for structured data', () => {
+    it('error tracking should use JSONB for structured data', () => {
       const migrationPath = path.join(MIGRATIONS_DIR, '015_create_execution_history.sql');
       const content = fs.readFileSync(migrationPath, 'utf8');
 
@@ -288,7 +282,7 @@ describe('Migration Files - Structure Verification', () => {
   });
 
   describe('Performance Optimization', () => {
-    test('schedules should have index on next_run_timestamp for cron queries', () => {
+    it('schedules should have index on next_run_timestamp for cron queries', () => {
       const migrationPath = path.join(MIGRATIONS_DIR, '014_create_schedules.sql');
       const content = fs.readFileSync(migrationPath, 'utf8');
 
@@ -297,7 +291,7 @@ describe('Migration Files - Structure Verification', () => {
       expect(content).toContain('next_run_timestamp, status');
     });
 
-    test('schedules should have index on organization_id for tenant isolation', () => {
+    it('schedules should have index on organization_id for tenant isolation', () => {
       const migrationPath = path.join(MIGRATIONS_DIR, '014_create_schedules.sql');
       const content = fs.readFileSync(migrationPath, 'utf8');
 
@@ -305,7 +299,7 @@ describe('Migration Files - Structure Verification', () => {
       expect(content).toContain('organization_id');
     });
 
-    test('execution_history should have index on schedule_id for lookups', () => {
+    it('execution_history should have index on schedule_id for lookups', () => {
       const migrationPath = path.join(MIGRATIONS_DIR, '015_create_execution_history.sql');
       const content = fs.readFileSync(migrationPath, 'utf8');
 
@@ -313,7 +307,7 @@ describe('Migration Files - Structure Verification', () => {
       expect(content).toContain('schedule_id');
     });
 
-    test('execution_history should have index on executed_at for time-based queries', () => {
+    it('execution_history should have index on executed_at for time-based queries', () => {
       const migrationPath = path.join(MIGRATIONS_DIR, '015_create_execution_history.sql');
       const content = fs.readFileSync(migrationPath, 'utf8');
 
@@ -323,7 +317,7 @@ describe('Migration Files - Structure Verification', () => {
   });
 
   describe('Data Integrity', () => {
-    test('schedules should have NOT NULL constraints on required fields', () => {
+    it('schedules should have NOT NULL constraints on required fields', () => {
       const migrationPath = path.join(MIGRATIONS_DIR, '014_create_schedules.sql');
       const content = fs.readFileSync(migrationPath, 'utf8');
 
@@ -343,7 +337,7 @@ describe('Migration Files - Structure Verification', () => {
       });
     });
 
-    test('execution_history should have NOT NULL constraints on required fields', () => {
+    it('execution_history should have NOT NULL constraints on required fields', () => {
       const migrationPath = path.join(MIGRATIONS_DIR, '015_create_execution_history.sql');
       const content = fs.readFileSync(migrationPath, 'utf8');
 
@@ -355,7 +349,7 @@ describe('Migration Files - Structure Verification', () => {
       });
     });
 
-    test('foreign keys should have CASCADE delete for referential integrity', () => {
+    it('foreign keys should have CASCADE delete for referential integrity', () => {
       const schedulesPath = path.join(MIGRATIONS_DIR, '014_create_schedules.sql');
       const executionHistoryPath = path.join(MIGRATIONS_DIR, '015_create_execution_history.sql');
 
@@ -372,7 +366,7 @@ describe('Migration Files - Structure Verification', () => {
 });
 
 describe('Migration System Integration', () => {
-  test('migration files should be readable by migrate.ts', () => {
+  it('migration files should be readable by migrate.ts', () => {
     const files = fs.readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith('.sql'));
     
     expect(files.length).toBeGreaterThan(0);
@@ -380,14 +374,14 @@ describe('Migration System Integration', () => {
     expect(files).toContain('015_create_execution_history.sql');
   });
 
-  test('migration files should be sorted lexicographically', () => {
+  it('migration files should be sorted lexicographically', () => {
     const files = fs.readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith('.sql'));
     const sorted = [...files].sort();
     
     expect(files).toEqual(sorted);
   });
 
-  test('migration files should have consistent naming pattern', () => {
+  it('migration files should have consistent naming pattern', () => {
     const pattern = /^\d{3}_[a-z_]+\.sql$/;
     
     expect('014_create_schedules.sql').toMatch(pattern);

@@ -23,8 +23,8 @@ describe('TransactionAuditService', () => {
 
   describe('list', () => {
     it('should call pool.query with correct base SQL when no filters are provided', async () => {
-      (mockPool.query as jest.Mock).mockResolvedValueOnce({ rows: [] }); // Data query
       (mockPool.query as jest.Mock).mockResolvedValueOnce({ rows: [{ count: '0' }] }); // Count query
+      (mockPool.query as jest.Mock).mockResolvedValueOnce({ rows: [] }); // Data query
 
       await TransactionAuditService.list(1, 20);
 
@@ -36,8 +36,8 @@ describe('TransactionAuditService', () => {
     });
 
     it('should apply date filters correctly', async () => {
-      (mockPool.query as jest.Mock).mockResolvedValueOnce({ rows: [] });
       (mockPool.query as jest.Mock).mockResolvedValueOnce({ rows: [{ count: '0' }] });
+      (mockPool.query as jest.Mock).mockResolvedValueOnce({ rows: [] });
 
       await TransactionAuditService.list(1, 20, undefined, {
         dateStart: '2026-01-01',
@@ -55,8 +55,8 @@ describe('TransactionAuditService', () => {
     });
 
     it('should apply status filter correctly', async () => {
-      (mockPool.query as jest.Mock).mockResolvedValueOnce({ rows: [] });
       (mockPool.query as jest.Mock).mockResolvedValueOnce({ rows: [{ count: '0' }] });
+      (mockPool.query as jest.Mock).mockResolvedValueOnce({ rows: [] });
 
       await TransactionAuditService.list(1, 20, undefined, {
         status: 'Completed'
@@ -68,8 +68,8 @@ describe('TransactionAuditService', () => {
     });
 
     it('should apply employeeId filter correctly', async () => {
-      (mockPool.query as jest.Mock).mockResolvedValueOnce({ rows: [] });
       (mockPool.query as jest.Mock).mockResolvedValueOnce({ rows: [{ count: '0' }] });
+      (mockPool.query as jest.Mock).mockResolvedValueOnce({ rows: [] });
 
       await TransactionAuditService.list(1, 20, undefined, {
         employeeId: 'emp-123'
@@ -81,8 +81,8 @@ describe('TransactionAuditService', () => {
     });
 
     it('should apply asset filter correctly', async () => {
-      (mockPool.query as jest.Mock).mockResolvedValueOnce({ rows: [] });
       (mockPool.query as jest.Mock).mockResolvedValueOnce({ rows: [{ count: '0' }] });
+      (mockPool.query as jest.Mock).mockResolvedValueOnce({ rows: [] });
 
       await TransactionAuditService.list(1, 20, undefined, {
         asset: 'USDC'

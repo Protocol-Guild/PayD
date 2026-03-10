@@ -85,7 +85,7 @@ describe('StellarService', () => {
 
       expect(transaction).toBeDefined();
       expect(transaction.operations).toHaveLength(1);
-      expect(transaction.operations[0].type).toBe('payment');
+      expect(transaction.operations[0]?.type).toBe('payment');
     });
 
     it('should build a payment transaction with custom fee', async () => {
@@ -287,7 +287,7 @@ describe('StellarService', () => {
 
       expect(transaction).toBeDefined();
       expect(transaction.operations).toHaveLength(1);
-      expect(transaction.operations[0].type).toBe('setOptions');
+      expect(transaction.operations[0]?.type).toBe('setOptions');
     });
 
     it('should add a signer with custom weight', async () => {
@@ -307,7 +307,7 @@ describe('StellarService', () => {
 
       expect(transaction).toBeDefined();
       expect(transaction.operations).toHaveLength(1);
-      expect(transaction.operations[0].type).toBe('setOptions');
+      expect(transaction.operations[0]?.type).toBe('setOptions');
     });
 
     it('should set partial thresholds', async () => {

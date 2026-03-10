@@ -41,6 +41,7 @@ async function testScheduleExecutor() {
     userId: 1,
     frequency: 'weekly',
     timeOfDay: '14:30',
+    timezone: 'UTC',
     startDate: new Date('2024-01-15'),
     endDate: undefined,
     paymentConfig: {
@@ -83,8 +84,7 @@ async function testScheduleExecutor() {
 }
 
 // Run tests if executed directly
-if (import.meta.url === `file://${process.argv[1]}`) {
-  testScheduleExecutor().catch(console.error);
-}
-
+// Note: This file is meant to be run with ts-node, not jest
+// Run with: npx ts-node src/services/__tests__/scheduleExecutor.manual.test.ts
+testScheduleExecutor().catch(console.error);
 export { testScheduleExecutor };

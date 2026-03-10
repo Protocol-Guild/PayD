@@ -38,7 +38,7 @@ describe('ScheduleService', () => {
         const timeOfDay = '14:30';
         const frequency: ScheduleFrequency = 'once';
 
-        const result = service.calculateNextRun(frequency, timeOfDay, startDate);
+        const result = service.calculateNextRun(frequency, timeOfDay, startDate, 'UTC');
 
         expect(result.getFullYear()).toBe(2024);
         expect(result.getMonth()).toBe(0); // January (0-indexed)
@@ -55,7 +55,7 @@ describe('ScheduleService', () => {
         const timeOfDay = '09:00';
         const frequency: ScheduleFrequency = 'once';
 
-        const result = service.calculateNextRun(frequency, timeOfDay, startDate, lastRun);
+        const result = service.calculateNextRun(frequency, timeOfDay, startDate, 'UTC', lastRun);
 
         // Should use startDate, not lastRun
         expect(result.getFullYear()).toBe(2024);
@@ -72,7 +72,7 @@ describe('ScheduleService', () => {
         const timeOfDay = '10:00';
         const frequency: ScheduleFrequency = 'weekly';
 
-        const result = service.calculateNextRun(frequency, timeOfDay, startDate);
+        const result = service.calculateNextRun(frequency, timeOfDay, startDate, 'UTC');
 
         expect(result.getFullYear()).toBe(2024);
         expect(result.getMonth()).toBe(0); // January
@@ -87,7 +87,7 @@ describe('ScheduleService', () => {
         const timeOfDay = '15:45';
         const frequency: ScheduleFrequency = 'weekly';
 
-        const result = service.calculateNextRun(frequency, timeOfDay, startDate, lastRun);
+        const result = service.calculateNextRun(frequency, timeOfDay, startDate, 'UTC', lastRun);
 
         expect(result.getFullYear()).toBe(2024);
         expect(result.getMonth()).toBe(1); // February
@@ -101,7 +101,7 @@ describe('ScheduleService', () => {
         const timeOfDay = '12:00';
         const frequency: ScheduleFrequency = 'weekly';
 
-        const result = service.calculateNextRun(frequency, timeOfDay, startDate);
+        const result = service.calculateNextRun(frequency, timeOfDay, startDate, 'UTC');
 
         expect(result.getFullYear()).toBe(2024);
         expect(result.getMonth()).toBe(1); // February
@@ -115,7 +115,7 @@ describe('ScheduleService', () => {
         const timeOfDay = '08:30';
         const frequency: ScheduleFrequency = 'biweekly';
 
-        const result = service.calculateNextRun(frequency, timeOfDay, startDate);
+        const result = service.calculateNextRun(frequency, timeOfDay, startDate, 'UTC');
 
         expect(result.getFullYear()).toBe(2024);
         expect(result.getMonth()).toBe(0); // January
@@ -130,7 +130,7 @@ describe('ScheduleService', () => {
         const timeOfDay = '16:00';
         const frequency: ScheduleFrequency = 'biweekly';
 
-        const result = service.calculateNextRun(frequency, timeOfDay, startDate, lastRun);
+        const result = service.calculateNextRun(frequency, timeOfDay, startDate, 'UTC', lastRun);
 
         expect(result.getFullYear()).toBe(2024);
         expect(result.getMonth()).toBe(1); // February
@@ -146,7 +146,7 @@ describe('ScheduleService', () => {
         const timeOfDay = '11:00';
         const frequency: ScheduleFrequency = 'monthly';
 
-        const result = service.calculateNextRun(frequency, timeOfDay, startDate);
+        const result = service.calculateNextRun(frequency, timeOfDay, startDate, 'UTC');
 
         expect(result.getFullYear()).toBe(2024);
         expect(result.getMonth()).toBe(1); // February
@@ -161,7 +161,7 @@ describe('ScheduleService', () => {
         const timeOfDay = '13:15';
         const frequency: ScheduleFrequency = 'monthly';
 
-        const result = service.calculateNextRun(frequency, timeOfDay, startDate, lastRun);
+        const result = service.calculateNextRun(frequency, timeOfDay, startDate, 'UTC', lastRun);
 
         expect(result.getFullYear()).toBe(2024);
         expect(result.getMonth()).toBe(3); // April
@@ -175,7 +175,7 @@ describe('ScheduleService', () => {
         const timeOfDay = '09:00';
         const frequency: ScheduleFrequency = 'monthly';
 
-        const result = service.calculateNextRun(frequency, timeOfDay, startDate);
+        const result = service.calculateNextRun(frequency, timeOfDay, startDate, 'UTC');
 
         expect(result.getFullYear()).toBe(2025);
         expect(result.getMonth()).toBe(0); // January
@@ -187,7 +187,7 @@ describe('ScheduleService', () => {
         const timeOfDay = '10:00';
         const frequency: ScheduleFrequency = 'monthly';
 
-        const result = service.calculateNextRun(frequency, timeOfDay, startDate);
+        const result = service.calculateNextRun(frequency, timeOfDay, startDate, 'UTC');
 
         // JavaScript Date handles this - Feb 31 becomes Mar 2 or 3 depending on leap year
         // For 2024 (leap year), Jan 31 + 1 month = Feb 29 (last day of Feb)
@@ -203,7 +203,7 @@ describe('ScheduleService', () => {
         const timeOfDay = '00:00';
         const frequency: ScheduleFrequency = 'weekly';
 
-        const result = service.calculateNextRun(frequency, timeOfDay, startDate);
+        const result = service.calculateNextRun(frequency, timeOfDay, startDate, 'UTC');
 
         expect(result.getHours()).toBe(0);
         expect(result.getMinutes()).toBe(0);
@@ -214,7 +214,7 @@ describe('ScheduleService', () => {
         const timeOfDay = '23:59';
         const frequency: ScheduleFrequency = 'weekly';
 
-        const result = service.calculateNextRun(frequency, timeOfDay, startDate);
+        const result = service.calculateNextRun(frequency, timeOfDay, startDate, 'UTC');
 
         expect(result.getHours()).toBe(23);
         expect(result.getMinutes()).toBe(59);
@@ -226,7 +226,7 @@ describe('ScheduleService', () => {
         const frequency = 'yearly' as ScheduleFrequency;
 
         expect(() => {
-          service.calculateNextRun(frequency, timeOfDay, startDate);
+          service.calculateNextRun(frequency, timeOfDay, startDate, 'UTC');
         }).toThrow('Unsupported frequency: yearly');
       });
     });
@@ -236,7 +236,8 @@ describe('ScheduleService', () => {
     const validScheduleData: CreateScheduleRequest = {
       frequency: 'weekly',
       timeOfDay: '14:30',
-      startDate: new Date(Date.now() + 86400000).toISOString().split('T')[0], // Tomorrow
+      timezone: 'UTC',
+      startDate: new Date(Date.now() + 86400000).toISOString().split('T')[0]!, // Tomorrow
       paymentConfig: {
         recipients: [
           {
@@ -359,8 +360,8 @@ describe('ScheduleService', () => {
         
         const invalidData = {
           ...validScheduleData,
-          startDate: tomorrow.toISOString().split('T')[0],
-          endDate: today.toISOString().split('T')[0],
+          startDate: tomorrow.toISOString().split('T')[0]!,
+          endDate: today.toISOString().split('T')[0]!,
         };
 
         await expect(
@@ -516,7 +517,7 @@ describe('ScheduleService', () => {
         const scheduleData = {
           ...validScheduleData,
           frequency: 'once' as ScheduleFrequency,
-          startDate: tomorrow.toISOString().split('T')[0],
+          startDate: tomorrow.toISOString().split('T')[0]!,
           timeOfDay: '14:30',
         };
 
@@ -557,7 +558,7 @@ describe('ScheduleService', () => {
         const scheduleData = {
           ...validScheduleData,
           frequency: 'weekly' as ScheduleFrequency,
-          startDate: tomorrow.toISOString().split('T')[0],
+          startDate: tomorrow.toISOString().split('T')[0]!,
           timeOfDay: '10:00',
         };
 
@@ -657,11 +658,11 @@ describe('ScheduleService', () => {
       const result = await service.getActiveSchedules(organizationId);
 
       expect(result).toHaveLength(2);
-      expect(result[0].id).toBe(1);
-      expect(result[0].frequency).toBe('weekly');
-      expect(result[0].status).toBe('active');
-      expect(result[1].id).toBe(2);
-      expect(result[1].frequency).toBe('monthly');
+      expect(result[0]?.id).toBe(1);
+      expect(result[0]?.frequency).toBe('weekly');
+      expect(result[0]?.status).toBe('active');
+      expect(result[1]?.id).toBe(2);
+      expect(result[1]?.frequency).toBe('monthly');
       expect(mockRelease).toHaveBeenCalled();
     });
 
@@ -697,7 +698,7 @@ describe('ScheduleService', () => {
       const result = await service.getActiveSchedules(organizationId, { status: 'completed' });
 
       expect(result).toHaveLength(1);
-      expect(result[0].status).toBe('completed');
+      expect(result[0]?.status).toBe('completed');
       expect(mockClientQuery).toHaveBeenCalledWith(
         expect.any(String),
         expect.arrayContaining([organizationId, 'completed', 50, 0]),
@@ -800,12 +801,12 @@ describe('ScheduleService', () => {
       const result = await service.getActiveSchedules(organizationId);
 
       expect(result).toHaveLength(1);
-      expect(result[0].startDate).toBeInstanceOf(Date);
-      expect(result[0].endDate).toBeInstanceOf(Date);
-      expect(result[0].nextRunTimestamp).toBeInstanceOf(Date);
-      expect(result[0].lastRunTimestamp).toBeInstanceOf(Date);
-      expect(result[0].createdAt).toBeInstanceOf(Date);
-      expect(result[0].updatedAt).toBeInstanceOf(Date);
+      expect(result[0]?.startDate).toBeInstanceOf(Date);
+      expect(result[0]?.endDate).toBeInstanceOf(Date);
+      expect(result[0]?.nextRunTimestamp).toBeInstanceOf(Date);
+      expect(result[0]?.lastRunTimestamp).toBeInstanceOf(Date);
+      expect(result[0]?.createdAt).toBeInstanceOf(Date);
+      expect(result[0]?.updatedAt).toBeInstanceOf(Date);
     });
 
     it('should handle null endDate and lastRunTimestamp', async () => {
@@ -840,8 +841,8 @@ describe('ScheduleService', () => {
       const result = await service.getActiveSchedules(organizationId);
 
       expect(result).toHaveLength(1);
-      expect(result[0].endDate).toBeUndefined();
-      expect(result[0].lastRunTimestamp).toBeUndefined();
+      expect(result[0]?.endDate).toBeUndefined();
+      expect(result[0]?.lastRunTimestamp).toBeUndefined();
     });
 
     it('should release client even on error', async () => {
@@ -895,8 +896,8 @@ describe('ScheduleService', () => {
         expect.stringContaining('ORDER BY next_run_timestamp ASC'),
         expect.any(Array),
       );
-      expect(result[0].nextRunTimestamp.getTime()).toBeLessThan(
-        result[1].nextRunTimestamp.getTime(),
+      expect(result[0]?.nextRunTimestamp.getTime()).toBeLessThan(
+        result[1]?.nextRunTimestamp.getTime(),
       );
     });
   });
