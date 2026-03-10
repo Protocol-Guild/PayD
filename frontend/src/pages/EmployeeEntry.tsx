@@ -28,18 +28,6 @@ interface EmployeeItem {
   status?: 'Active' | 'Inactive';
 }
 
-// Shape of an employee record returned by the backend API
-interface EmployeeApiItem {
-  id: number | string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  position?: string;
-  job_title?: string;
-  wallet_address?: string;
-  status?: string;
-}
-
 const initialFormState: EmployeeFormState = {
   fullName: '',
   walletAddress: '',
@@ -86,9 +74,7 @@ export default function EmployeeEntry() {
   const fetchEmployees = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await api.get<{ data: EmployeeApiItem[]; pagination: unknown }>(
-        '/employees'
-      );
+      const response = await api.get<EmployeesApiResponse>('/employees');
       // Backend returns { data: [...], pagination: {...} }
       const mapped: EmployeeItem[] = response.data.data.map((emp) => ({
         id: String(emp.id),
