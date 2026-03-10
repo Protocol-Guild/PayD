@@ -28,20 +28,16 @@ interface EmployeeItem {
   status?: 'Active' | 'Inactive';
 }
 
-interface BackendEmployee {
-  id: number;
+// Shape of an employee record returned by the backend API
+interface EmployeeApiItem {
+  id: number | string;
   first_name: string;
   last_name: string;
   email: string;
   position?: string;
   job_title?: string;
   wallet_address?: string;
-  status: 'active' | 'inactive';
-}
-
-interface EmployeesResponse {
-  data: BackendEmployee[];
-  pagination?: unknown;
+  status?: string;
 }
 
 const initialFormState: EmployeeFormState = {
@@ -74,15 +70,17 @@ export default function EmployeeEntry() {
   const fetchEmployees = async () => {
     try {
       setLoading(true);
-      const response = await api.get<EmployeesResponse>('/employees');
+      const response = await api.get<{ data: EmployeeApiItem[]; pagination: unknown }>(
+        '/employees'
+      );
       // Backend returns { data: [...], pagination: {...} }
       const mapped: EmployeeItem[] = response.data.data.map((emp) => ({
         id: String(emp.id),
         name: `${emp.first_name} ${emp.last_name}`,
         email: emp.email,
-        position: emp.position || emp.job_title || 'Employee',
+        position: emp.position ?? emp.job_title ?? 'Employee',
         wallet: emp.wallet_address,
-        status: emp.status === 'active' ? 'Active' : 'Inactive',
+        status: emp.status === 'active' ? ('Active' as const) : ('Inactive' as const),
       }));
       setEmployees(mapped);
     } catch (err) {
@@ -157,8 +155,8 @@ export default function EmployeeEntry() {
       // Reset form and refresh list
       setFormData(initialFormState);
       void fetchEmployees();
-    } catch (err) {
-      console.error('Failed to add employee:', err);
+    } catch (error) {
+      console.error('Failed to add employee:', error);
     }
   };
 
@@ -250,7 +248,9 @@ export default function EmployeeEntry() {
 
         <Card>
           <form
-            onSubmit={(e) => void handleSubmit(e)}
+            onSubmit={(e) => {
+              void handleSubmit(e);
+            }}
             style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}
           >
             <Input
