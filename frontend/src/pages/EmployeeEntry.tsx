@@ -28,6 +28,18 @@ interface EmployeeItem {
   status?: 'Active' | 'Inactive';
 }
 
+// Shape of an employee record returned by the backend API
+interface EmployeeApiItem {
+  id: number | string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  position?: string;
+  job_title?: string;
+  wallet_address?: string;
+  status?: string;
+}
+
 const initialFormState: EmployeeFormState = {
   fullName: '',
   walletAddress: '',
@@ -74,19 +86,21 @@ export default function EmployeeEntry() {
   const fetchEmployees = async () => {
     try {
       setLoading(true);
-      const response = await api.get<EmployeesApiResponse>('/employees');
+      const response = await api.get<{ data: EmployeeApiItem[]; pagination: unknown }>(
+        '/employees'
+      );
       // Backend returns { data: [...], pagination: {...} }
       const mapped: EmployeeItem[] = response.data.data.map((emp) => ({
         id: String(emp.id),
         name: `${emp.first_name} ${emp.last_name}`,
         email: emp.email,
-        position: emp.position || emp.job_title || 'Employee',
+        position: emp.position ?? emp.job_title ?? 'Employee',
         wallet: emp.wallet_address,
-        status: emp.status === 'active' ? 'Active' : 'Inactive',
+        status: emp.status === 'active' ? ('Active' as const) : ('Inactive' as const),
       }));
       setEmployees(mapped);
-    } catch (error) {
-      console.error('Failed to fetch employees:', error);
+    } catch (err) {
+      console.error('Failed to fetch employees:', err);
     } finally {
       setLoading(false);
     }
@@ -112,9 +126,8 @@ export default function EmployeeEntry() {
     setFormData((prev: EmployeeFormState) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
-
     let generatedWallet: { publicKey: string; secretKey: string } | undefined;
     if (!formData.walletAddress) {
       generatedWallet = generateWallet();
@@ -151,7 +164,7 @@ export default function EmployeeEntry() {
           generatedWallet ? 'A wallet was created for them.' : ''
         }`,
         secretKey: generatedWallet?.secretKey,
-        walletAddress: walletAddress,
+        walletAddress,
         employeeName: formData.fullName,
       });
 
