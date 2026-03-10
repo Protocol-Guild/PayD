@@ -10,6 +10,7 @@ Task 1.3 requires running migrations and verifying the schema for the payroll sc
 
 - ✅ `014_create_schedules.sql` - Creates schedules table with all required columns, constraints, and indexes
 - ✅ `015_create_execution_history.sql` - Creates execution_history table with foreign key to schedules
+- ✅ `018_add_schedules_user_fk.sql` - Adds missing foreign key from schedules to users
 
 ### 2. Verification Tooling Created
 
@@ -179,8 +180,8 @@ Both migration files follow PostgreSQL best practices:
 
 ### Schema Design
 
-- **schedules table**: 13 columns, 3 indexes, 2 check constraints, 1 foreign key
-- **execution_history table**: 9 columns, 3 indexes, 1 check constraint, 1 foreign key
+- **schedules table**: 13 columns, 4 indexes, 2 check constraints, 2 foreign keys (organizations, users)
+- **execution_history table**: 9 columns, 3 indexes, 1 check constraint, 1 foreign key (schedules)
 - Both tables use SERIAL primary keys
 - JSONB columns for flexible payment_config and error_details storage
 - Proper timestamp tracking for execution history
