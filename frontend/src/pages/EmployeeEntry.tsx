@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import * as React from 'react';
+import { useState, useEffect } from 'react';
 import { Icon, Button, Card, Input, Select, Alert } from '@stellar/design-system';
 import { EmployeeList } from '../components/EmployeeList';
 import { AutosaveIndicator } from '../components/AutosaveIndicator';
@@ -48,6 +49,17 @@ const initialFormState: EmployeeFormState = {
   email: '',
 };
 
+interface BackendEmployee {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  position?: string;
+  job_title?: string;
+  wallet_address: string;
+  status: string;
+}
+
 export default function EmployeeEntry() {
   const [isAdding, setIsAdding] = useState(false);
   const [formData, setFormData] = useState<EmployeeFormState>(initialFormState);
@@ -70,11 +82,9 @@ export default function EmployeeEntry() {
   const fetchEmployees = async () => {
     try {
       setLoading(true);
-      const response = await api.get<{ data: EmployeeApiItem[]; pagination: unknown }>(
-        '/employees'
-      );
+      const response = await api.get<{ data: BackendEmployee[] }>('/employees');
       // Backend returns { data: [...], pagination: {...} }
-      const mapped: EmployeeItem[] = response.data.data.map((emp) => ({
+      const mapped: EmployeeItem[] = response.data.data.map((emp: BackendEmployee) => ({
         id: String(emp.id),
         name: `${emp.first_name} ${emp.last_name}`,
         email: emp.email,
