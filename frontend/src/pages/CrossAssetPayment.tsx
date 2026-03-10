@@ -1,10 +1,4 @@
-import { useState, useEffect } from 'react';
-import { pathfindingService, PathRecord } from '../services/pathfinding';
-import { Loader2, ArrowRightLeft, ShieldCheck, Info, CheckCircle2, Wallet } from 'lucide-react';
-import { useNotification } from '../hooks/useNotification';
-import { useWallet } from '../hooks/useWallet';
-import { useContractError } from '../hooks/useContractError';
-import { ContractErrorPanel } from '../components/ContractErrorPanel';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Loader2,
   ArrowRightLeft,
@@ -14,20 +8,22 @@ import {
   Radio,
   Wallet,
 } from 'lucide-react';
-import { useNotification } from '../hooks/useNotification.js';
-import { useSocket } from '../hooks/useSocket.js';
-import { useWallet } from '../hooks/useWallet.js';
-import { useWalletSigning } from '../hooks/useWalletSigning.js';
-import { contractService } from '../services/contracts.js';
+import { useNotification } from '../hooks/useNotification';
+import { useSocket } from '../hooks/useSocket';
+import { useWallet } from '../hooks/useWallet';
+import { useContractError } from '../hooks/useContractError';
+import { ContractErrorPanel } from '../components/ContractErrorPanel';
+import { contractService } from '../services/contracts';
 import {
   fetchConversionPaths,
   submitCrossAssetPayment,
   type ConversionPath,
-} from '../services/crossAssetPayment.js';
+} from '../services/crossAssetPayment';
 
 export default function CrossAssetPayment() {
   const { notifySuccess, notifyError } = useNotification();
-  const { address, signTransaction, requireWallet } = useWallet();
+  const { address, signTransaction, connect } = useWallet();
+  const { socket } = useSocket();
   const { contractError, handleContractError, clearContractError } = useContractError();
   const [assetIn, setAssetIn] = useState('USDC');
   const [assetOut, setAssetOut] = useState('XLM');
@@ -91,36 +87,28 @@ export default function CrossAssetPayment() {
       const txHash = (record.txHash as string | undefined) || (record.hash as string | undefined);
       if (!txHash || txHash !== submissionTxHash) return;
 
-  const handleInitiate = async () => {
-    setStatus('initiating');
-    clearContractError();
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const envContractId = import.meta.env.VITE_CROSS_ASSET_PAYMENT_CONTRACT_ID;
-      const contractId =
-        (envContractId as string) || 'CBRZZW3D52HFW57TDFVRYC6NYL33N23S4VDKF27I46445G3UKWJMFPBM';
-      const contract = new Contract(contractId);
-
-    // Socket is guaranteed to be non-null due to early return above
+      const newStatus = (record.status as string | undefined) || 'unknown';
+      setLiveStatusMessage(`Update: ${newStatus}`);
+      if (newStatus === 'confirmed' || newStatus === 'success') {
+        notifySuccess('Payment Confirmed', 'Your cross-asset payment was successful.');
+        setStatus('success');
+      }
+    };
 
     const activeSocket = socket;
-
     activeSocket.on('cross-asset:update', handler);
-
     activeSocket.on('transaction:update', handler);
-
     activeSocket.emit('subscribe:transaction', submissionTxHash);
 
     return () => {
       activeSocket.off('cross-asset:update', handler);
-
       activeSocket.off('transaction:update', handler);
-
       activeSocket.emit('unsubscribe:transaction', submissionTxHash);
     };
   }, [notifySuccess, socket, submissionTxHash]);
 
   const handleInitiate = async () => {
+    clearContractError();
     if (!address) {
       notifyError('Wallet required', 'Connect your wallet before submitting cross-asset payment.');
       return;
@@ -149,7 +137,7 @@ export default function CrossAssetPayment() {
       const result: { txHash: string } = await submitCrossAssetPayment({
         contractId,
         sourceAddress: address,
-        signTransaction: sign,
+        signTransaction,
         amount: parsedAmount,
         fromAsset: assetIn,
         toAsset: assetOut,
@@ -173,14 +161,13 @@ export default function CrossAssetPayment() {
       } else if (!contractError) {
         handleContractError(
           undefined,
-          error instanceof Error ? error.message : 'An unexpected error occurred during contract invocation.'
+          error instanceof Error
+            ? error.message
+            : 'An unexpected error occurred during contract invocation.'
         );
       }
 
-      notifyError(
-        'Payment failed',
-        'A contract error occurred. Please review the details below.'
-      );
+      notifyError('Payment failed', 'A contract error occurred. Please review the details below.');
     }
   };
 

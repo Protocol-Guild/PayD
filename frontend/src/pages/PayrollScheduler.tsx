@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import * as React from 'react';
+import { useEffect, useState } from 'react';
 import { AutosaveIndicator } from '../components/AutosaveIndicator';
 import { useAutosave } from '../hooks/useAutosave';
 import { useTransactionSimulation } from '../hooks/useTransactionSimulation';
@@ -97,6 +98,8 @@ export default function PayrollScheduler() {
   const [trustlineMissing, setTrustlineMissing] = useState(false);
   const { contractError, handleContractError, clearContractError } = useContractError();
 
+  const [dbSchedules, setDbSchedules] = useState<ScheduleRecord[]>([]);
+  const [isLoadingSchedules, setIsLoadingSchedules] = useState(false);
   const [pendingClaims, setPendingClaims] = useState<PendingClaim[]>(() => {
     const saved = localStorage.getItem('pending-claims');
     if (saved) {
