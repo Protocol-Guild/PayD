@@ -11,7 +11,7 @@ import { useNotification } from '../hooks/useNotification';
 
 import api from '../utils/api';
 
-interface EmployeeApiResponse {
+interface EmployeeApiRecord {
   id: number | string;
   first_name: string;
   last_name: string;
@@ -23,8 +23,8 @@ interface EmployeeApiResponse {
   sort_order?: number;
 }
 
-interface EmployeesApiResponse {
-  data: EmployeeApiResponse[];
+interface EmployeeListResponse {
+  data: EmployeeApiRecord[];
   pagination?: unknown;
 }
 
@@ -87,7 +87,7 @@ export default function EmployeeEntry() {
   const fetchEmployees = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await api.get<EmployeesApiResponse>('/employees');
+      const response = await api.get<EmployeeListResponse>('/employees');
       // Backend returns { data: [...], pagination: {...} }
       const mapped: EmployeeItem[] = response.data.data.map((emp) => ({
         id: String(emp.id),

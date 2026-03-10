@@ -323,7 +323,9 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({
                               <button
                                 className="text-red-500 hover:text-red-700"
                                 title="Remove"
-                                onClick={() => setShowDeleteConfirm({ open: true, id: employee.id })}
+                                onClick={() =>
+                                  setShowDeleteConfirm({ open: true, id: employee.id })
+                                }
                               >
                                 <Trash2 className="w-5 h-5" />
                               </button>
