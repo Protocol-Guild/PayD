@@ -261,9 +261,9 @@ const TaxComplianceWizard: React.FC = () => {
 
             {config.warnings.length > 0 && (
               <div className="flex flex-col gap-2">
-                {config.warnings.map((warning, index) => (
+                {config.warnings.map((warning) => (
                   <div
-                    key={index}
+                    key={warning}
                     className="flex items-center gap-2 p-3 bg-danger/10 border border-danger/20 rounded-lg text-danger text-sm"
                   >
                     <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -513,7 +513,9 @@ const TaxComplianceWizard: React.FC = () => {
             {step === 3 && (
               <button
                 className="py-2 px-6 rounded-lg bg-accent text-bg font-bold text-sm tracking-wide hover:brightness-110 shadow-lg shadow-accent/20 transition-all"
-                onClick={handleCalculatePreview}
+                onClick={() => {
+                  handleCalculatePreview();
+                }}
                 disabled={isLoading}
               >
                 {isLoading ? 'Calculating...' : 'Calculate Preview'}
