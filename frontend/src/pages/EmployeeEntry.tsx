@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Icon, Button, Card, Input, Select, Alert } from '@stellar/design-system';
 import { EmployeeList } from '../components/EmployeeList';
 import { AutosaveIndicator } from '../components/AutosaveIndicator';
@@ -71,7 +71,7 @@ export default function EmployeeEntry() {
     pagination?: unknown;
   }
 
-  const fetchEmployees = async () => {
+  const fetchEmployees = useCallback(async () => {
     try {
       setLoading(true);
       const response = await api.get<EmployeesApiResponse>('/employees');
@@ -90,11 +90,11 @@ export default function EmployeeEntry() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     void fetchEmployees();
-  }, []);
+  }, [fetchEmployees]);
 
   useEffect(() => {
     const saved = loadSavedData();
