@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
+import { DragDropContext, Draggable, Droppable, type DropResult } from '@hello-pangea/dnd';
 import { Avatar } from './Avatar';
 import { CSVUploader } from './CSVUploader';
 import type { CSVRow } from './CSVUploader';
-import { Pencil, Trash2 } from 'lucide-react';
+import { GripVertical, Pencil, Trash2 } from 'lucide-react';
 
 interface Employee {
   id: string;
@@ -13,6 +14,7 @@ interface Employee {
   wallet?: string;
   salary?: number;
   status?: 'Active' | 'Inactive';
+  sortOrder?: number;
 }
 
 interface EmployeeListProps {
@@ -21,6 +23,8 @@ interface EmployeeListProps {
   onAddEmployee: (employee: Employee) => void;
   onEditEmployee?: (employee: Employee) => void;
   onRemoveEmployee?: (id: string) => void;
+  onReorderEmployees?: (employees: Employee[]) => void;
+  isReordering?: boolean;
 }
 
 export const EmployeeList: React.FC<EmployeeListProps> = ({
@@ -28,6 +32,8 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({
   onAddEmployee,
   onEditEmployee,
   onRemoveEmployee,
+  onReorderEmployees,
+  isReordering = false,
 }) => {
   const [csvData, setCsvData] = useState<Employee[]>([]);
   const [showCSVUploader, setShowCSVUploader] = useState(false);
@@ -38,7 +44,7 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<{ open: boolean; id?: string }>({
     open: false,
   });
-  const [sortKey, setSortKey] = useState<keyof Employee>('name');
+  const [sortKey, setSortKey] = useState<keyof Employee>('sortOrder');
   const [sortAsc, setSortAsc] = useState(true);
 
   const handleDataParsed = (data: CSVRow[]) => {
@@ -81,6 +87,8 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({
       ? String(valA).localeCompare(String(valB))
       : String(valB).localeCompare(String(valA));
   });
+
+  const displayedEmployees = onReorderEmployees ? employees : sortedEmployees;
 
   const shortenWallet = (wallet: string) => {
     if (!wallet) return '';
@@ -136,142 +144,210 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({
     setShowDeleteConfirm({ open: false });
   };
 
+  const handleDragEnd = (result: DropResult) => {
+    if (!result.destination || !onReorderEmployees) return;
+
+    if (result.destination.index === result.source.index) {
+      return;
+    }
+
+    const reorderedEmployees = [...displayedEmployees];
+    const [movedEmployee] = reorderedEmployees.splice(result.source.index, 1);
+    reorderedEmployees.splice(result.destination.index, 0, movedEmployee);
+    onReorderEmployees(
+      reorderedEmployees.map((employee, index) => ({
+        ...employee,
+        sortOrder: index,
+      }))
+    );
+  };
+
   return (
     <div className="w-full card glass noise overflow-hidden p-0">
       <div className="flex justify-between items-center p-4 md:p-6">
-        <span className="font-bold text-lg md:text-xl">Employees</span>
+        <div className="flex items-center gap-3">
+          <span className="font-bold text-lg md:text-xl">Employees</span>
+          {onReorderEmployees && (
+            <span className="text-[10px] uppercase tracking-widest text-muted">
+              Drag rows to reorder
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Desktop Table View */}
       <div className="hidden md:block overflow-x-auto">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="border-b border-hi">
-              <th
-                className="p-6 text-xs font-bold uppercase tracking-widest text-muted cursor-pointer"
-                onClick={() => handleSort('name')}
-              >
-                Name {sortKey === 'name' && (sortAsc ? '▲' : '▼')}
-              </th>
-              <th
-                className="p-6 text-xs font-bold uppercase tracking-widest text-muted cursor-pointer"
-                onClick={() => handleSort('position')}
-              >
-                Role {sortKey === 'position' && (sortAsc ? '▲' : '▼')}
-              </th>
-              <th
-                className="p-6 text-xs font-bold uppercase tracking-widest text-muted cursor-pointer"
-                onClick={() => handleSort('wallet')}
-              >
-                Wallet {sortKey === 'wallet' && (sortAsc ? '▲' : '▼')}
-              </th>
-              <th
-                className="p-6 text-xs font-bold uppercase tracking-widest text-muted cursor-pointer"
-                onClick={() => handleSort('salary')}
-              >
-                Salary {sortKey === 'salary' && (sortAsc ? '▲' : '▼')}
-              </th>
-              <th
-                className="p-6 text-xs font-bold uppercase tracking-widest text-muted cursor-pointer"
-                onClick={() => handleSort('status')}
-              >
-                Status {sortKey === 'status' && (sortAsc ? '▲' : '▼')}
-              </th>
-              <th className="p-6 text-xs font-bold uppercase tracking-widest text-muted">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {sortedEmployees.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="p-6 text-center text-gray-500">
-                  No employees found
-                </td>
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-hi">
+                <th className="w-14 p-6 text-xs font-bold uppercase tracking-widest text-muted">
+                  Move
+                </th>
+                <th
+                  className={`p-6 text-xs font-bold uppercase tracking-widest text-muted ${onReorderEmployees ? '' : 'cursor-pointer'}`}
+                  onClick={() => {
+                    if (!onReorderEmployees) handleSort('name');
+                  }}
+                >
+                  Name {!onReorderEmployees && sortKey === 'name' && (sortAsc ? '▲' : '▼')}
+                </th>
+                <th
+                  className={`p-6 text-xs font-bold uppercase tracking-widest text-muted ${onReorderEmployees ? '' : 'cursor-pointer'}`}
+                  onClick={() => {
+                    if (!onReorderEmployees) handleSort('position');
+                  }}
+                >
+                  Role {!onReorderEmployees && sortKey === 'position' && (sortAsc ? '▲' : '▼')}
+                </th>
+                <th
+                  className={`p-6 text-xs font-bold uppercase tracking-widest text-muted ${onReorderEmployees ? '' : 'cursor-pointer'}`}
+                  onClick={() => {
+                    if (!onReorderEmployees) handleSort('wallet');
+                  }}
+                >
+                  Wallet {!onReorderEmployees && sortKey === 'wallet' && (sortAsc ? '▲' : '▼')}
+                </th>
+                <th
+                  className={`p-6 text-xs font-bold uppercase tracking-widest text-muted ${onReorderEmployees ? '' : 'cursor-pointer'}`}
+                  onClick={() => {
+                    if (!onReorderEmployees) handleSort('salary');
+                  }}
+                >
+                  Salary {!onReorderEmployees && sortKey === 'salary' && (sortAsc ? '▲' : '▼')}
+                </th>
+                <th
+                  className={`p-6 text-xs font-bold uppercase tracking-widest text-muted ${onReorderEmployees ? '' : 'cursor-pointer'}`}
+                  onClick={() => {
+                    if (!onReorderEmployees) handleSort('status');
+                  }}
+                >
+                  Status {!onReorderEmployees && sortKey === 'status' && (sortAsc ? '▲' : '▼')}
+                </th>
+                <th className="p-6 text-xs font-bold uppercase tracking-widest text-muted">
+                  Actions
+                </th>
               </tr>
-            ) : (
-              sortedEmployees.map((employee) => (
-                <tr key={employee.id} className="cursor-pointer transition">
-                  <td className="p-6">
-                    <div className="flex items-center gap-3">
-                      <Avatar
-                        email={employee.email}
-                        name={employee.name}
-                        imageUrl={employee.imageUrl}
-                        size="sm"
-                      />
-                      <span className="text-xs text-muted">{employee.name}</span>
-                    </div>
-                  </td>
-                  <td className="p-6 text-sm font-medium">{employee.position}</td>
-                  <td className="p-6 font-mono text-xs text-muted">
-                    {shortenWallet(employee.wallet || '')}
-                  </td>
-                  <td className="p-6">
-                    {/* Inline salary edit */}
-                    {onEditEmployee ? (
-                      <button
-                        className="text-blue-500 underline"
-                        onClick={() => {
-                          setEditSalary(employee.salary || 0);
-                          setShowEditModal({ open: true, employee });
-                        }}
-                      >
-                        {employee.salary ?? 0}
-                      </button>
-                    ) : (
-                      (employee.salary ?? 0)
-                    )}
-                  </td>
-                  <td className="p-6">
-                    <span
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
-                        employee.status === 'Active'
-                          ? 'bg-green-100 text-green-600 border-green-200'
-                          : 'bg-red-100 text-red-600 border-red-200'
-                      }`}
-                    >
-                      <div
-                        className={`w-1 h-1 rounded-full ${
-                          employee.status === 'Active' ? 'bg-green-600' : 'bg-red-600'
-                        }`}
-                      />
-                      {employee.status || '-'}
-                    </span>
-                  </td>
-                  <td className="p-6 flex gap-2">
-                    <button
-                      className="text-blue-500 hover:text-blue-700"
-                      title="Edit"
-                      onClick={() => {
-                        setEditSalary(employee.salary || 0);
-                        setShowEditModal({ open: true, employee });
-                      }}
-                    >
-                      <Pencil className="w-5 h-5" />
-                    </button>
-                    <button
-                      className="text-red-500 hover:text-red-700"
-                      title="Remove"
-                      onClick={() => setShowDeleteConfirm({ open: true, id: employee.id })}
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <Droppable droppableId="employee-table">
+              {(provided) => (
+                <tbody
+                  ref={provided.innerRef}
+                  {...provided.droppableProps}
+                  className="divide-y divide-gray-200"
+                >
+                  {displayedEmployees.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="p-6 text-center text-gray-500">
+                        No employees found
+                      </td>
+                    </tr>
+                  ) : (
+                    displayedEmployees.map((employee, index) => (
+                      <Draggable key={employee.id} draggableId={employee.id} index={index}>
+                        {(dragProvided, snapshot) => (
+                          <tr
+                            ref={dragProvided.innerRef}
+                            {...dragProvided.draggableProps}
+                            className={`cursor-pointer transition ${snapshot.isDragging ? 'bg-accent/10 shadow-lg shadow-accent/10' : ''}`}
+                          >
+                            <td className="p-6">
+                              <button
+                                type="button"
+                                {...dragProvided.dragHandleProps}
+                                disabled={isReordering}
+                                className="rounded-lg border border-hi p-2 text-muted hover:text-text hover:border-accent transition-colors disabled:opacity-50"
+                                aria-label={`Reorder ${employee.name}`}
+                                title="Drag to reorder"
+                              >
+                                <GripVertical className="w-4 h-4" />
+                              </button>
+                            </td>
+                            <td className="p-6">
+                              <div className="flex items-center gap-3">
+                                <Avatar
+                                  email={employee.email}
+                                  name={employee.name}
+                                  imageUrl={employee.imageUrl}
+                                  size="sm"
+                                />
+                                <span className="text-xs text-muted">{employee.name}</span>
+                              </div>
+                            </td>
+                            <td className="p-6 text-sm font-medium">{employee.position}</td>
+                            <td className="p-6 font-mono text-xs text-muted">
+                              {shortenWallet(employee.wallet || '')}
+                            </td>
+                            <td className="p-6">
+                              {onEditEmployee ? (
+                                <button
+                                  className="text-blue-500 underline"
+                                  onClick={() => {
+                                    setEditSalary(employee.salary || 0);
+                                    setShowEditModal({ open: true, employee });
+                                  }}
+                                >
+                                  {employee.salary ?? 0}
+                                </button>
+                              ) : (
+                                (employee.salary ?? 0)
+                              )}
+                            </td>
+                            <td className="p-6">
+                              <span
+                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                                  employee.status === 'Active'
+                                    ? 'bg-green-100 text-green-600 border-green-200'
+                                    : 'bg-red-100 text-red-600 border-red-200'
+                                }`}
+                              >
+                                <div
+                                  className={`w-1 h-1 rounded-full ${
+                                    employee.status === 'Active' ? 'bg-green-600' : 'bg-red-600'
+                                  }`}
+                                />
+                                {employee.status || '-'}
+                              </span>
+                            </td>
+                            <td className="p-6 flex gap-2">
+                              <button
+                                className="text-blue-500 hover:text-blue-700"
+                                title="Edit"
+                                onClick={() => {
+                                  setEditSalary(employee.salary || 0);
+                                  setShowEditModal({ open: true, employee });
+                                }}
+                              >
+                                <Pencil className="w-5 h-5" />
+                              </button>
+                              <button
+                                className="text-red-500 hover:text-red-700"
+                                title="Remove"
+                                onClick={() => setShowDeleteConfirm({ open: true, id: employee.id })}
+                              >
+                                <Trash2 className="w-5 h-5" />
+                              </button>
+                            </td>
+                          </tr>
+                        )}
+                      </Draggable>
+                    ))
+                  )}
+                  {provided.placeholder}
+                </tbody>
+              )}
+            </Droppable>
+          </table>
+        </DragDropContext>
       </div>
 
       {/* Mobile Card View */}
       <div className="md:hidden px-4 pb-4">
-        {sortedEmployees.length === 0 ? (
+        {displayedEmployees.length === 0 ? (
           <div className="text-center py-8 text-gray-500">No employees found</div>
         ) : (
           <div className="space-y-4">
-            {sortedEmployees.map((employee) => (
+            {displayedEmployees.map((employee) => (
               <div key={employee.id} className="bg-white/5 rounded-lg p-4 border border-white/10">
                 {/* Employee Header */}
                 <div className="flex items-center justify-between mb-3">
