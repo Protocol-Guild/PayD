@@ -20,6 +20,8 @@ import Forecasting from './pages/Forecasting';
 import EmployeePortal from './pages/EmployeePortal';
 import Login from './pages/Login';
 import AuthCallback from './pages/AuthCallback';
+import OnboardingPage from './pages/OnboardingPage';
+import { OnboardingWrapper } from './components/OnboardingWrapper';
 import { useTranslation } from 'react-i18next';
 import { contractService } from './services/contracts';
 
@@ -203,6 +205,7 @@ function App() {
       <Route path="/auth-callback" element={<AuthCallback />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </OnboardingWrapper>
   );
 }
 
