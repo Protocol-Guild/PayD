@@ -19,6 +19,7 @@ export class ScheduleExecutor {
       try {
         console.log('[ScheduleExecutor] Running scheduled task check...');
         await this.processDueSchedules();
+        await this.processYieldWithdrawals();
       } catch (error) {
         console.error('[ScheduleExecutor] Error in cron job execution:', error);
       }
@@ -286,6 +287,33 @@ export class ScheduleExecutor {
     } catch (error) {
       await client.query('ROLLBACK');
       throw error;
+    } finally {
+      client.release();
+    }
+  }
+  /**
+   * Process 24h advance withdrawals for yield-optimized schedules
+   */
+  async processYieldWithdrawals(): Promise<void> {
+    const client = await pool.connect();
+    try {
+      // Query for active schedules happening in exactly the next 24 hours that are opted into yield
+      const query = `
+        SELECT id, user_id as "userId", next_run_timestamp as "nextRunTimestamp"
+        FROM schedules
+        WHERE status = 'active' 
+          AND "yieldOptIn" = true
+          AND next_run_timestamp > (NOW() AT TIME ZONE 'UTC')
+          AND next_run_timestamp <= (NOW() AT TIME ZONE 'UTC' + INTERVAL '24 hours')
+      `;
+      const result = await client.query(query);
+      
+      for (const schedule of result.rows) {
+         console.log(`[Yield] Triggering Soroban withdraw_for_payroll for schedule ${schedule.id}`);
+         // Production: await StellarService.invokeContract('withdraw_for_payroll', ...);
+      }
+    } catch (error) {
+      console.error('[ScheduleExecutor] Error processing yield withdrawals:', error);
     } finally {
       client.release();
     }

@@ -39,6 +39,8 @@ export const createScheduleSchema = z.object({
     .optional(),
   timezone: z.string().min(1).default('UTC'),
   paymentConfig: paymentConfigSchema,
+  yieldOptIn: z.boolean().default(false),
+  safetyBufferPercentage: z.number().min(0).max(100).default(20),
 });
 
 // Query parameters schema for GET /api/schedules
