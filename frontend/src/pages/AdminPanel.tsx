@@ -7,10 +7,12 @@ import {
   ChevronLeft,
   ChevronRight,
   Code2,
+  TrendingUp,
 } from 'lucide-react';
 import { useNotification } from '../hooks/useNotification';
 import { useWallet } from '../hooks/useWallet';
 import ContractUpgradeTab from '../components/ContractUpgradeTab';
+import { RealTimePaymentMonitor } from '../components/RealTimePaymentMonitor';
 
 /** Centralized API base so URL changes happen in one place. */
 const API_BASE = '/api/v1';
@@ -53,7 +55,7 @@ interface LogsApiResponse {
   total: number;
 }
 
-type ActiveTab = 'account' | 'global' | 'status' | 'logs' | 'contracts';
+type ActiveTab = 'account' | 'global' | 'status' | 'logs' | 'contracts' | 'payments';
 
 // ---------------------------------------------------------------------------
 // Style constants – defined once to avoid repetition
@@ -71,6 +73,7 @@ const TAB_LABELS: Record<ActiveTab, string> = {
   status: 'Status Check',
   logs: 'Audit Logs',
   contracts: 'Contract Upgrades',
+  payments: 'Payment Monitor',
 };
 
 export default function AdminPanel() {
@@ -684,6 +687,9 @@ export default function AdminPanel() {
             )}
           </div>
         )}
+
+        {/* ── Real-Time Payment Monitor ─────────────────────────── */}
+        {activeTab === 'payments' && <RealTimePaymentMonitor />}
       </div>
     </div>
   );

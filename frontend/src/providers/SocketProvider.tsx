@@ -67,7 +67,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   return (
-    <SocketContext
+    <SocketContext.Provider
       value={{
         socket,
         connected,
@@ -78,6 +78,6 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }}
     >
       {children}
-    </SocketContext>
+    </SocketContext.Provider>
   );
 };
