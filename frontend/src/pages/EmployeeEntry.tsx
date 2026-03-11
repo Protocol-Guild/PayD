@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { isAxiosError } from 'axios';
 import { Icon, Button, Card, Input, Select, Alert } from '@stellar/design-system';
 import { EmployeeList } from '../components/EmployeeList';
 import { AutosaveIndicator } from '../components/AutosaveIndicator';
@@ -9,6 +10,32 @@ import { useTranslation } from 'react-i18next';
 import { useNotification } from '../hooks/useNotification';
 
 import api from '../utils/api';
+
+interface EmployeeApiRecord {
+  id: number | string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  position?: string;
+  job_title?: string;
+  wallet_address?: string;
+  status?: string;
+  sort_order?: number;
+}
+
+interface EmployeeListResponse {
+  data: EmployeeApiRecord[];
+  pagination?: unknown;
+}
+
+function hasErrorMessage(value: unknown): value is { error: string } {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'error' in value &&
+    typeof value.error === 'string'
+  );
+}
 
 interface EmployeeFormState {
   fullName: string;
@@ -26,6 +53,7 @@ interface EmployeeItem {
   position: string;
   wallet?: string;
   status?: 'Active' | 'Inactive';
+  sortOrder?: number;
 }
 
 const initialFormState: EmployeeFormState = {
@@ -41,6 +69,7 @@ export default function EmployeeEntry() {
   const [formData, setFormData] = useState<EmployeeFormState>(initialFormState);
   const [employees, setEmployees] = useState<EmployeeItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isReordering, setIsReordering] = useState(false);
   const [notification, setNotification] = useState<{
     message: string;
     secretKey?: string;
@@ -48,33 +77,17 @@ export default function EmployeeEntry() {
     employeeName?: string;
   } | null>(null);
 
-  const { notifySuccess } = useNotification();
+  const { notifySuccess, notifyError } = useNotification();
   const { saving, lastSaved, loadSavedData } = useAutosave<EmployeeFormState>(
     'employee-entry-draft',
     formData
   );
   const { t } = useTranslation();
 
-  interface EmployeeApiResponse {
-    id: number;
-    first_name: string;
-    last_name: string;
-    email: string;
-    position?: string;
-    job_title?: string;
-    wallet_address?: string;
-    status: string;
-  }
-
-  interface EmployeesApiResponse {
-    data: EmployeeApiResponse[];
-    pagination?: unknown;
-  }
-
   const fetchEmployees = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await api.get<EmployeesApiResponse>('/employees');
+      const response = await api.get<EmployeeListResponse>('/employees');
       // Backend returns { data: [...], pagination: {...} }
       const mapped: EmployeeItem[] = response.data.data.map((emp) => ({
         id: String(emp.id),
@@ -82,7 +95,8 @@ export default function EmployeeEntry() {
         email: emp.email,
         position: emp.position ?? emp.job_title ?? 'Employee',
         wallet: emp.wallet_address,
-        status: emp.status === 'active' ? ('Active' as const) : ('Inactive' as const),
+        status: emp.status === 'active' ? 'Active' : 'Inactive',
+        sortOrder: emp.sort_order ?? 0,
       }));
       setEmployees(mapped);
     } catch (err) {
@@ -135,6 +149,7 @@ export default function EmployeeEntry() {
       base_salary: 0, // Default for now
       base_currency: formData.currency,
       status: 'active',
+      sort_order: employees.length,
     };
 
     try {
@@ -159,6 +174,41 @@ export default function EmployeeEntry() {
       void fetchEmployees();
     } catch (error) {
       console.error('Failed to add employee:', error);
+    }
+  };
+
+  const handleReorderEmployees = async (reorderedEmployees: EmployeeItem[]) => {
+    const previousEmployees = employees;
+    setEmployees(reorderedEmployees);
+    setIsReordering(true);
+
+    try {
+      await Promise.all(
+        reorderedEmployees.map((employee, index) =>
+          api.patch(`/employees/${employee.id}`, {
+            sort_order: index,
+          })
+        )
+      );
+
+      notifySuccess('Employee order updated', 'The new table order has been saved.');
+    } catch (error) {
+      console.error('Failed to reorder employees:', error);
+      setEmployees(previousEmployees);
+
+      const responseData: unknown = isAxiosError(error) ? error.response?.data : undefined;
+      const message = hasErrorMessage(responseData)
+        ? responseData.error
+        : isAxiosError(error)
+          ? error.message
+          : 'Unable to save the new employee order.';
+
+      notifyError(
+        'Failed to save employee order',
+        typeof message === 'string' ? message : 'Unable to save the new employee order.'
+      );
+    } finally {
+      setIsReordering(false);
     }
   };
 
@@ -352,6 +402,10 @@ export default function EmployeeEntry() {
           employees={employees}
           onEmployeeClick={(employee: EmployeeItem) => console.log('Clicked:', employee.name)}
           onAddEmployee={(employee: EmployeeItem) => console.log('Added:', employee)}
+          onReorderEmployees={(items: EmployeeItem[]) => {
+            void handleReorderEmployees(items);
+          }}
+          isReordering={isReordering}
         />
       )}
     </div>
