@@ -22,7 +22,9 @@ export class BenefitsController {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: 'Validation Error', details: error.issues });
       }
-      res.status(500).json({ error: 'Failed to create benefit plan', message: (error as Error).message });
+      res
+        .status(500)
+        .json({ error: 'Failed to create benefit plan', message: (error as Error).message });
     }
   }
 
@@ -33,7 +35,9 @@ export class BenefitsController {
       const plans = await benefitsService.listBenefitPlans(organizationId, includeInactive);
       res.json({ success: true, data: plans, count: plans.length });
     } catch (error) {
-      res.status(500).json({ error: 'Failed to list benefit plans', message: (error as Error).message });
+      res
+        .status(500)
+        .json({ error: 'Failed to list benefit plans', message: (error as Error).message });
     }
   }
 
@@ -48,7 +52,9 @@ export class BenefitsController {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: 'Validation Error', details: error.issues });
       }
-      res.status(500).json({ error: 'Failed to update benefit plan', message: (error as Error).message });
+      res
+        .status(500)
+        .json({ error: 'Failed to update benefit plan', message: (error as Error).message });
     }
   }
 
@@ -59,7 +65,9 @@ export class BenefitsController {
       if (!ok) return res.status(404).json({ error: 'Benefit plan not found' });
       res.json({ success: true });
     } catch (error) {
-      res.status(500).json({ error: 'Failed to delete benefit plan', message: (error as Error).message });
+      res
+        .status(500)
+        .json({ error: 'Failed to delete benefit plan', message: (error as Error).message });
     }
   }
 
@@ -76,7 +84,9 @@ export class BenefitsController {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: 'Validation Error', details: error.issues });
       }
-      res.status(500).json({ error: 'Failed to upsert enrollment', message: (error as Error).message });
+      res
+        .status(500)
+        .json({ error: 'Failed to upsert enrollment', message: (error as Error).message });
     }
   }
 
@@ -87,7 +97,9 @@ export class BenefitsController {
       const data = await benefitsService.listEmployeeEnrollments(organizationId, employeeId);
       res.json({ success: true, data, count: data.length });
     } catch (error) {
-      res.status(500).json({ error: 'Failed to list enrollments', message: (error as Error).message });
+      res
+        .status(500)
+        .json({ error: 'Failed to list enrollments', message: (error as Error).message });
     }
   }
 
@@ -101,7 +113,9 @@ export class BenefitsController {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: 'Validation Error', details: error.issues });
       }
-      res.status(500).json({ error: 'Failed to create deduction rule', message: (error as Error).message });
+      res
+        .status(500)
+        .json({ error: 'Failed to create deduction rule', message: (error as Error).message });
     }
   }
 
@@ -112,7 +126,9 @@ export class BenefitsController {
       const rules = await benefitsService.listDeductionRules(organizationId, includeInactive);
       res.json({ success: true, data: rules, count: rules.length });
     } catch (error) {
-      res.status(500).json({ error: 'Failed to list deduction rules', message: (error as Error).message });
+      res
+        .status(500)
+        .json({ error: 'Failed to list deduction rules', message: (error as Error).message });
     }
   }
 
@@ -127,7 +143,9 @@ export class BenefitsController {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: 'Validation Error', details: error.issues });
       }
-      res.status(500).json({ error: 'Failed to update deduction rule', message: (error as Error).message });
+      res
+        .status(500)
+        .json({ error: 'Failed to update deduction rule', message: (error as Error).message });
     }
   }
 
@@ -138,7 +156,9 @@ export class BenefitsController {
       if (!ok) return res.status(404).json({ error: 'Deduction rule not found' });
       res.json({ success: true });
     } catch (error) {
-      res.status(500).json({ error: 'Failed to delete deduction rule', message: (error as Error).message });
+      res
+        .status(500)
+        .json({ error: 'Failed to delete deduction rule', message: (error as Error).message });
     }
   }
 
@@ -152,7 +172,9 @@ export class BenefitsController {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: 'Validation Error', details: error.issues });
       }
-      res.status(500).json({ error: 'Failed to generate draft payslip', message: (error as Error).message });
+      res
+        .status(500)
+        .json({ error: 'Failed to generate draft payslip', message: (error as Error).message });
     }
   }
 
@@ -185,7 +207,9 @@ export class BenefitsController {
 
       res.json({ success: true, data: draft });
     } catch (error) {
-      res.status(500).json({ error: 'Failed to fetch deductions', message: (error as Error).message });
+      res
+        .status(500)
+        .json({ error: 'Failed to fetch deductions', message: (error as Error).message });
     }
   }
 }

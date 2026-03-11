@@ -1,0 +1,425 @@
+
+C:\Users\EMMA\Desktop\payd\backend\src\app.ts
+  79:15  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  79:65  error    'next' is defined but never used          @typescript-eslint/no-unused-vars
+
+C:\Users\EMMA\Desktop\payd\backend\src\benchmarks\sds-vs-horizon.benchmark.ts
+   21:26  warning  Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+   89:30  warning  Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+  101:25  warning  Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+  167:58  warning  Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+  172:25  warning  Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+  481:49  error    'b' is defined but never used                   @typescript-eslint/no-unused-vars
+  515:16  error    Require statement not part of import statement  @typescript-eslint/no-var-requires
+  524:30  warning  Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\config\database.ts
+  10:46  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\config\passport.ts
+   24:13  error    'userResult' is never reassigned. Use 'const' instead  prefer-const
+   65:64  warning  Unexpected any. Specify a different type               @typescript-eslint/no-explicit-any
+   65:75  warning  Unexpected any. Specify a different type               @typescript-eslint/no-explicit-any
+   72:13  error    'userResult' is never reassigned. Use 'const' instead  prefer-const
+  103:31  warning  Unexpected any. Specify a different type               @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\controllers\__tests__\authController.test.ts
+  19:13  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\controllers\__tests__\freezeController.test.ts
+  24:37  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  24:48  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  24:59  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  60:59  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\controllers\__tests__\healthController.test.ts
+  26:13  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  27:20  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  28:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\controllers\assetController.ts
+  30:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  57:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\controllers\authController.ts
+   55:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  117:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  155:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  222:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\controllers\balanceController.ts
+  46:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  78:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\controllers\bulkImportController.ts
+  39:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\controllers\contractEventController.ts
+  98:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\controllers\freezeController.ts
+  105:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  135:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  167:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  194:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  232:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  262:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  275:37  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\controllers\healthController.ts
+  10:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  23:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  42:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  53:23  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  67:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\controllers\multiSigController.ts
+   31:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   46:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   72:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   99:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  125:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\controllers\paymentController.ts
+   17:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   42:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   67:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  120:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\controllers\taxController.ts
+   39:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   60:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   94:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  119:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  145:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  172:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\controllers\throttlingController.ts
+  25:53  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\controllers\transactionAuditController.ts
+   31:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  104:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\db\__tests__\migration-verification.test.ts
+  14:8  error  'assert' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\EMMA\Desktop\payd\backend\src\db\verify-schema.ts
+  266:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  291:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\middleware\__tests__\tenantContext.test.ts
+  123:30  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  169:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  186:30  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\middleware\tenantContext.ts
+    6:3   error    ES2015 module syntax is preferred over namespaces  @typescript-eslint/no-namespace
+   79:13  warning  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+   83:19  warning  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+   84:17  warning  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+   89:19  warning  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+   90:17  warning  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  129:13  warning  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\middlewares\apiVersionMiddleware.ts
+   22:7  error  'LEGACY_ROUTES_DEPRECATED' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  115:3  error  ES2015 module syntax is preferred over namespaces              @typescript-eslint/no-namespace
+
+C:\Users\EMMA\Desktop\payd\backend\src\middlewares\rateLimitMiddleware.ts
+  22:63  warning  Unexpected any. Specify a different type         @typescript-eslint/no-explicit-any
+  40:11  error    'tierConfig' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\EMMA\Desktop\payd\backend\src\middlewares\require2fa.ts
+  50:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\middlewares\throttlingMiddleware.ts
+  34:11  error    'originalSend' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  35:11  error    'originalJson' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  37:13  warning  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  65:26  warning  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  66:12  warning  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  67:27  warning  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\routes\payroll.routes.ts
+   5:10  error    'authorizeRoles' is defined but never used  @typescript-eslint/no-unused-vars
+  63:26  warning  Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+  64:32  warning  Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\schemas\employeeSchema.ts
+  19:79  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  20:81  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\services\__tests__\contractConfigService.test.ts
+  7:8  error  'fs' is defined but never used    @typescript-eslint/no-unused-vars
+  8:8  error  'path' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\EMMA\Desktop\payd\backend\src\services\__tests__\contractEventIndexer.test.ts
+   17:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   39:40  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   48:40  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   68:37  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   86:37  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   94:33  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  100:33  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  122:40  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  143:40  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  175:40  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  195:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  207:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  214:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  222:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\services\__tests__\createSchedule.manual.test.ts
+   39:31  warning  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+   41:5   error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+   62:5   error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+   83:5   error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  104:5   error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  128:5   error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  151:5   error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  180:5   error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  209:5   error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  238:5   error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  267:5   error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  291:5   error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  309:5   error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  328:5   error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+
+C:\Users\EMMA\Desktop\payd\backend\src\services\__tests__\multiSigService.test.ts
+  3:32  error  'Networks' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\EMMA\Desktop\payd\backend\src\services\__tests__\scheduleExecutor.test.ts
+    5:10  error    'Keypair' is defined but never used               @typescript-eslint/no-unused-vars
+   18:22  error    'expression' is defined but never used            @typescript-eslint/no-unused-vars
+   18:34  error    'callback' is defined but never used              @typescript-eslint/no-unused-vars
+   33:9   error    'mockConnect' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  334:76  warning  Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+  335:77  warning  Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\services\__tests__\scheduleService.test.ts
+  3:10  error  'Pool' is defined but never used                  @typescript-eslint/no-unused-vars
+  6:7   error  'mockConnect' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\EMMA\Desktop\payd\backend\src\services\__tests__\searchService.test.ts
+   18:10  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   55:62  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   56:59  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   82:62  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   83:64  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  101:62  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  102:59  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  122:63  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  123:59  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  144:62  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  145:59  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  160:62  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  161:59  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  175:62  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  176:64  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  199:62  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  200:48  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  248:62  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  249:62  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  268:62  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  269:62  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  286:62  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  287:67  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  307:62  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  308:62  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  324:62  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  325:67  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  342:62  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  343:62  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  358:62  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  359:67  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  385:65  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  386:62  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  407:62  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  408:48  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  423:62  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  424:67  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  439:62  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  440:67  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  457:62  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  458:48  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  473:64  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  474:48  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  487:62  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  488:48  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  503:63  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  504:48  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\services\__tests__\stellarService.test.ts
+    1:26  error    'TransactionResult' is defined but never used  @typescript-eslint/no-unused-vars
+    2:53  error    'Transaction' is defined but never used        @typescript-eslint/no-unused-vars
+   21:19  warning  Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+  140:54  warning  Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\services\__tests__\taxService.test.ts
+  9:22  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\services\__tests__\throttlingService.test.ts
+   51:13  error  'queuePromise' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  132:13  error  'promises' is assigned a value but never used      @typescript-eslint/no-unused-vars
+
+C:\Users\EMMA\Desktop\payd\backend\src\services\__tests__\verify-updateAfterExecution.ts
+  12:41  warning  Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+  41:9   error    'service' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  44:9   error    'result1' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  53:9   error    'result2' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  62:9   error    'result3' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\EMMA\Desktop\payd\backend\src\services\anchorService.ts
+    2:32  error    'Networks' is defined but never used      @typescript-eslint/no-unused-vars
+    2:42  error    'Utils' is defined but never used         @typescript-eslint/no-unused-vars
+   83:54  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   94:76  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   94:90  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  111:83  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\services\assetService.ts
+  31:66  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\services\authService.ts
+  9:37  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\services\balanceService.ts
+  39:45  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  49:33  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\services\contractConfigService.ts
+  64:31  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\services\contractEventIndexer.ts
+  256:66  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  284:44  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  284:73  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\services\contractUpgradeService.ts
+  408:5  error  '_contractId' is defined but never used   @typescript-eslint/no-unused-vars
+  409:5  error  '_newWasmHash' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\EMMA\Desktop\payd\backend\src\services\csvPayrollImportService.ts
+  101:23  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  103:38  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\services\employeeService.ts
+  9:54  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\services\exportService.ts
+   81:5   error    Unnecessary try/catch wrapper             no-useless-catch
+  136:43  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\services\freezeService.ts
+  350:13  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  352:12  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  358:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\services\multiSigService.ts
+  151:54  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\services\payroll-indexing.service.ts
+    1:8   error    'logger' is defined but never used        @typescript-eslint/no-unused-vars
+  269:34  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  364:17  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  365:17  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\services\payroll-query.service.ts
+    1:21  error    'SDSTransaction' is defined but never used    @typescript-eslint/no-unused-vars
+    8:33  error    'PaginationParams' is defined but never used  @typescript-eslint/no-unused-vars
+   20:38  warning  Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+   53:46  error    'total' is assigned a value but never used    @typescript-eslint/no-unused-vars
+  182:34  warning  Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+  241:46  error    'total' is assigned a value but never used    @typescript-eslint/no-unused-vars
+  277:14  warning  Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+  314:55  warning  Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+  318:39  warning  Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+  327:44  warning  Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\services\payrollAuditService.ts
+  32:28  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  54:29  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\services\payrollBonusService.ts
+  2:8  error  'logger' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\EMMA\Desktop\payd\backend\src\services\rateLimitService.ts
+  102:11  error  'windowStart' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\EMMA\Desktop\payd\backend\src\services\scheduleExecutor.ts
+  130:35  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\services\scheduleService.ts
+  301:36  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  334:58  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  343:99  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\services\socketService.ts
+  46:85  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\services\stellarService.ts
+   12:3   error    'AuthClawbackEnabledFlag' is defined but never used  @typescript-eslint/no-unused-vars
+   13:3   error    'AuthRevocableFlag' is defined but never used        @typescript-eslint/no-unused-vars
+   14:3   error    'Signer' is defined but never used                   @typescript-eslint/no-unused-vars
+   15:3   error    'SignerKey' is defined but never used                @typescript-eslint/no-unused-vars
+   16:3   error    'StrKey' is defined but never used                   @typescript-eslint/no-unused-vars
+  143:21  warning  Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  212:51  warning  Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  288:11  error    'account' is assigned a value but never used         @typescript-eslint/no-unused-vars
+  323:62  warning  Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  342:28  warning  Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\services\taxService.ts
+  116:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  267:61  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\services\tenantConfigService.ts
+   8:17  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  48:71  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  62:71  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  72:35  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  86:18  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\services\throttlingService.ts
+   12:26  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   13:20  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   66:49  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  139:37  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\services\transactionAuditService.ts
+  95:9  error  'whereClauses' is never reassigned. Use 'const' instead  prefer-const
+
+C:\Users\EMMA\Desktop\payd\backend\src\services\trustlineService.ts
+   1:48  error    'Keypair' is defined but never used       @typescript-eslint/no-unused-vars
+  31:13  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  36:55  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  39:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\services\webhook.service.ts
+  39:53  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  71:11  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  72:14  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\types\auth.ts
+  12:3  error  ES2015 module syntax is preferred over namespaces  @typescript-eslint/no-namespace
+
+C:\Users\EMMA\Desktop\payd\backend\src\types\contractEvent.ts
+  8:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\types\morgan.d.ts
+  4:36  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  4:46  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  4:56  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  6:46  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\EMMA\Desktop\payd\backend\src\utils\logger.ts
+  30:64  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  36:33  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  42:32  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  48:32  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  54:34  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+✖ 279 problems (64 errors, 215 warnings)
+  3 errors and 0 warnings potentially fixable with the `--fix` option.
+

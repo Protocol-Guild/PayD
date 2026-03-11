@@ -22,7 +22,11 @@ export class TrustlineController {
       const { walletAddress } = req.params;
       const { assetIssuer } = checkTrustlineSchema.parse(req.query);
 
-      const result = await TrustlineService.checkTrustline(walletAddress as string, 'ORGUSD', assetIssuer);
+      const result = await TrustlineService.checkTrustline(
+        walletAddress as string,
+        'ORGUSD',
+        assetIssuer
+      );
 
       res.json({
         walletAddress,

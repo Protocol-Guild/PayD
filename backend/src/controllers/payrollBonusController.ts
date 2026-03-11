@@ -220,7 +220,10 @@ export class PayrollBonusController {
         return;
       }
 
-      const payrollRun = await PayrollBonusService.updatePayrollRunStatus(parseInt(id as string, 10), status);
+      const payrollRun = await PayrollBonusService.updatePayrollRunStatus(
+        parseInt(id as string, 10),
+        status
+      );
 
       if (!payrollRun) {
         res.status(404).json({ error: 'Payroll run not found' });

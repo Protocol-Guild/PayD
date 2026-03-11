@@ -133,7 +133,9 @@ export class BenefitsService {
   }
 
   async deleteBenefitPlan(id: number): Promise<boolean> {
-    const result = await pool.query(`UPDATE benefit_plans SET is_active = FALSE WHERE id = $1`, [id]);
+    const result = await pool.query(`UPDATE benefit_plans SET is_active = FALSE WHERE id = $1`, [
+      id,
+    ]);
     return (result.rowCount ?? 0) > 0;
   }
 
@@ -156,7 +158,10 @@ export class BenefitsService {
     return result.rows[0];
   }
 
-  async listEmployeeEnrollments(organizationId: number, employeeId: number): Promise<EmployeeBenefitEnrollment[]> {
+  async listEmployeeEnrollments(
+    organizationId: number,
+    employeeId: number
+  ): Promise<EmployeeBenefitEnrollment[]> {
     const result = await pool.query(
       `SELECT * FROM employee_benefit_enrollments
        WHERE organization_id = $1 AND employee_id = $2
@@ -204,7 +209,10 @@ export class BenefitsService {
     return result.rows[0];
   }
 
-  async listDeductionRules(organizationId: number, includeInactive = false): Promise<DeductionRule[]> {
+  async listDeductionRules(
+    organizationId: number,
+    includeInactive = false
+  ): Promise<DeductionRule[]> {
     const activeClause = includeInactive ? '' : 'AND is_active = TRUE';
     const result = await pool.query(
       `SELECT * FROM deduction_rules WHERE organization_id = $1 ${activeClause} ORDER BY priority ASC, created_at ASC`,
@@ -213,7 +221,10 @@ export class BenefitsService {
     return result.rows;
   }
 
-  async updateDeductionRule(id: number, updates: Partial<DeductionRule>): Promise<DeductionRule | null> {
+  async updateDeductionRule(
+    id: number,
+    updates: Partial<DeductionRule>
+  ): Promise<DeductionRule | null> {
     const allowed = new Set([
       'name',
       'type',
@@ -251,11 +262,16 @@ export class BenefitsService {
   }
 
   async deleteDeductionRule(id: number): Promise<boolean> {
-    const result = await pool.query(`UPDATE deduction_rules SET is_active = FALSE WHERE id = $1`, [id]);
+    const result = await pool.query(`UPDATE deduction_rules SET is_active = FALSE WHERE id = $1`, [
+      id,
+    ]);
     return (result.rowCount ?? 0) > 0;
   }
 
-  private async resolveTreasuryWalletAddress(organizationId: number, assetCode: string): Promise<string | null> {
+  private async resolveTreasuryWalletAddress(
+    organizationId: number,
+    assetCode: string
+  ): Promise<string | null> {
     const result = await pool.query(
       `SELECT wallet_address
        FROM wallets
@@ -345,7 +361,10 @@ export class BenefitsService {
         if (rule.destination_kind === 'provider' && rule.benefit_plan_id) {
           destinationWallet = await this.resolveProviderWalletAddress(rule.benefit_plan_id);
         } else if (rule.destination_kind === 'treasury') {
-          destinationWallet = await this.resolveTreasuryWalletAddress(input.organization_id, currency);
+          destinationWallet = await this.resolveTreasuryWalletAddress(
+            input.organization_id,
+            currency
+          );
         }
       }
 
@@ -370,12 +389,20 @@ export class BenefitsService {
       [input.organization_id]
     );
 
-    for (const tax of taxResult.rows as Array<{ id: number; name: string; type: 'percentage' | 'fixed'; value: string }>) {
+    for (const tax of taxResult.rows as Array<{
+      id: number;
+      name: string;
+      type: 'percentage' | 'fixed';
+      value: string;
+    }>) {
       const taxValue = parseFloat(tax.value);
       const amount =
         tax.type === 'percentage' ? round7(gross * (taxValue / 100)) : round7(taxValue);
 
-      const treasuryWallet = await this.resolveTreasuryWalletAddress(input.organization_id, currency);
+      const treasuryWallet = await this.resolveTreasuryWalletAddress(
+        input.organization_id,
+        currency
+      );
 
       lines.push({
         source: 'tax_rule',

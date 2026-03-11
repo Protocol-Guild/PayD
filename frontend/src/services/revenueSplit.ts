@@ -4,9 +4,9 @@ import {
   Networks,
   rpc,
   TransactionBuilder,
-  nativeToScVal,
   scValToNative,
   xdr,
+  Address,
 } from '@stellar/stellar-sdk';
 import { simulateTransaction } from './transactionSimulation';
 
@@ -60,24 +60,29 @@ function normalizeAllocationsFromNative(nativeValue: unknown): RevenueAllocation
 
   return nativeValue
     .map((entry: unknown) => {
+      // Direct array format support (if contract returns [address, basis_points])
       if (Array.isArray(entry)) {
-        const [recipient, percentageRaw] = entry as [unknown, unknown];
+        const [recipient, bpRaw] = entry as [unknown, unknown];
         return {
           recipient: typeof recipient === 'string' ? recipient : '',
-          percentage: toNumber(percentageRaw),
+          percentage: toNumber(bpRaw) / 100,
         };
       }
 
+      // Map/struct format support (from Soroban ScMap representation of RecipientShare)
       if (entry && typeof entry === 'object') {
         const item = entry as Record<string, unknown>;
+        const bp = toNumber(item.basis_points ?? item.percentage ?? item.weight ?? item.share);
         return {
           recipient:
-            typeof item.recipient === 'string'
-              ? item.recipient
-              : typeof item.address === 'string'
-                ? item.address
-                : '',
-          percentage: toNumber(item.percentage ?? item.weight ?? item.share),
+            typeof item.destination === 'string'
+              ? item.destination
+              : typeof item.recipient === 'string'
+                ? item.recipient
+                : typeof item.address === 'string'
+                  ? item.address
+                  : '',
+          percentage: bp / 100,
         };
       }
 
@@ -149,16 +154,24 @@ export async function updateRevenueAllocations(options: {
   const account = await server.getAccount(options.sourceAddress);
   const contract = new Contract(options.contractId);
 
-  const allocationPayload = options.allocations.map((entry) => [
-    entry.recipient,
-    Number.parseFloat(entry.percentage.toFixed(4)),
-  ]);
+  const allocationPayload = options.allocations.map((entry) => {
+    return xdr.ScVal.scvMap([
+      new xdr.ScMapEntry({
+        key: xdr.ScVal.scvSymbol('destination'),
+        val: new Address(entry.recipient).toScVal(),
+      }),
+      new xdr.ScMapEntry({
+        key: xdr.ScVal.scvSymbol('basis_points'),
+        val: xdr.ScVal.scvU32(Math.round(entry.percentage * 100)),
+      }),
+    ]);
+  });
 
   const tx = new TransactionBuilder(account, {
     fee: BASE_FEE,
     networkPassphrase: getNetworkPassphrase(),
   })
-    .addOperation(contract.call(UPDATE_ALLOCATIONS_METHOD, nativeToScVal(allocationPayload)))
+    .addOperation(contract.call(UPDATE_ALLOCATIONS_METHOD, xdr.ScVal.scvVec(allocationPayload)))
     .setTimeout(60)
     .build();
 

@@ -191,9 +191,9 @@ describe('ContractEventIndexer', () => {
         }),
       });
 
-      await expect(
-        (indexer as any).fetchEventsFromRPC('CTEST123', 0)
-      ).rejects.toThrow('RPC error: RPC error');
+      await expect((indexer as any).fetchEventsFromRPC('CTEST123', 0)).rejects.toThrow(
+        'RPC error: RPC error'
+      );
     });
 
     it('should handle network errors', async () => {
@@ -203,27 +203,29 @@ describe('ContractEventIndexer', () => {
         statusText: 'Internal Server Error',
       });
 
-      await expect(
-        (indexer as any).fetchEventsFromRPC('CTEST123', 0)
-      ).rejects.toThrow('RPC request failed: 500 Internal Server Error');
+      await expect((indexer as any).fetchEventsFromRPC('CTEST123', 0)).rejects.toThrow(
+        'RPC request failed: 500 Internal Server Error'
+      );
     });
   });
 
   describe('updateIndexerState', () => {
     it('should update indexer state', async () => {
       await (indexer as any).updateIndexerState(12345, 'active', null);
-      expect(pool.query).toHaveBeenCalledWith(
-        expect.stringContaining('UPDATE indexer_state'),
-        [12345, 'active', null]
-      );
+      expect(pool.query).toHaveBeenCalledWith(expect.stringContaining('UPDATE indexer_state'), [
+        12345,
+        'active',
+        null,
+      ]);
     });
 
     it('should update with error message', async () => {
       await (indexer as any).updateIndexerState(12345, 'error', 'Test error');
-      expect(pool.query).toHaveBeenCalledWith(
-        expect.stringContaining('UPDATE indexer_state'),
-        [12345, 'error', 'Test error']
-      );
+      expect(pool.query).toHaveBeenCalledWith(expect.stringContaining('UPDATE indexer_state'), [
+        12345,
+        'error',
+        'Test error',
+      ]);
     });
   });
 });

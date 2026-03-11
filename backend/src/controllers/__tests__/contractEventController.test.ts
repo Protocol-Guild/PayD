@@ -143,10 +143,7 @@ describe('ContractEventController', () => {
           ],
         });
 
-      await ContractEventController.getAllEvents(
-        mockRequest as Request,
-        mockResponse as Response
-      );
+      await ContractEventController.getAllEvents(mockRequest as Request, mockResponse as Response);
 
       expect(jsonMock).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -159,10 +156,7 @@ describe('ContractEventController', () => {
     it('should return 403 if user has no organization', async () => {
       mockRequest.user = { ...mockRequest.user!, organizationId: null };
 
-      await ContractEventController.getAllEvents(
-        mockRequest as Request,
-        mockResponse as Response
-      );
+      await ContractEventController.getAllEvents(mockRequest as Request, mockResponse as Response);
 
       expect(statusMock).toHaveBeenCalledWith(403);
     });

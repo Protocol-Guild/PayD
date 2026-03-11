@@ -1,9 +1,9 @@
 /**
  * Manual test script for ScheduleExecutor
- * 
+ *
  * This script demonstrates the ScheduleExecutor implementation.
  * Run with: ts-node src/services/__tests__/scheduleExecutor.manual.test.ts
- * 
+ *
  * Note: This is a demonstration script, not an automated test.
  */
 

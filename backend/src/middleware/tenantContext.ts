@@ -1,13 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
 import { pool } from '../config/database.js';
 
+import { PoolClient } from 'pg';
+
 // Extend Express Request to include tenant information
-declare global {
-  namespace Express {
-    interface Request {
-      tenantId?: number;
-      organizationId?: number; // Alias for clarity
-    }
+declare module 'express' {
+  interface Request {
+    tenantId?: number;
+    organizationId?: number; // Alias for clarity
+    dbClient?: PoolClient;
+    organization?: unknown;
   }
 }
 
@@ -34,7 +36,6 @@ export const extractTenantId = (req: Request, res: Response, next: NextFunction)
       tenantId = parseInt(headerValStr as string, 10);
     }
   }
-
 
   // Method 3: Extract from JWT token (placeholder for future auth implementation)
   // if (!tenantId && req.user?.organizationId) {
@@ -76,18 +77,18 @@ export const setTenantContext = async (req: Request, res: Response, next: NextFu
     await client.query('SET LOCAL app.current_tenant_id = $1', [req.tenantId]);
 
     // Store client in request for cleanup
-    (req as any).dbClient = client;
+    req.dbClient = client;
 
     // Ensure client is released after response
     res.on('finish', () => {
-      if ((req as any).dbClient) {
-        (req as any).dbClient.release();
+      if (req.dbClient) {
+        req.dbClient.release();
       }
     });
 
     res.on('close', () => {
-      if ((req as any).dbClient) {
-        (req as any).dbClient.release();
+      if (req.dbClient) {
+        req.dbClient.release();
       }
     });
 
@@ -126,7 +127,7 @@ export const validateTenant = async (req: Request, res: Response, next: NextFunc
     }
 
     // Optionally attach organization info to request
-    (req as any).organization = result.rows[0];
+    req.organization = result.rows[0];
 
     next();
   } catch (error) {

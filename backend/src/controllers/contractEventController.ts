@@ -37,8 +37,8 @@ export class ContractEventController {
       if (filters.limit! < 1 || filters.limit! > 100) filters.limit = 20;
 
       const result = await ContractEventController.fetchEvents(
-        contractId,
-        organizationId,
+        contractId as string,
+        organizationId as number,
         filters
       );
 
@@ -75,11 +75,7 @@ export class ContractEventController {
       if (filters.page! < 1) filters.page = 1;
       if (filters.limit! < 1 || filters.limit! > 100) filters.limit = 20;
 
-      const result = await ContractEventController.fetchEvents(
-        null,
-        organizationId,
-        filters
-      );
+      const result = await ContractEventController.fetchEvents(null, organizationId, filters);
 
       res.json(result);
     } catch (error) {

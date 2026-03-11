@@ -36,7 +36,9 @@ export const deductionRuleSchema = z.object({
   destination_kind: z.enum(['treasury', 'provider']).optional().default('treasury'),
 });
 
-export const updateDeductionRuleSchema = deductionRuleSchema.partial().omit({ organization_id: true });
+export const updateDeductionRuleSchema = deductionRuleSchema
+  .partial()
+  .omit({ organization_id: true });
 
 export const draftPayslipSchema = z.object({
   employee_id: z.number().int().positive(),
@@ -48,7 +50,9 @@ export const draftPayslipSchema = z.object({
 export type CreateBenefitPlanInput = z.infer<typeof benefitPlanSchema>;
 export type UpdateBenefitPlanInput = z.infer<typeof updateBenefitPlanSchema>;
 export type CreateEmployeeBenefitEnrollmentInput = z.infer<typeof employeeBenefitEnrollmentSchema>;
-export type UpdateEmployeeBenefitEnrollmentInput = z.infer<typeof updateEmployeeBenefitEnrollmentSchema>;
+export type UpdateEmployeeBenefitEnrollmentInput = z.infer<
+  typeof updateEmployeeBenefitEnrollmentSchema
+>;
 export type CreateDeductionRuleInput = z.infer<typeof deductionRuleSchema>;
 export type UpdateDeductionRuleInput = z.infer<typeof updateDeductionRuleSchema>;
 export type DraftPayslipInput = z.infer<typeof draftPayslipSchema>;

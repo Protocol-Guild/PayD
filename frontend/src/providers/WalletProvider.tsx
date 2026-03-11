@@ -40,11 +40,38 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   useEffect(() => {
     setWalletExtensionAvailable(hasAnyWalletExtension());
 
-    const newKit = new StellarWalletsKit({
-      network: network,
-      modules: [new FreighterModule(), new xBullModule(), new LobstrModule()],
-    });
-    kitRef.current = newKit;
+    const sanitizeNetwork = (net: string): WalletNetwork => {
+      const validNetworks: WalletNetwork[] = [
+        WalletNetwork.PUBLIC,
+        WalletNetwork.TESTNET,
+        WalletNetwork.FUTURENET,
+        WalletNetwork.SANDBOX,
+      ];
+      return validNetworks.includes(net as WalletNetwork)
+        ? (net as WalletNetwork)
+        : WalletNetwork.TESTNET;
+    };
+
+    let newKit: StellarWalletsKit | null = null;
+
+    try {
+      const activeNetwork = sanitizeNetwork(network);
+      newKit = new StellarWalletsKit({
+        network: activeNetwork,
+        modules: [new FreighterModule(), new xBullModule(), new LobstrModule()],
+      });
+      kitRef.current = newKit;
+    } catch (err) {
+      console.error('Failed to initialize StellarWalletsKit:', err);
+      notifyError('Wallet Error', 'Failed to initialize wallet connection system.');
+    }
+
+    if (!newKit) {
+      setIsInitialized(true);
+      return;
+    }
+
+    const currentKit = newKit;
 
     const attemptSilentReconnect = async () => {
       const lastWalletName = localStorage.getItem(LAST_WALLET_STORAGE_KEY);
@@ -57,8 +84,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setIsConnecting(true);
 
       try {
-        newKit.setWallet(lastWalletName);
-        const account = await newKit.getAddress();
+        currentKit.setWallet(lastWalletName);
+        const account = await currentKit.getAddress();
         if (account?.address) {
           setAddress(account.address);
           notifySuccess(
@@ -76,7 +103,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
 
     void attemptSilentReconnect();
-  }, [notifySuccess, network]);
+  }, [notifySuccess, notifyError, network]);
 
   const connect = async () => {
     const kit = kitRef.current;
@@ -89,13 +116,13 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         onWalletSelected: (option) => {
           void (async () => {
             try {
-              const { address } = await kit.getAddress();
-              setAddress(address);
+              const { address: newAddress } = await kit.getAddress();
+              setAddress(newAddress);
               setWalletName(option.id);
               localStorage.setItem(LAST_WALLET_STORAGE_KEY, option.id);
               notifySuccess(
                 'Wallet connected',
-                `${address.slice(0, 6)}...${address.slice(-4)} via ${option.id}`
+                `${newAddress.slice(0, 6)}...${newAddress.slice(-4)} via ${option.id}`
               );
             } catch (err) {
               console.error('onWalletSelected error:', err);

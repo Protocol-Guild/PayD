@@ -164,7 +164,7 @@ fn test_distribution() {
 }
 
 #[test]
-fn test_update_recipients() {
+fn test_set_allocations() {
     let env = Env::default();
     env.mock_all_auths();
 
@@ -187,5 +187,15 @@ fn test_update_recipients() {
         RecipientShare { destination: recipient2.clone(), basis_points: 5000 },
     ]);
 
-    client.update_recipients(&new_shares);
+    client.set_allocations(&new_shares);
+
+    let allocations = client.get_allocations();
+    assert_eq!(allocations.len(), 2);
+    let mut iter = allocations.iter();
+    let r1 = iter.next().unwrap();
+    let r2 = iter.next().unwrap();
+    assert_eq!(r1.destination, recipient1);
+    assert_eq!(r1.basis_points, 5000);
+    assert_eq!(r2.destination, recipient2);
+    assert_eq!(r2.basis_points, 5000);
 }

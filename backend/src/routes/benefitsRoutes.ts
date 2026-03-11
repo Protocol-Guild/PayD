@@ -110,6 +110,12 @@ router.post(
 );
 
 // Employee view: deductions breakdown for the authenticated wallet
-router.get('/me/deductions', authorizeRoles('EMPLOYEE'), setTenantFromJwt, setTenantContext, BenefitsController.getMyDeductions);
+router.get(
+  '/me/deductions',
+  authorizeRoles('EMPLOYEE'),
+  setTenantFromJwt,
+  setTenantContext,
+  BenefitsController.getMyDeductions
+);
 
 export default router;

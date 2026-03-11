@@ -1,9 +1,8 @@
 import { ScheduleService } from '../scheduleService';
 import type { ScheduleFrequency, CreateScheduleRequest } from '../../types/schedule';
-import { Pool } from 'pg';
 
 // Mock pg Pool
-const mockConnect = jest.fn();
+
 const mockRelease = jest.fn();
 const mockClientQuery = jest.fn();
 
@@ -23,7 +22,7 @@ describe('ScheduleService', () => {
   beforeEach(() => {
     service = new ScheduleService();
     jest.clearAllMocks();
-    
+
     // Setup default mock client
     (mockPool.connect as jest.Mock).mockResolvedValue({
       query: mockClientQuery,
@@ -301,7 +300,7 @@ describe('ScheduleService', () => {
         .mockRejectedValueOnce(new Error('Database error')); // INSERT fails
 
       await expect(
-        service.createSchedule(organizationId, userId, validScheduleData),
+        service.createSchedule(organizationId, userId, validScheduleData)
       ).rejects.toThrow('Database error');
 
       expect(mockClientQuery).toHaveBeenCalledWith('ROLLBACK');
@@ -315,9 +314,9 @@ describe('ScheduleService', () => {
           frequency: 'invalid' as ScheduleFrequency,
         };
 
-        await expect(
-          service.createSchedule(1, 1, invalidData),
-        ).rejects.toThrow('Invalid frequency');
+        await expect(service.createSchedule(1, 1, invalidData)).rejects.toThrow(
+          'Invalid frequency'
+        );
       });
 
       it('should reject invalid time format', async () => {
@@ -326,9 +325,9 @@ describe('ScheduleService', () => {
           timeOfDay: '25:00', // Invalid hour
         };
 
-        await expect(
-          service.createSchedule(1, 1, invalidData),
-        ).rejects.toThrow('Invalid time format');
+        await expect(service.createSchedule(1, 1, invalidData)).rejects.toThrow(
+          'Invalid time format'
+        );
       });
 
       it('should reject time with invalid format', async () => {
@@ -337,9 +336,9 @@ describe('ScheduleService', () => {
           timeOfDay: '14:30:00', // Should be HH:MM, not HH:MM:SS
         };
 
-        await expect(
-          service.createSchedule(1, 1, invalidData),
-        ).rejects.toThrow('Invalid time format');
+        await expect(service.createSchedule(1, 1, invalidData)).rejects.toThrow(
+          'Invalid time format'
+        );
       });
 
       it('should reject start date in the past', async () => {
@@ -348,24 +347,24 @@ describe('ScheduleService', () => {
           startDate: '2020-01-01', // Past date
         };
 
-        await expect(
-          service.createSchedule(1, 1, invalidData),
-        ).rejects.toThrow('Start date cannot be in the past');
+        await expect(service.createSchedule(1, 1, invalidData)).rejects.toThrow(
+          'Start date cannot be in the past'
+        );
       });
 
       it('should reject end date before start date', async () => {
         const tomorrow = new Date(Date.now() + 86400000);
         const today = new Date();
-        
+
         const invalidData = {
           ...validScheduleData,
           startDate: tomorrow.toISOString().split('T')[0],
           endDate: today.toISOString().split('T')[0],
         };
 
-        await expect(
-          service.createSchedule(1, 1, invalidData),
-        ).rejects.toThrow('End date must be after start date');
+        await expect(service.createSchedule(1, 1, invalidData)).rejects.toThrow(
+          'End date must be after start date'
+        );
       });
 
       it('should reject empty recipients array', async () => {
@@ -376,9 +375,9 @@ describe('ScheduleService', () => {
           },
         };
 
-        await expect(
-          service.createSchedule(1, 1, invalidData),
-        ).rejects.toThrow('At least one recipient is required');
+        await expect(service.createSchedule(1, 1, invalidData)).rejects.toThrow(
+          'At least one recipient is required'
+        );
       });
 
       it('should reject recipient with empty wallet address', async () => {
@@ -395,9 +394,9 @@ describe('ScheduleService', () => {
           },
         };
 
-        await expect(
-          service.createSchedule(1, 1, invalidData),
-        ).rejects.toThrow('Wallet address is required');
+        await expect(service.createSchedule(1, 1, invalidData)).rejects.toThrow(
+          'Wallet address is required'
+        );
       });
 
       it('should reject recipient with zero amount', async () => {
@@ -414,9 +413,9 @@ describe('ScheduleService', () => {
           },
         };
 
-        await expect(
-          service.createSchedule(1, 1, invalidData),
-        ).rejects.toThrow('Amount must be greater than 0');
+        await expect(service.createSchedule(1, 1, invalidData)).rejects.toThrow(
+          'Amount must be greater than 0'
+        );
       });
 
       it('should reject recipient with negative amount', async () => {
@@ -433,9 +432,9 @@ describe('ScheduleService', () => {
           },
         };
 
-        await expect(
-          service.createSchedule(1, 1, invalidData),
-        ).rejects.toThrow('Amount must be greater than 0');
+        await expect(service.createSchedule(1, 1, invalidData)).rejects.toThrow(
+          'Amount must be greater than 0'
+        );
       });
 
       it('should reject recipient with empty asset code', async () => {
@@ -452,9 +451,9 @@ describe('ScheduleService', () => {
           },
         };
 
-        await expect(
-          service.createSchedule(1, 1, invalidData),
-        ).rejects.toThrow('Asset code is required');
+        await expect(service.createSchedule(1, 1, invalidData)).rejects.toThrow(
+          'Asset code is required'
+        );
       });
 
       it('should reject memo longer than 28 characters', async () => {
@@ -466,9 +465,9 @@ describe('ScheduleService', () => {
           },
         };
 
-        await expect(
-          service.createSchedule(1, 1, invalidData),
-        ).rejects.toThrow('Memo cannot exceed 28 characters');
+        await expect(service.createSchedule(1, 1, invalidData)).rejects.toThrow(
+          'Memo cannot exceed 28 characters'
+        );
       });
 
       it('should accept valid memo within 28 characters', async () => {
@@ -700,7 +699,7 @@ describe('ScheduleService', () => {
       expect(result[0].status).toBe('completed');
       expect(mockClientQuery).toHaveBeenCalledWith(
         expect.any(String),
-        expect.arrayContaining([organizationId, 'completed', 50, 0]),
+        expect.arrayContaining([organizationId, 'completed', 50, 0])
       );
       expect(mockRelease).toHaveBeenCalled();
     });
@@ -742,7 +741,7 @@ describe('ScheduleService', () => {
       expect(result).toHaveLength(1);
       expect(mockClientQuery).toHaveBeenCalledWith(
         expect.any(String),
-        expect.arrayContaining([organizationId, 'active', 10, 10]), // offset = (2-1) * 10 = 10
+        expect.arrayContaining([organizationId, 'active', 10, 10]) // offset = (2-1) * 10 = 10
       );
       expect(mockRelease).toHaveBeenCalled();
     });
@@ -754,7 +753,7 @@ describe('ScheduleService', () => {
 
       expect(mockClientQuery).toHaveBeenCalledWith(
         expect.any(String),
-        expect.arrayContaining([organizationId, 'active', 50, 0]), // defaults: status='active', limit=50, offset=0
+        expect.arrayContaining([organizationId, 'active', 50, 0]) // defaults: status='active', limit=50, offset=0
       );
       expect(mockRelease).toHaveBeenCalled();
     });
@@ -893,10 +892,10 @@ describe('ScheduleService', () => {
       // Verify the query includes ORDER BY next_run_timestamp ASC
       expect(mockClientQuery).toHaveBeenCalledWith(
         expect.stringContaining('ORDER BY next_run_timestamp ASC'),
-        expect.any(Array),
+        expect.any(Array)
       );
       expect(result[0].nextRunTimestamp.getTime()).toBeLessThan(
-        result[1].nextRunTimestamp.getTime(),
+        result[1].nextRunTimestamp.getTime()
       );
     });
   });
@@ -920,11 +919,11 @@ describe('ScheduleService', () => {
 
       expect(mockClientQuery).toHaveBeenCalledWith(
         expect.stringContaining('SELECT id, organization_id'),
-        [scheduleId],
+        [scheduleId]
       );
       expect(mockClientQuery).toHaveBeenCalledWith(
         expect.stringContaining("SET status = 'cancelled'"),
-        [scheduleId],
+        [scheduleId]
       );
       expect(mockRelease).toHaveBeenCalled();
     });
@@ -932,9 +931,7 @@ describe('ScheduleService', () => {
     it('should throw 404 error when schedule not found', async () => {
       mockClientQuery.mockResolvedValueOnce({ rows: [] }); // SELECT returns empty
 
-      await expect(
-        service.cancelSchedule(scheduleId, organizationId),
-      ).rejects.toMatchObject({
+      await expect(service.cancelSchedule(scheduleId, organizationId)).rejects.toMatchObject({
         message: 'Schedule not found',
         statusCode: 404,
       });
@@ -951,9 +948,7 @@ describe('ScheduleService', () => {
 
       mockClientQuery.mockResolvedValueOnce({ rows: [mockSchedule] }); // SELECT
 
-      await expect(
-        service.cancelSchedule(scheduleId, organizationId),
-      ).rejects.toMatchObject({
+      await expect(service.cancelSchedule(scheduleId, organizationId)).rejects.toMatchObject({
         message: 'Access denied: Schedule belongs to a different organization',
         statusCode: 403,
       });
@@ -964,9 +959,9 @@ describe('ScheduleService', () => {
     it('should release client even on error', async () => {
       mockClientQuery.mockRejectedValueOnce(new Error('Database error'));
 
-      await expect(
-        service.cancelSchedule(scheduleId, organizationId),
-      ).rejects.toThrow('Database error');
+      await expect(service.cancelSchedule(scheduleId, organizationId)).rejects.toThrow(
+        'Database error'
+      );
 
       expect(mockRelease).toHaveBeenCalled();
     });
@@ -986,7 +981,7 @@ describe('ScheduleService', () => {
 
       expect(mockClientQuery).toHaveBeenCalledWith(
         expect.stringContaining('updated_at = CURRENT_TIMESTAMP'),
-        [scheduleId],
+        [scheduleId]
       );
     });
   });
@@ -1025,7 +1020,7 @@ describe('ScheduleService', () => {
             'completed', // status
             null, // next_run_timestamp (null for completed)
             scheduleId,
-          ]),
+          ])
         );
         expect(mockClientQuery).toHaveBeenCalledWith('COMMIT');
         expect(mockRelease).toHaveBeenCalled();
@@ -1055,8 +1050,8 @@ describe('ScheduleService', () => {
         await service.updateAfterExecution(scheduleId, executionResult);
 
         // Verify UPDATE query was called with correct parameters
-        const updateCall = mockClientQuery.mock.calls.find(
-          (call) => call[0].includes('UPDATE schedules'),
+        const updateCall = mockClientQuery.mock.calls.find((call) =>
+          call[0].includes('UPDATE schedules')
         );
         expect(updateCall).toBeDefined();
         expect(updateCall[1][0]).toBeInstanceOf(Date); // last_run_timestamp
@@ -1068,7 +1063,7 @@ describe('ScheduleService', () => {
         const nextRun = updateCall[1][2] as Date;
         const executionTime = updateCall[1][0] as Date;
         const daysDiff = Math.round(
-          (nextRun.getTime() - executionTime.getTime()) / (1000 * 60 * 60 * 24),
+          (nextRun.getTime() - executionTime.getTime()) / (1000 * 60 * 60 * 24)
         );
         expect(daysDiff).toBe(7);
 
@@ -1098,8 +1093,8 @@ describe('ScheduleService', () => {
 
         await service.updateAfterExecution(scheduleId, executionResult);
 
-        const updateCall = mockClientQuery.mock.calls.find(
-          (call) => call[0].includes('UPDATE schedules'),
+        const updateCall = mockClientQuery.mock.calls.find((call) =>
+          call[0].includes('UPDATE schedules')
         );
         expect(updateCall).toBeDefined();
         expect(updateCall[1][1]).toBe('active'); // status remains active
@@ -1109,7 +1104,7 @@ describe('ScheduleService', () => {
         const nextRun = updateCall[1][2] as Date;
         const executionTime = updateCall[1][0] as Date;
         const daysDiff = Math.round(
-          (nextRun.getTime() - executionTime.getTime()) / (1000 * 60 * 60 * 24),
+          (nextRun.getTime() - executionTime.getTime()) / (1000 * 60 * 60 * 24)
         );
         expect(daysDiff).toBe(14);
 
@@ -1139,8 +1134,8 @@ describe('ScheduleService', () => {
 
         await service.updateAfterExecution(scheduleId, executionResult);
 
-        const updateCall = mockClientQuery.mock.calls.find(
-          (call) => call[0].includes('UPDATE schedules'),
+        const updateCall = mockClientQuery.mock.calls.find((call) =>
+          call[0].includes('UPDATE schedules')
         );
         expect(updateCall).toBeDefined();
         expect(updateCall[1][1]).toBe('active'); // status remains active
@@ -1170,7 +1165,7 @@ describe('ScheduleService', () => {
         };
 
         const beforeExecution = Date.now();
-        
+
         mockClientQuery
           .mockResolvedValueOnce({ rows: [] }) // BEGIN
           .mockResolvedValueOnce({ rows: [mockSchedule] }) // SELECT
@@ -1181,8 +1176,8 @@ describe('ScheduleService', () => {
 
         const afterExecution = Date.now();
 
-        const updateCall = mockClientQuery.mock.calls.find(
-          (call) => call[0].includes('UPDATE schedules'),
+        const updateCall = mockClientQuery.mock.calls.find((call) =>
+          call[0].includes('UPDATE schedules')
         );
         const lastRunTimestamp = updateCall[1][0] as Date;
 
@@ -1226,7 +1221,7 @@ describe('ScheduleService', () => {
             'failed', // status
             null, // next_run_timestamp not calculated for failed
             scheduleId,
-          ]),
+          ])
         );
         expect(mockClientQuery).toHaveBeenCalledWith('COMMIT');
         expect(mockRelease).toHaveBeenCalled();
@@ -1257,8 +1252,8 @@ describe('ScheduleService', () => {
         await service.updateAfterExecution(scheduleId, executionResult);
 
         // Verify status is 'failed', not 'completed'
-        const updateCall = mockClientQuery.mock.calls.find(
-          (call) => call[0].includes('UPDATE schedules'),
+        const updateCall = mockClientQuery.mock.calls.find((call) =>
+          call[0].includes('UPDATE schedules')
         );
         expect(updateCall[1][1]).toBe('failed');
         expect(mockClientQuery).toHaveBeenCalledWith('COMMIT');
@@ -1292,8 +1287,8 @@ describe('ScheduleService', () => {
 
         const afterExecution = Date.now();
 
-        const updateCall = mockClientQuery.mock.calls.find(
-          (call) => call[0].includes('UPDATE schedules'),
+        const updateCall = mockClientQuery.mock.calls.find((call) =>
+          call[0].includes('UPDATE schedules')
         );
         const lastRunTimestamp = updateCall[1][0] as Date;
 
@@ -1314,9 +1309,9 @@ describe('ScheduleService', () => {
           .mockResolvedValueOnce({ rows: [] }) // BEGIN
           .mockResolvedValueOnce({ rows: [] }); // SELECT returns empty
 
-        await expect(
-          service.updateAfterExecution(scheduleId, executionResult),
-        ).rejects.toThrow(`Schedule with ID ${scheduleId} not found`);
+        await expect(service.updateAfterExecution(scheduleId, executionResult)).rejects.toThrow(
+          `Schedule with ID ${scheduleId} not found`
+        );
 
         expect(mockClientQuery).toHaveBeenCalledWith('ROLLBACK');
         expect(mockRelease).toHaveBeenCalled();
@@ -1341,9 +1336,9 @@ describe('ScheduleService', () => {
           .mockResolvedValueOnce({ rows: [mockSchedule] }) // SELECT
           .mockRejectedValueOnce(new Error('Database error')); // UPDATE fails
 
-        await expect(
-          service.updateAfterExecution(scheduleId, executionResult),
-        ).rejects.toThrow('Database error');
+        await expect(service.updateAfterExecution(scheduleId, executionResult)).rejects.toThrow(
+          'Database error'
+        );
 
         expect(mockClientQuery).toHaveBeenCalledWith('ROLLBACK');
         expect(mockRelease).toHaveBeenCalled();
@@ -1359,9 +1354,9 @@ describe('ScheduleService', () => {
           .mockResolvedValueOnce({ rows: [] }) // BEGIN
           .mockRejectedValueOnce(new Error('Connection error')); // SELECT fails
 
-        await expect(
-          service.updateAfterExecution(scheduleId, executionResult),
-        ).rejects.toThrow('Connection error');
+        await expect(service.updateAfterExecution(scheduleId, executionResult)).rejects.toThrow(
+          'Connection error'
+        );
 
         expect(mockRelease).toHaveBeenCalled();
       });

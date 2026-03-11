@@ -31,11 +31,7 @@ export class ScheduleController {
       const validatedData = createScheduleSchema.parse(req.body);
 
       // Create schedule
-      const schedule = await scheduleService.createSchedule(
-        organizationId,
-        userId,
-        validatedData
-      );
+      const schedule = await scheduleService.createSchedule(organizationId, userId, validatedData);
 
       // Format response
       const response = {

@@ -1,5 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
-import { rateLimitService, RateLimitTierName } from '../services/rateLimitService.js';
+import {
+  rateLimitService,
+  RateLimitTierName,
+  RateLimitResult,
+} from '../services/rateLimitService.js';
 import logger from '../utils/logger.js';
 
 export interface RateLimitOptions {
@@ -18,8 +22,7 @@ function defaultIdentifier(req: Request): string {
   );
 }
 
-
-function defaultHandler(_req: Request, res: Response, result: any): void {
+function defaultHandler(_req: Request, res: Response, result: RateLimitResult): void {
   res.status(429).json({
     error: 'Too Many Requests',
     message: 'Rate limit exceeded. Please try again later.',
@@ -37,7 +40,6 @@ export function rateLimitMiddleware(options: RateLimitOptions = {}) {
     }
 
     const clientIdentifier = identifier(req);
-    const tierConfig = rateLimitService.getTierConfig(tier);
 
     try {
       const result = await rateLimitService.checkRateLimit(clientIdentifier, tier);
