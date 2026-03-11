@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Icon, Button, Card, Input, Select, Alert } from '@stellar/design-system';
 import { EmployeeList } from '../components/EmployeeList';
 import { AutosaveIndicator } from '../components/AutosaveIndicator';
@@ -28,18 +28,6 @@ interface EmployeeItem {
   status?: 'Active' | 'Inactive';
 }
 
-// Shape of an employee record returned by the backend API
-interface EmployeeApiItem {
-  id: number | string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  position?: string;
-  job_title?: string;
-  wallet_address?: string;
-  status?: string;
-}
-
 const initialFormState: EmployeeFormState = {
   fullName: '',
   walletAddress: '',
@@ -67,12 +55,26 @@ export default function EmployeeEntry() {
   );
   const { t } = useTranslation();
 
-  const fetchEmployees = async () => {
+  interface EmployeeApiResponse {
+    id: number;
+    first_name: string;
+    last_name: string;
+    email: string;
+    position?: string;
+    job_title?: string;
+    wallet_address?: string;
+    status: string;
+  }
+
+  interface EmployeesApiResponse {
+    data: EmployeeApiResponse[];
+    pagination?: unknown;
+  }
+
+  const fetchEmployees = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await api.get<{ data: EmployeeApiItem[]; pagination: unknown }>(
-        '/employees'
-      );
+      const response = await api.get<EmployeesApiResponse>('/employees');
       // Backend returns { data: [...], pagination: {...} }
       const mapped: EmployeeItem[] = response.data.data.map((emp) => ({
         id: String(emp.id),
@@ -88,11 +90,11 @@ export default function EmployeeEntry() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     void fetchEmployees();
-  }, []);
+  }, [fetchEmployees]);
 
   useEffect(() => {
     const saved = loadSavedData();
