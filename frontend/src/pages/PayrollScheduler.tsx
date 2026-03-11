@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { isAxiosError } from 'axios';
 import { AutosaveIndicator } from '../components/AutosaveIndicator';
 import { useAutosave } from '../hooks/useAutosave';
@@ -164,15 +164,7 @@ export default function PayrollScheduler() {
     isSuccess: simulationPassed,
   } = useTransactionSimulation();
 
-  useEffect(() => {
-    const saved = loadSavedData();
-    if (saved) {
-      setFormData(saved);
-    }
-    void fetchActiveSchedules();
-  }, [loadSavedData]);
-
-  const fetchActiveSchedules = async () => {
+  const fetchActiveSchedules = useCallback(async () => {
     setIsLoadingSchedules(true);
     try {
       const { schedules } = await getSchedules({ status: 'active' });
@@ -183,7 +175,15 @@ export default function PayrollScheduler() {
     } finally {
       setIsLoadingSchedules(false);
     }
-  };
+  }, [notifyError]);
+
+  useEffect(() => {
+    const saved = loadSavedData();
+    if (saved) {
+      setFormData(saved);
+    }
+    void fetchActiveSchedules();
+  }, [fetchActiveSchedules, loadSavedData]);
 
   const handleScheduleComplete = async (config: SchedulingConfig) => {
     setIsCreatingSchedule(true);

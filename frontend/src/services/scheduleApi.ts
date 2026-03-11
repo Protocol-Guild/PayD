@@ -1,9 +1,7 @@
 import axios from 'axios';
 
 const rawApiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-const API_BASE_URL = rawApiBaseUrl
-  .replace(/\/api\/v1\/?$/, '/api')
-  .replace(/\/$/, '');
+const API_BASE_URL = rawApiBaseUrl.replace(/\/api\/v1\/?$/, '/api').replace(/\/$/, '');
 
 function authHeaders() {
   const token = localStorage.getItem('payd_auth_token');
@@ -71,7 +69,9 @@ export interface GetSchedulesResponse {
   };
 }
 
-export const createSchedule = async (input: CreateScheduleInput): Promise<CreateScheduleResponse> => {
+export const createSchedule = async (
+  input: CreateScheduleInput
+): Promise<CreateScheduleResponse> => {
   const { data } = await axios.post<CreateScheduleResponse>(`${API_BASE_URL}/schedules`, input, {
     headers: authHeaders(),
   });
