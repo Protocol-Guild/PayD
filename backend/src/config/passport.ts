@@ -2,18 +2,16 @@ import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { Strategy as GitHubStrategy } from 'passport-github2';
 import pool from './database.js';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import config from './index.js';
 
 passport.use(
   new GoogleStrategy(
     {
-      clientID: process.env.GOOGLE_CLIENT_ID || 'dummy',
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'dummy',
-      callbackURL: '/auth/google/callback',
+      clientID: config.auth.google.clientId || 'dummy',
+      clientSecret: config.auth.google.clientSecret || 'dummy',
+      callbackURL: config.auth.google.callbackUrl,
     },
-    async (accessToken, refreshToken, profile, done) => {
+    async (accessToken: string, refreshToken: string, profile: any, done: any) => {
       try {
         const email = profile.emails?.[0]?.value;
         if (!email) {
@@ -58,9 +56,9 @@ passport.use(
 passport.use(
   new GitHubStrategy(
     {
-      clientID: process.env.GITHUB_CLIENT_ID || 'dummy',
-      clientSecret: process.env.GITHUB_CLIENT_SECRET || 'dummy',
-      callbackURL: '/auth/github/callback',
+      clientID: config.auth.github.clientId || 'dummy',
+      clientSecret: config.auth.github.clientSecret || 'dummy',
+      callbackURL: config.auth.github.callbackUrl,
     },
     async (accessToken: string, refreshToken: string, profile: any, done: any) => {
       try {
@@ -100,11 +98,11 @@ passport.use(
   )
 );
 
-passport.serializeUser((user: any, done) => {
+passport.serializeUser((user: any, done: any) => {
   done(null, user.id);
 });
 
-passport.deserializeUser(async (id: number, done) => {
+passport.deserializeUser(async (id: number, done: any) => {
   try {
     const result = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
     done(null, result.rows[0]);
