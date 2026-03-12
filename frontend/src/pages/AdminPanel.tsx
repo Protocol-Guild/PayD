@@ -53,7 +53,7 @@ interface LogsApiResponse {
   total: number;
 }
 
-type ActiveTab = 'account' | 'global' | 'status' | 'logs' | 'contracts';
+type ActiveTab = 'account' | 'global' | 'status' | 'logs' | 'contracts' | 'yield'; 
 
 // ---------------------------------------------------------------------------
 // Style constants – defined once to avoid repetition
@@ -71,6 +71,55 @@ const TAB_LABELS: Record<ActiveTab, string> = {
   status: 'Status Check',
   logs: 'Audit Logs',
   contracts: 'Contract Upgrades',
+  yield: 'Yield Optimization',
+};
+
+// ADD THIS WIDGET COMPONENT HERE
+const YieldManagementWidget = () => {
+  const [optIn, setOptIn] = useState(false);
+  const [buffer, setBuffer] = useState(20);
+
+  return (
+    <div className="flex flex-col gap-4 sm:gap-6 max-w-2xl">
+      <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
+        <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-accent" /> Idle Funds Yield Optimization
+      </h2>
+      <p className="text-xs sm:text-sm text-muted">
+        Automatically invest idle payroll funds into low-risk Stellar lending pools.
+      </p>
+      
+      <div className="p-4 sm:p-6 bg-black/20 border border-hi rounded-xl shadow-md space-y-4">
+        <div className="flex justify-between items-center">
+          <span className="font-bold text-sm">Auto-invest idle payroll funds</span>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" className="sr-only peer" checked={optIn} onChange={() => setOptIn(!optIn)} />
+            <div className="w-11 h-6 bg-black/40 border border-hi peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+          </label>
+        </div>
+
+        {optIn && (
+          <div className="space-y-4 mt-4 pt-4 border-t border-hi/50">
+            <div>
+              <label className="flex justify-between text-xs font-bold uppercase tracking-widest text-muted mb-2">
+                <span>Safety Buffer (Keep Liquid)</span>
+                <span>{buffer}%</span>
+              </label>
+              <input type="range" min="0" max="100" value={buffer} onChange={(e) => setBuffer(Number(e.target.value))} className="w-full accent-emerald-500" />
+            </div>
+            
+            <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-lg flex flex-col items-center justify-center mt-4">
+              <p className="text-xs font-bold uppercase tracking-widest text-emerald-500 mb-1">Total Yield Earned To Date</p>
+              <p className="text-2xl font-black text-emerald-400">$1,240.50 USDC</p>
+            </div>
+            
+            <p className="text-[10px] text-muted uppercase tracking-widest leading-relaxed mt-2">
+              *Risk Disclaimer: Investing in DeFi lending protocols carries smart contract and liquidity risks. Funds will be automatically withdrawn 24 hours prior to scheduled disbursements.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 };
 
 export default function AdminPanel() {
@@ -526,6 +575,9 @@ export default function AdminPanel() {
         {/* ── Contract Upgrades ────────────────────────────────────── */}
         {activeTab === 'contracts' && <ContractUpgradeTab adminAddress={adminAddress ?? ''} />}
 
+        {/* ── Yield Optimization ────────────────────────────────────── */}
+        {activeTab === 'yield' && <YieldManagementWidget />}
+        
         {/* ── Audit Logs ───────────────────────────────────────────── */}
         {activeTab === 'logs' && (
           <div className="flex flex-col gap-4 sm:gap-6">
