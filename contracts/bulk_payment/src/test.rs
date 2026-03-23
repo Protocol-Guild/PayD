@@ -39,7 +39,11 @@ fn setup() -> (Env, Address, Address, BulkPaymentContractClient<'static>) {
 
 fn one_payment(env: &Env) -> Vec<PaymentOp> {
     let mut payments: Vec<PaymentOp> = Vec::new(env);
-    payments.push_back(PaymentOp { recipient: Address::generate(env), amount: 10 });
+    payments.push_back(PaymentOp {
+        recipient: Address::generate(env),
+        amount: 10,
+        category: soroban_sdk::symbol_short!("payroll"),
+    });
     payments
 }
 
@@ -63,9 +67,9 @@ fn test_execute_batch_success() {
     let r3 = Address::generate(&env);
 
     let mut payments: Vec<PaymentOp> = Vec::new(&env);
-    payments.push_back(PaymentOp { recipient: r1.clone(), amount: 100 });
-    payments.push_back(PaymentOp { recipient: r2.clone(), amount: 200 });
-    payments.push_back(PaymentOp { recipient: r3.clone(), amount: 300 });
+    payments.push_back(PaymentOp { recipient: r1.clone(), amount: 100, category: soroban_sdk::symbol_short!("payroll") });
+    payments.push_back(PaymentOp { recipient: r2.clone(), amount: 200, category: soroban_sdk::symbol_short!("payroll") });
+    payments.push_back(PaymentOp { recipient: r3.clone(), amount: 300, category: soroban_sdk::symbol_short!("payroll") });
 
     let batch_id = client.execute_batch(&sender, &token, &payments, &client.get_sequence());
 
@@ -94,7 +98,11 @@ fn test_execute_batch_too_large_panics() {
     let (env, sender, token, client) = setup();
     let mut payments: Vec<PaymentOp> = Vec::new(&env);
     for _ in 0..=100 {
-        payments.push_back(PaymentOp { recipient: Address::generate(&env), amount: 1 });
+        payments.push_back(PaymentOp {
+            recipient: Address::generate(&env),
+            amount: 1,
+            category: soroban_sdk::symbol_short!("payroll"),
+        });
     }
     client.execute_batch(&sender, &token, &payments, &0);
 }
@@ -104,7 +112,11 @@ fn test_execute_batch_too_large_panics() {
 fn test_execute_batch_negative_amount_panics() {
     let (env, sender, token, client) = setup();
     let mut payments: Vec<PaymentOp> = Vec::new(&env);
-    payments.push_back(PaymentOp { recipient: Address::generate(&env), amount: -5 });
+    payments.push_back(PaymentOp {
+        recipient: Address::generate(&env),
+        amount: -5,
+        category: soroban_sdk::symbol_short!("payroll"),
+    });
     client.execute_batch(&sender, &token, &payments, &0);
 }
 
@@ -145,63 +157,20 @@ fn test_batch_count_increments() {
 #[test]
 fn test_partial_batch_skips_insufficient_funds() {
     let (env, sender, token, client) = setup();
-    // sender has 1_000_000 total minted.
-    // Pull = 500_000 + 600_000 = 1_100_000 which would exceed balance.
-    // Use amounts whose SUM fits within 1_000_000 but where the second
-    // payment exceeds what's left after the first succeeds.
-    //   first:  500_000  → succeeds, remaining = 500_000
-    //   second: 600_000  → skipped  (600_000 > 500_000 remaining)
-    //   refund: 500_000 back to sender
-    // Total pulled = 500_000 + 600_000 = 1_100_000 — still too much.
-    //
-    // Correct approach: pull only positive amounts into total, so
-    // total pulled = 500_000 + 600_000.  Still > 1_000_000.
-    //
-    // We must keep total ≤ 1_000_000.  Use:
-    //   first:  700_000  → succeeds, remaining = 300_000
-    //   second: 400_000  → skipped  (400_000 > 300_000 remaining)
-    //   total pulled = 700_000 + 400_000 = 1_100_000  — still over.
-    //
-    // The contract sums ALL positive amounts before the first transfer,
-    // so both amounts count toward the pull. The only way to have a
-    // "skip due to insufficient remaining" is when the FIRST payment
-    // consumes most of the balance and the second can't fit — but the
-    // total of both must still be ≤ the sender's balance so the pull
-    // itself succeeds.
-    //
-    // Use:  first = 600_000, second = 300_000, total pull = 900_000 ≤ 1_000_000
-    // After first:  remaining = 900_000 - 600_000 = 300_000
-    // Second needs 300_000 → exactly fits, both succeed.  Not what we want.
-    //
-    // Use:  first = 600_000, second = 350_000, total = 950_000 ≤ 1_000_000
-    // After first:  remaining = 950_000 - 600_000 = 350_000 → second fits.
-    //
-    // Use:  first = 700_000, second = 200_000, total = 900_000 ≤ 1_000_000
-    // After first:  remaining = 900_000 - 700_000 = 200_000 → second fits.
-    //
-    // We need remaining < second_amount after first succeeds:
-    //   remaining = total - first = (first + second) - first = second
-    //   → remaining always equals second, so second always fits!
-    //
-    // To force a skip we need a THIRD payment that won't fit:
-    //   first = 500_000, second = 300_000, third = 250_000
-    //   total pull = 1_050_000 > 1_000_000  — over.
-    //
-    // Only workable pattern: make second amount > total - first
-    //   i.e. second > total - first  → impossible since total = first + second.
-    //
-    // Conclusion: with two positive payments the second can NEVER be skipped
-    // for "insufficient remaining" because the contract pre-pulls the full sum.
-    // We must mint MORE tokens or use a negative/zero amount to force a skip.
-    //
-    // Simplest fix: push a zero-amount op (skipped because amount <= 0).
-
     let r1 = Address::generate(&env);
     let r2 = Address::generate(&env); // will be skipped (amount = 0)
 
     let mut payments: Vec<PaymentOp> = Vec::new(&env);
-    payments.push_back(PaymentOp { recipient: r1.clone(), amount: 500_000 });
-    payments.push_back(PaymentOp { recipient: r2.clone(), amount: 0 }); // invalid → skip
+    payments.push_back(PaymentOp {
+        recipient: r1.clone(),
+        amount: 500_000,
+        category: soroban_sdk::symbol_short!("payroll"),
+    });
+    payments.push_back(PaymentOp {
+        recipient: r2.clone(),
+        amount: 0,
+        category: soroban_sdk::symbol_short!("payroll"),
+    }); // invalid → skip
 
     let batch_id =
         client.execute_batch_partial(&sender, &token, &payments, &client.get_sequence());
@@ -220,7 +189,11 @@ fn test_partial_batch_skips_insufficient_funds() {
 fn test_partial_batch_all_fail_status_is_rollbck() {
     let (env, sender, token, client) = setup();
     let mut payments: Vec<PaymentOp> = Vec::new(&env);
-    payments.push_back(PaymentOp { recipient: Address::generate(&env), amount: -1 });
+    payments.push_back(PaymentOp {
+        recipient: Address::generate(&env),
+        amount: -1,
+        category: soroban_sdk::symbol_short!("payroll"),
+    });
 
     let batch_id =
         client.execute_batch_partial(&sender, &token, &payments, &client.get_sequence());

@@ -2,7 +2,7 @@
 
 use soroban_sdk::{
     contract, contractimpl, contracttype, contracterror, contractevent,
-    Address, Env, Vec, token,
+    Address, Env, Vec, token, symbol_short, Symbol,
 };
 
 // ── Errors ────────────────────────────────────────────────────────────────────
@@ -25,16 +25,11 @@ pub enum ContractError {
 // ── Events ────────────────────────────────────────────────────────────────────
 
 #[contractevent]
-pub struct BatchExecutedEvent {
+pub struct BonusPaymentEvent {
     pub batch_id: u64,
-    pub total_sent: i128,
-}
-
-#[contractevent]
-pub struct BatchPartialEvent {
-    pub batch_id: u64,
-    pub success_count: u32,
-    pub fail_count: u32,
+    pub recipient: Address,
+    pub amount: i128,
+    pub category: Symbol,
 }
 
 #[contractevent]
@@ -56,6 +51,7 @@ pub struct PaymentSkippedEvent {
 pub struct PaymentOp {
     pub recipient: Address,
     pub amount: i128,
+    pub category: Symbol,
 }
 
 #[contracttype]
@@ -66,7 +62,7 @@ pub struct BatchRecord {
     pub total_sent: i128,
     pub success_count: u32,
     pub fail_count: u32,
-    pub status: soroban_sdk::Symbol,
+    pub status: Symbol,
 }
 
 #[contracttype]
@@ -75,6 +71,7 @@ pub enum DataKey {
     BatchCount,
     Batch(u64),
     Sequence,
+    TotalBonusesPaid,
 }
 
 const MAX_BATCH_SIZE: u32 = 100;
@@ -102,8 +99,6 @@ impl BulkPaymentContract {
         Ok(())
     }
 
-    /// All-or-nothing batch. Any failed transfer reverts the entire call.
-    /// Wrap in a fee-bump transaction envelope off-chain for high-traffic scenarios.
     pub fn execute_batch(
         env: Env,
         sender: Address,
@@ -144,14 +139,29 @@ impl BulkPaymentContract {
             total_sent: total,
             success_count: len,
             fail_count: 0,
-            status: soroban_sdk::symbol_short!("completed"),
+            status: symbol_short!("completed"),
         });
 
-        BatchExecutedEvent { batch_id, total_sent: total };
+        for op in payments.iter() {
+            if op.category == symbol_short!("bonus") {
+                let mut total_bonuses: i128 = env.storage().instance().get(&DataKey::TotalBonusesPaid).unwrap_or(0);
+                total_bonuses = total_bonuses.checked_add(op.amount).ok_or(ContractError::AmountOverflow)?;
+                env.storage().instance().set(&DataKey::TotalBonusesPaid, &total_bonuses);
+
+                env.events().publish(
+                    (symbol_short!("bonus"), op.category.clone(), op.recipient.clone()),
+                    op.amount
+                );
+            } else {
+                env.events().publish(
+                    (symbol_short!("payment"), op.recipient.clone()),
+                    op.amount
+                );
+            }
+        }
         Ok(batch_id)
     }
 
-    /// Best-effort batch. Skips payments that exceed remaining balance and refunds the sender.
     pub fn execute_batch_partial(
         env: Env,
         sender: Address,
@@ -186,25 +196,36 @@ impl BulkPaymentContract {
         let mut fail_count: u32 = 0;
         let mut total_sent: i128 = 0;
 
+        let batch_id = Self::next_batch_id(&env);
         for op in payments.iter() {
             if op.amount <= 0 || remaining < op.amount {
                 fail_count += 1;
-                PaymentSkippedEvent {
-                    recipient: op.recipient.clone(),
-                    amount: op.amount,
-                }
-               ;
+                env.events().publish(
+                    (symbol_short!("skipped"), op.recipient.clone()),
+                    op.amount
+                );
                 continue;
             }
             token_client.transfer(&contract_addr, &op.recipient, &op.amount);
             remaining -= op.amount;
             total_sent += op.amount;
             success_count += 1;
-            PaymentSentEvent {
-                recipient: op.recipient.clone(),
-                amount: op.amount,
+
+            if op.category == symbol_short!("bonus") {
+                let mut total_bonuses: i128 = env.storage().instance().get(&DataKey::TotalBonusesPaid).unwrap_or(0);
+                total_bonuses = total_bonuses.checked_add(op.amount).ok_or(ContractError::AmountOverflow)?;
+                env.storage().instance().set(&DataKey::TotalBonusesPaid, &total_bonuses);
+
+                env.events().publish(
+                    (symbol_short!("bonus"), op.category.clone(), op.recipient.clone()),
+                    op.amount
+                );
+            } else {
+                env.events().publish(
+                    (symbol_short!("payment"), op.recipient.clone()),
+                    op.amount
+                );
             }
-            ;
         }
 
         if remaining > 0 {
@@ -212,14 +233,13 @@ impl BulkPaymentContract {
         }
 
         let status = if fail_count == 0 {
-            soroban_sdk::symbol_short!("completed")
+            symbol_short!("completed")
         } else if success_count == 0 {
-            soroban_sdk::symbol_short!("rollbck")
+            symbol_short!("rollbck")
         } else {
-            soroban_sdk::symbol_short!("partial")
+            symbol_short!("partial")
         };
 
-        let batch_id = Self::next_batch_id(&env);
         env.storage().instance().set(&DataKey::Batch(batch_id), &BatchRecord {
             sender,
             token,
@@ -228,8 +248,6 @@ impl BulkPaymentContract {
             fail_count,
             status,
         });
-
-        BatchPartialEvent { batch_id, success_count, fail_count };
         Ok(batch_id)
     }
 
@@ -247,8 +265,6 @@ impl BulkPaymentContract {
     pub fn get_batch_count(env: Env) -> u64 {
         env.storage().instance().get(&DataKey::BatchCount).unwrap_or(0)
     }
-
-    // ── Private helpers ───────────────────────────────────────────────────────
 
     fn require_admin(env: &Env) -> Result<(), ContractError> {
         let admin: Address = env
