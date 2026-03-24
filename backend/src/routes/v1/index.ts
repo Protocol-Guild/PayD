@@ -25,6 +25,7 @@ import freezeRoutes from '../freezeRoutes.js';
 import contractUpgradeRoutes from '../contractUpgradeRoutes.js';
 import claimRoutes from '../claimRoutes.js';
 import advancedReportRoutes from '../advancedReportRoutes.js';
+import webhookNotificationRoutes from '../webhookNotificationRoutes.js';
 
 const router = Router();
 
@@ -48,5 +49,6 @@ router.use('/freeze', apiRateLimit(), freezeRoutes);
 router.use('/contracts', apiRateLimit(), contractUpgradeRoutes);
 router.use('/claims', dataRateLimit(), claimRoutes);
 router.use('/reports', dataRateLimit(), advancedReportRoutes);
+router.use('/webhooks', apiRateLimit(), webhookNotificationRoutes);
 
 export default router;
