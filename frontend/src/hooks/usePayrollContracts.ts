@@ -76,7 +76,12 @@ export function useBulkPaymentContract(contractId: string) {
     return hook.invoke({
       method: 'get_payment_status',
       args: [paymentId],
-      parseResult: ((raw: unknown) => scValToNative(raw as xdr.ScVal)) as never,
+      parseResult: (raw: unknown) =>
+        scValToNative(raw as xdr.ScVal) as unknown as {
+          status: string;
+          amount: string;
+          timestamp: number;
+        },
     });
   };
 
@@ -152,7 +157,12 @@ export function useRevenueSplitContract(contractId: string) {
     return hook.invoke({
       method: 'get_round_status',
       args: [roundId],
-      parseResult: ((raw: unknown) => scValToNative(raw as xdr.ScVal)) as never,
+      parseResult: (raw: unknown) =>
+        scValToNative(raw as xdr.ScVal) as unknown as {
+          status: string;
+          totalDistributed: string;
+          participantCount: number;
+        },
     });
   };
 

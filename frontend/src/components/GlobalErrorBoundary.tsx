@@ -43,13 +43,13 @@ export default class GlobalErrorBoundary extends React.Component<
       const { fallback } = this.props;
       const props: FallbackProps = { resetError: this.resetError, error: this.state.error };
 
-      if (React.isValidElement(fallback)) {
-        return React.cloneElement(fallback, props);
-      }
-
       if (typeof fallback === 'function') {
         const FallbackComponent = fallback;
         return <FallbackComponent {...props} />;
+      }
+
+      if (React.isValidElement(fallback)) {
+        return React.createElement(fallback.type, { ...fallback.props, ...props });
       }
     }
 
