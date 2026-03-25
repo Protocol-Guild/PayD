@@ -25,10 +25,13 @@ import freezeRoutes from '../freezeRoutes.js';
 import contractUpgradeRoutes from '../contractUpgradeRoutes.js';
 import claimRoutes from '../claimRoutes.js';
 import feeRoutes from '../feeRoutes.js';
+import assetPathPaymentRoutes from '../assetPathPaymentRoutes.js';
+import tenantConfigRoutes from '../tenantConfigRoutes.js';
 
 const router = Router();
 
 router.use('/auth', authRateLimit(), authRoutes);
+
 router.use('/search', dataRateLimit(), searchRoutes);
 router.use('/employees', dataRateLimit(), employeeRoutes);
 router.use('/payments', apiRateLimit(), throttlingMiddleware(), paymentRoutes);
@@ -48,5 +51,7 @@ router.use('/freeze', apiRateLimit(), freezeRoutes);
 router.use('/contracts', apiRateLimit(), contractUpgradeRoutes);
 router.use('/claims', dataRateLimit(), claimRoutes);
 router.use('/fees', dataRateLimit(), feeRoutes);
+router.use('/path-payments', apiRateLimit(), assetPathPaymentRoutes);
+router.use('/tenant-configs', dataRateLimit(), tenantConfigRoutes);
 
 export default router;
