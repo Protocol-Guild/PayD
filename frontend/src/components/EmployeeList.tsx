@@ -445,7 +445,7 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({
               name={showAvatarModal.employee.name}
               currentImageUrl={showAvatarModal.employee.imageUrl}
               label="Upload Employee Photo"
-              onImageUpload={async (imageUrl) => {
+              onImageUpload={(imageUrl) => {
                 if (onUpdateEmployeeImage) {
                   onUpdateEmployeeImage(showAvatarModal.employee!.id, imageUrl);
                 } else if (onEditEmployee) {

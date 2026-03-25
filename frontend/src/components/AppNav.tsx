@@ -257,7 +257,7 @@ const AppNav: React.FC = () => {
               name={currentUser.name}
               currentImageUrl={currentUser.imageUrl}
               label="Upload Profile Photo"
-              onImageUpload={async (imageUrl) => {
+              onImageUpload={(imageUrl) => {
                 setUserImageUrl(imageUrl);
                 localStorage.setItem('payd:user-avatar', imageUrl);
                 setIsProfileEditorOpen(false);
