@@ -32,7 +32,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [walletExtensionAvailable, setWalletExtensionAvailable] = useState(true);
   const kitRef = useRef<StellarWalletsKit | null>(null);
   const { t } = useTranslation();
-  const { notify, notifySuccess, notifyError } = useNotification();
+  const { notifyWalletEvent } = useNotification();
 
   useEffect(() => {
     setWalletExtensionAvailable(hasAnyWalletExtension());
@@ -57,8 +57,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const account = await newKit.getAddress();
         if (account?.address) {
           setAddress(account.address);
-          notifySuccess(
-            'Wallet reconnected',
+          notifyWalletEvent(
+            'reconnected',
             `${account.address.slice(0, 6)}...${account.address.slice(-4)} via ${lastWalletName}`
           );
         }
@@ -71,7 +71,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
 
     void attemptSilentReconnect();
-  }, [notifySuccess]);
+  }, [notifyWalletEvent]);
 
   const connect = async (): Promise<string | null> => {
     const kit = kitRef.current;
@@ -89,14 +89,14 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 setAddress(address);
                 setWalletName(option.id);
                 localStorage.setItem(LAST_WALLET_STORAGE_KEY, option.id);
-                notifySuccess(
-                  'Wallet connected',
+                notifyWalletEvent(
+                  'connected',
                   `${address.slice(0, 6)}...${address.slice(-4)} via ${option.id}`
                 );
                 resolve(address);
               } catch (error) {
-                notifyError(
-                  'Wallet connection failed',
+                notifyWalletEvent(
+                  'connection_failed',
                   error instanceof Error ? error.message : 'Please try again.'
                 );
                 resolve(null);
@@ -113,8 +113,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return selectedAddress;
     } catch (error) {
       console.error('Failed to connect wallet:', error);
-      notifyError(
-        'Wallet connection failed',
+      notifyWalletEvent(
+        'connection_failed',
         error instanceof Error ? error.message : 'Please try again.'
       );
       setIsConnecting(false);
@@ -124,7 +124,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const requireWallet = async (): Promise<string | null> => {
     if (address) return address;
-    notifyError('Wallet required', 'Connect your wallet to continue with this contract action.');
+    notifyWalletEvent('required', 'Connect your wallet to continue with this contract action.');
     return connect();
   };
 
@@ -132,7 +132,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setAddress(null);
     setWalletName(null);
     localStorage.removeItem(LAST_WALLET_STORAGE_KEY);
-    notify('Wallet disconnected');
+    notifyWalletEvent('disconnected');
   };
 
   const signTransaction = async (xdr: string) => {

@@ -16,6 +16,7 @@ import fs from 'fs';
 import v1Routes from './routes/v1/index.js';
 import authRoutes from './routes/authRoutes.js';
 import webhookRoutes from './routes/webhook.routes.js';
+import { HealthController } from './controllers/healthController.js';
 
 // Upstream Routes
 import payrollRoutes from './routes/payroll.routes.js';
@@ -75,13 +76,7 @@ app.use('/api/search', searchRoutes);
 app.use('/api', contractRoutes);
 
 // Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-  });
-});
+app.get('/health', HealthController.getHealthStatus);
 
 // 404 handler
 app.use((req, res) => {

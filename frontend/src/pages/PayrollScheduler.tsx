@@ -139,7 +139,8 @@ const initialFormState: PayrollFormState = {
 
 export default function PayrollScheduler() {
   const { t } = useTranslation();
-  const { notifySuccess, notify } = useNotification();
+  const { notifySuccess, notify, notifyPaymentSuccess, notifyPaymentFailure, notifyApiError } =
+    useNotification();
   const { socket, subscribeToTransaction, unsubscribeFromTransaction } = useSocket();
   const [formData, setFormData] = useState<PayrollFormState>(initialFormState);
   const [isBroadcasting, setIsBroadcasting] = useState(false);
@@ -242,7 +243,7 @@ export default function PayrollScheduler() {
       );
 
       if (data.status === 'confirmed') {
-        notifySuccess('Payment confirmed!', `TX: ${data.transactionId}`);
+        notifyPaymentSuccess(data.transactionId, 'Payment confirmed!');
       }
     };
 
@@ -251,7 +252,7 @@ export default function PayrollScheduler() {
     return () => {
       socket.off('transaction:update', handleTransactionUpdate);
     };
-  }, [socket, notifySuccess]);
+  }, [socket, notifyPaymentSuccess]);
 
   const handleInitialize = async () => {
     if (!formData.employeeName || !formData.amount) {
@@ -335,6 +336,10 @@ export default function PayrollScheduler() {
           }),
         });
       } catch {
+        notifyApiError(
+          'Webhook trigger failed',
+          'Payment was created, but webhook test trigger failed.'
+        );
         console.warn('Webhook test-trigger skipped (Backend might not be running)');
       }
 
@@ -347,6 +352,7 @@ export default function PayrollScheduler() {
         err instanceof Error ? err.message : 'Broadcast failed'
       );
       setContractError(parsed);
+      notifyPaymentFailure(parsed.message);
     } finally {
       setIsBroadcasting(false);
     }
