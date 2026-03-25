@@ -510,6 +510,7 @@ export default function PayrollScheduler() {
               <div className="md:col-span-2 pt-4">
                 {!simulationPassed ? (
                   <Button
+                    id="tour-init-payroll"
                     type="submit"
                     disabled={isSimulating}
                     variant="primary"

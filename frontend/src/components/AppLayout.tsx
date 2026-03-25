@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import ConnectAccount from '../components/ConnectAccount';
 import AppNav from './AppNav';
 import { LanguageSelector } from './LanguageSelector';
 import { ThemeToggle } from './ThemeToggle';
 import { useTranslation } from 'react-i18next';
+import { OnboardingTour } from './OnboardingTour';
 
 // ── Page Wrapper ───────────────────────
 const PageWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -15,6 +16,25 @@ const PageWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 const AppLayout: React.FC = () => {
   const location = useLocation();
   useTranslation();
+  const [runTour, setRunTour] = useState(false);
+
+  useEffect(() => {
+    const hasCompletedTour = localStorage.getItem('payd_onboarding_completed');
+    if (!hasCompletedTour) {
+      const timer = setTimeout(() => setRunTour(true), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  const handleTourComplete = () => {
+    localStorage.setItem('payd_onboarding_completed', 'true');
+    setRunTour(false);
+  };
+
+  const restartTour = () => {
+    localStorage.removeItem('payd_onboarding_completed');
+    setRunTour(true);
+  };
 
   return (
     <div
@@ -77,12 +97,19 @@ const AppLayout: React.FC = () => {
           >
             Apache License 2.0
           </a>
+          <button
+            onClick={restartTour}
+            className="ml-4 px-2 py-0.5 rounded border border-(--border-hi) hover:bg-(--accent)/10 hover:text-(--accent) transition-all text-[10px]"
+          >
+            QUICK TOUR
+          </button>
         </span>
         <div className="flex items-center gap-1.5">
           <div className="w-1.5 h-1.5 rounded-full bg-(--accent) shadow-[0_0_6px_var(--accent)]" />
           STELLAR NETWORK · MAINNET
         </div>
       </footer>
+      <OnboardingTour run={runTour} onComplete={handleTourComplete} />
     </div>
   );
 };

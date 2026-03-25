@@ -40,6 +40,7 @@ const AppNav: React.FC = () => {
   const navLinks = (
     <>
       <NavLink
+        id="tour-payroll"
         to="/payroll"
         className={({ isActive }) =>
           `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition ${
@@ -57,6 +58,7 @@ const AppNav: React.FC = () => {
       </NavLink>
 
       <NavLink
+        id="tour-employees"
         to="/employee"
         className={({ isActive }) =>
           `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition ${
