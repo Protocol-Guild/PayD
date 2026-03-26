@@ -1,5 +1,5 @@
 import { Icon } from '@stellar/design-system';
-import { useTheme } from '../providers/ThemeProvider';
+import { useTheme } from '../hooks/useTheme';
 
 export const ThemeToggle = () => {
   const { theme, toggleTheme } = useTheme();

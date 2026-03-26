@@ -21,7 +21,7 @@ const AppNav: React.FC = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isProfileEditorOpen, setIsProfileEditorOpen] = useState(false);
   const [userImageUrl, setUserImageUrl] = useState<string | undefined>(undefined);
-  const { address, walletName, isConnecting } = useWallet();
+  const { address, walletName, isConnecting, network, setNetwork } = useWallet();
 
   useEffect(() => {
     const savedImage = localStorage.getItem('payd:user-avatar');
@@ -214,6 +214,24 @@ const AppNav: React.FC = () => {
 
         {/* User profile */}
         <div className="ml-auto flex items-center gap-2">
+          {/* Network Switcher */}
+          <div className="hidden md:flex items-center rounded-lg border border-(--border-hi) bg-(--surface) p-1">
+            <button
+              title="Switch to Testnet"
+              onClick={() => setNetwork('TESTNET')}
+              className={`px-3 py-1 text-xs font-semibold rounded-md transition ${network === 'TESTNET' ? 'bg-(--accent)/20 text-(--accent)' : 'text-(--muted) hover:text-(--text)'}`}
+            >
+              Testnet
+            </button>
+            <button
+              title="Switch to Mainnet"
+              onClick={() => setNetwork('PUBLIC')}
+              className={`px-3 py-1 text-xs font-semibold rounded-md transition ${network === 'PUBLIC' ? 'bg-success/20 text-success' : 'text-(--muted) hover:text-(--text)'}`}
+            >
+              Mainnet
+            </button>
+          </div>
+
           <div className="hidden xl:flex flex-col items-end rounded-lg border border-(--border-hi) bg-(--surface) px-3 py-1.5">
             <span className="text-[9px] uppercase tracking-wider text-(--muted)">
               {isConnecting

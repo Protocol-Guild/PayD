@@ -1,15 +1,6 @@
-import React, { createContext, use, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { Theme, ThemeContext } from '../hooks/useTheme';
 
-type Theme = 'light' | 'dark';
-
-interface ThemeContextType {
-  theme: Theme;
-  toggleTheme: () => void;
-}
-
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
-
-// eslint-disable-next-line react-refresh/only-export-components
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setTheme] = useState<Theme>(() => {
     const saved = localStorage.getItem('payd-theme');
@@ -26,12 +17,4 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   return <ThemeContext value={{ theme, toggleTheme }}>{children}</ThemeContext>;
-};
-
-export const useTheme = () => {
-  const context = use(ThemeContext);
-  if (context === undefined) {
-    throw new Error('useTheme must be used within a ThemeProvider');
-  }
-  return context;
 };

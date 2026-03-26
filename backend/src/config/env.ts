@@ -20,6 +20,13 @@ const envSchema = z.object({
   RATE_LIMIT_DATA_MAX: z.string().default('200'),
   JWT_SECRET: z.string().default('dev-jwt-secret'),
   JWT_REFRESH_SECRET: z.string().default('dev-jwt-refresh-secret'),
+  // Email notification configuration
+  EMAIL_PROVIDER: z.enum(['resend', 'sendgrid']).default('resend'),
+  EMAIL_FROM_ADDRESS: z.string().default('noreply@payd.example.com'),
+  EMAIL_FROM_NAME: z.string().default('PayD Payroll System'),
+  RESEND_API_KEY: z.string().optional(),
+  SENDGRID_API_KEY: z.string().optional(),
+  STELLAR_EXPLORER_URL: z.string().default('https://stellar.expert/explorer/testnet/tx'),
 });
 
 export const config = envSchema.parse(process.env);
