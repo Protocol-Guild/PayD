@@ -23,6 +23,13 @@ export class PayrollBonusController {
         assetCode || 'XLM'
       );
 
+      await PayrollAuditService.logRunCreated(
+        organizationId,
+        payrollRun.id,
+        { type: 'user', id: req.user?.id?.toString(), email: req.user?.email },
+        { ipAddress: req.ip, userAgent: req.get('user-agent') }
+      );
+
       res.status(201).json({
         success: true,
         data: payrollRun,
@@ -298,6 +305,15 @@ export class PayrollBonusController {
         res.status(404).json({ error: 'Payroll run not found' });
         return;
       }
+
+      await PayrollAuditService.logRunStatusChanged(
+        organizationId,
+        payrollRun.id,
+        existing.status,
+        payrollRun.status,
+        { type: 'user', id: req.user?.id?.toString(), email: req.user?.email },
+        { ipAddress: req.ip, userAgent: req.get('user-agent') }
+      );
 
       res.json({
         success: true,

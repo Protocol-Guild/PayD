@@ -20,6 +20,7 @@ import webhookRoutes from './routes/webhook.routes.js';
 import { HealthController } from './controllers/healthController.js';
 
 // Upstream Routes
+import payrollAuditRoutes from './routes/payrollAuditRoutes.js';
 import payrollRoutes from './routes/payroll.routes.js';
 import employeeRoutes from './routes/employeeRoutes.js';
 import assetRoutes from './routes/assetRoutes.js';
@@ -74,6 +75,7 @@ app.use('/webhooks', apiRateLimit(), webhookRoutes);
 
 // Upstream / Base routes
 app.use('/api/auth', authRateLimit(), authRoutes);
+app.use('/api/payroll/audit', apiRateLimit(), payrollAuditRoutes);
 app.use('/api/payroll', apiRateLimit(), payrollRoutes);
 app.use('/api/employees', dataRateLimit(), employeeRoutes);
 app.use('/api/assets', dataRateLimit(), assetRoutes);

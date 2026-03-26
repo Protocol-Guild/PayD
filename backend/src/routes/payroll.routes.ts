@@ -424,32 +424,7 @@ router.get('/aggregation', async (req: Request, res: Response) => {
  *         description: Success
  */
 router.get('/audit', async (req: Request, res: Response) => {
-  try {
-    const { orgPublicKey, startDate, endDate } = req.query;
-
-    if (!orgPublicKey) {
-      return res.status(400).json({
-        error: 'Missing required query parameter: orgPublicKey',
-      });
-    }
-
-    const report = await payrollQueryService.getOrganizationAuditReport(
-      String(orgPublicKey),
-      startDate ? new Date(String(startDate)) : undefined,
-      endDate ? new Date(String(endDate)) : undefined
-    );
-
-    res.json({
-      success: true,
-      data: report,
-    });
-  } catch (error) {
-    logger.error('GET /api/payroll/audit failed', error);
-    res.status(500).json({
-      error: 'Failed to generate audit report',
-      message: (error as Error).message,
-    });
-  }
+  res.status(410).json({ error: 'This route has been migrated to the new generic /api/payroll/audit endpoint.' });
 });
 
 /**
