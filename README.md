@@ -116,11 +116,6 @@ Every payment includes:
 
 - **React 19** - Modern UI framework
 - **TypeScript** - Type-safe development
-- **Vite** - Fast build tool
-- **Stellar Design System** - Consistent UI components
-- **React Router** - Client-side routing
-- **TanStack Query** - Data fetching and caching
-
 ### Backend
 
 - **Node.js** - Runtime environment
@@ -167,6 +162,10 @@ Start PayD locally in three steps:
    ```
 
 Need the full setup? Keep reading for prerequisites, environment variables, and database setup.
+
+Related guides:
+
+- [Filenaming Convention Guide](docs/FILENAMING_CONVENTIONS.md)
 
 ## Getting Started
 
