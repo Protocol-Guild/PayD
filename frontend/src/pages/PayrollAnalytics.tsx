@@ -15,6 +15,7 @@ import {
   Cell,
   ResponsiveContainer,
 } from 'recharts';
+import type { PieLabelRenderProps } from 'recharts';
 import { Card } from '@stellar/design-system';
 
 // recharts v3 + React 19: Legend's class-component typings conflict with React.JSX.
@@ -185,14 +186,13 @@ export default function PayrollAnalytics() {
                     cx="50%"
                     cy="50%"
                     outerRadius={100}
-                    label={({
-                      currency,
-                      value,
-                    }: {
-                      currency?: string;
-                      value?: number;
-                      [key: string]: unknown;
-                    }) => `${currency ?? ''} ${value ?? 0}%`}
+                    label={(props: PieLabelRenderProps) => {
+                      const d = props as PieLabelRenderProps & {
+                        currency?: string;
+                        value?: number;
+                      };
+                      return `${d.currency ?? ''} ${d.value ?? 0}%`;
+                    }}
                   >
                     {data.currencyBreakdown.map((_, idx) => (
                       <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
