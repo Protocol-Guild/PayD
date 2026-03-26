@@ -74,7 +74,7 @@ describe('Auth Controller 2FA Integration', () => {
         .send({ walletAddress: 'GCXX_TEST_WALLET', token: '000000' });
 
       expect(response.status).toBe(401);
-      expect(response.body.error).toBe('Invalid 2FA token generated mapping');
+      expect(response.body.error).toBe('Invalid 2FA token');
     });
   });
 
