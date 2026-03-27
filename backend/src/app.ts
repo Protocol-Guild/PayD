@@ -17,6 +17,7 @@ import fs from 'fs';
 import v1Routes from './routes/v1/index.js';
 import authRoutes from './routes/authRoutes.js';
 import webhookRoutes from './routes/webhook.routes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
 import { HealthController } from './controllers/healthController.js';
 
 // Upstream Routes
@@ -72,6 +73,7 @@ app.use('/rates', dataRateLimit(), ratesRoutes);
 app.use('/auth', authRateLimit(), authRoutes);
 app.use('/api/v1', apiRateLimit(), v1Routes);
 app.use('/webhooks', apiRateLimit(), webhookRoutes);
+app.use('/api/notifications', apiRateLimit(), notificationRoutes);
 
 // Upstream / Base routes
 app.use('/api/auth', authRateLimit(), authRoutes);

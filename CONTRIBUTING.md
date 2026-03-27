@@ -1,153 +1,45 @@
 # Contributing to PayD
 
-First off, thank you for considering contributing to PayD! It's people like you who make PayD such a great tool for the Stellar ecosystem.
-
-This guide provides instructions for setting up your development environment, following our coding standards, and understanding our pull request process.
-
----
+First off, thank you for considering contributing to PayD! It's people like you that make PayD such a great tool.
 
 ## 🚀 Getting Started
 
-### Prerequisites
+1. **Fork** the repository on GitHub.
+2. **Clone** your fork locally.
+3. **Install dependencies** with `npm install`.
+4. Create a new branch for your feature or bug fix (`git checkout -b feature/your-feature-name`).
+5. Run the local development server to test your changes (`npm run dev`).
 
-Ensure you have the following installed:
+## 🛠 Making Changes
 
-- **Node.js** v22+
-- **npm** or **yarn**
-- **Rust** (for Soroban contracts)
-- **Stellar CLI**
-- **Docker** (recommended for local PostgreSQL and Redis)
+- Ensure your code follows the existing style and conventions.
+- Write tests for any new features or bug fixes. You can run existing tests with `npm test`.
+- For changes to documentation, verify them by running `npm run test:docs`.
+- Keep your commit messages descriptive and clear.
 
-### Initial Setup
+## 📝 Submitting a Pull Request
 
-1. **Fork the repository** on GitHub.
-2. **Clone your fork** locally:
-   ```bash
-   git clone https://github.com/YOUR_USERNAME/PayD.git
-   cd PayD
-   ```
-3. **Install root dependencies**:
-   ```bash
-   npm install
-   ```
-4. **Configure environment variables**:
-   ```bash
-   cp .env.example .env
-   # Edit .env with your local configuration
-   ```
+1. Push your branch to your fork (`git push origin feature/your-feature-name`).
+2. Open a Pull Request against the `main` branch of the `drips-projects/PayD` repository.
+3. Describe your changes in detail in the PR description, referencing any open issues it resolves.
+4. Ensure all CI checks pass.
 
----
+## Issue Templates
 
-## 🛠 Development Workflow
+Use the GitHub issue forms in `.github/ISSUE_TEMPLATE` when opening new issues:
 
-PayD is a monorepo consisting of the backend, frontend, and smart contracts.
+- `bug_report.yml` for reproducible defects
+- `feature_request.yml` for product or technical enhancements
 
-### Local Infrastructure
+These forms are intentionally structured so every issue includes clear steps, expected behavior, and accessibility considerations where relevant.
 
-We recommend using Docker to run the required services:
+## 🙌 Getting Added to the Contributors List
 
-```bash
-# Start PostgreSQL and Redis
-docker-compose up -d
-```
+We want to recognize your hard work! When you submit a Pull Request that gets approved and merged, please feel free to add yourself to the [`CONTRIBUTORS.md`](CONTRIBUTORS.md) file in your PR, or ask a maintainer to add you.
 
-### Backend Setup
+Include your:
+- Name or Handle
+- GitHub Profile Link
+- A brief description of your role or what you contributed (e.g., "Frontend", "Bug Fixes", "Documentation")
 
-1. Navigate to the backend directory:
-   ```bash
-   cd backend
-   npm install
-   cp .env.example .env
-   ```
-2. Run database migrations:
-   ```bash
-   # Adjust database name if necessary
-   psql -d payd -f src/db/migrations/001_create_tables.sql
-   ```
-3. Start the dev server:
-   ```bash
-   npm run dev
-   ```
-
-### Frontend Setup
-
-1. Navigate to the frontend directory:
-   ```bash
-   cd frontend
-   npm install
-   ```
-2. Start the Vite dev server:
-   ```bash
-   npm run dev
-   ```
-
-### Smart Contracts
-
-Contracts are located in the `contracts/` directory and written in Rust for the Soroban platform. Refer to the [Stellar Developer Documentation](https://developers.stellar.org/docs/smart-contracts) for Soroban development basics.
-
----
-
-## 🎨 Coding Standards
-
-### TypeScript / JavaScript
-
-We use **ESLint** and **Prettier** to maintain code quality and consistency.
-
-- **Linting**: `npm run lint` (run in `backend` or `frontend`)
-- **Formatting**: `npm run format` (available in `frontend`) or ensure your editor uses the project's `.prettierrc`.
-- **Types**: Always use TypeScript for new code. Avoid using `any` unless absolutely necessary.
-
-### Rust (Smart Contracts)
-
-- Follow standard Rust naming conventions.
-- Use `cargo fmt` to format your code before committing.
-- Ensure all contracts compile without warnings.
-
-### Commit Messages
-
-We follow the [Conventional Commits](https://www.conventionalcommits.org/) specification:
-
-- `feat:` for new features.
-- `fix:` for bug fixes.
-- `docs:` for documentation changes.
-- `style:` for formatting/visual changes.
-- `refactor:` for code restructuring.
-- `test:` for adding or updating tests.
-
----
-
-## 🧪 Testing
-
-We value high test coverage to ensure stability.
-
-### Backend Tests
-```bash
-cd backend
-npm test                # Run all tests
-npm test -- --coverage  # Run with coverage report
-```
-
-### Frontend Tests
-```bash
-cd frontend
-npm test                # Run Vitest
-```
-
-Before submitting a PR, ensure all tests pass locally.
-
----
-
-## 📮 Pull Request Process
-
-1. **Create a branch**: Use a descriptive name like `feat/stellar-integration` or `fix/login-bug`.
-2. **Implement your changes**: Ensure you add tests for any new features or bug fixes.
-3. **Update documentation**: If your change affects how the system works, update the relevant `.md` files.
-4. **Push and Open PR**: Push to your fork and open a PR against the `main` branch of the original repository.
-5. **PR Description**: Use our PR template to describe **what** changed, **why**, and **how** it was tested.
-6. **Code Review**: At least one maintainer must approve your PR before it can be merged.
-
----
-
-## ⚖️ License
-
-By contributing to PayD, you agree that your contributions will be licensed under its [MIT License](LICENSE).
+Thank you for contributing!

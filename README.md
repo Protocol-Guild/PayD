@@ -96,7 +96,7 @@ PayD utilizes Stellar's asset issuance capabilities to create organization-speci
 
 ### 4️⃣ FX & Conversion System
 
-- **Real-time Rates**: Live asset-to-fiat conversion
+- **Real-time Rates**: Live asset-to-fiat conversion (see our [FX Rate Fetching Logic](docs/FX_RATE_FETCHING_LOGIC.md) for details on fallback and caching architecture).
 - **Anchor Fees**: Transparent withdrawal costs
 - **Network Fees**: Minimal Stellar transaction fees
 - **Multi-currency Support**: Support for various local currencies
@@ -147,7 +147,28 @@ Every payment includes:
 - **ESLint + Prettier** - Code quality
 - **Husky** - Git hooks
 
-## 🚀 Getting Started
+## 🚀 Quick Start
+
+Start PayD locally in three steps:
+
+1. **Clone and enter the repo**
+   ```bash
+   git clone https://github.com/Gildado/PayD.git
+   cd PayD
+   ```
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+3. **Create your local environment and start the app**
+   ```bash
+   cp .env.example .env
+   npm run dev
+   ```
+
+Need the full setup? Keep reading for prerequisites, environment variables, and database setup.
+
+## Getting Started
 
 ### Prerequisites
 
@@ -221,3 +242,9 @@ Run tests:
 ```bash
 npm run test
 ```
+
+## 🙌 Contributors
+
+We'd like to extend a huge thank you to everyone who has contributed to making PayD what it is today! For a full list of our amazing contributors, please see our [Contributors List](CONTRIBUTORS.md).
+
+[![All Contributors](https://img.shields.io/badge/all_contributors-2-orange.svg?style=flat-square)](#contributors)

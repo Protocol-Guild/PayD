@@ -71,7 +71,7 @@ export default function CrossAssetPayment() {
       clearTimeout(timeout);
       setIsLoadingPaths(false);
     };
-  }, [amount, assetIn, assetOut, notifyError]);
+  }, [amount, assetIn, assetOut, notifyError, notifyApiError]);
 
   useEffect(() => {
     if (!socket || !submissionTxHash) return;

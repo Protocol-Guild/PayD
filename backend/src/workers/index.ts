@@ -1,4 +1,5 @@
 import { payrollWorker } from './payrollWorker.js';
+import { notificationWorker } from './notificationWorker.js';
 import logger from '../utils/logger.js';
 
 export const startWorkers = () => {
@@ -8,4 +9,6 @@ export const startWorkers = () => {
     if (payrollWorker.isRunning()) {
         logger.info('Payroll worker is running');
     }
+    
+    logger.info('Notification worker initialized');
 };

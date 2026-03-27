@@ -7,6 +7,7 @@ import { PayrollAuditService } from '../services/payrollAuditService.js';
 import { emitBulkUpdate } from '../services/socketService.js';
 import { BalanceService } from '../services/balanceService.js';
 import { webhookNotificationService } from '../services/webhookNotificationService.js';
+import { NotificationQueueService } from '../services/notificationQueueService.js';
 import taxService from '../services/taxService.js';
 import logger from '../utils/logger.js';
 import { Keypair, Asset, Operation, TransactionBuilder } from '@stellar/stellar-sdk';
@@ -15,6 +16,8 @@ import { getAssetIssuer } from '../config/assets.js';
 /**
  * Worker to process payroll runs in the background.
  */
+const notificationQueueService = new NotificationQueueService();
+
 export const payrollWorker = new Worker<PayrollJobData>(
     PAYROLL_QUEUE_NAME,
     async (job: Job<PayrollJobData>) => {
@@ -200,6 +203,26 @@ export const payrollWorker = new Worker<PayrollJobData>(
                             assetCode,
                             item.item_type
                         );
+                        
+                        // Enqueue notification job for this payment
+                        try {
+                            await notificationQueueService.enqueuePaymentNotification({
+                                transactionId: item.id,
+                                transactionHash: result.hash,
+                                employeeId: item.employee_id,
+                                organizationId: payroll_run.organization_id,
+                                amount: item.amount,
+                                assetCode: assetCode,
+                                timestamp: new Date().toISOString(),
+                            });
+                        } catch (notificationError) {
+                            // Log error but don't fail the payroll processing
+                            logger.error('Failed to enqueue notification', {
+                                transactionId: item.id,
+                                employeeId: item.employee_id,
+                                error: notificationError instanceof Error ? notificationError.message : 'Unknown error',
+                            });
+                        }
                         
                         completedCount++;
                     }
