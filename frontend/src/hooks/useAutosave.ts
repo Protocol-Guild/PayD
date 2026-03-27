@@ -67,7 +67,7 @@ export function useAutosave<T>(key: string, data: T, delay: number = 1000) {
   const clearSavedData = useCallback(() => {
     storage.current.remove();
     setLastSaved(null);
-  }, [key]);
+  }, []);
 
   return { saving, lastSaved, loadSavedData, clearSavedData };
 }
