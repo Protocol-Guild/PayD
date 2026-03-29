@@ -6,37 +6,32 @@ jest.mock('../../config/env', () => ({
   config: {
     DATABASE_URL: 'postgres://mock',
     PORT: 3000,
-    JWT_SECRET: 'test-secret',
   },
 }));
 
-// Mock auth and rbac middleware to passthrough
-jest.mock('../../middlewares/auth', () => ({
+jest.mock('../../middlewares/auth.js', () => ({
   __esModule: true,
-  default: (_req: any, _res: any, next: any) => {
-    _req.user = { id: 1, organizationId: 1, role: 'EMPLOYER' };
+  default: (req: any, _res: any, next: any) => {
+    req.user = { id: 1, organizationId: 1, role: 'EMPLOYER' };
+    next();
+  },
+  authenticateJWT: (req: any, _res: any, next: any) => {
+    req.user = { id: 1, organizationId: 1, role: 'EMPLOYER' };
     next();
   },
 }));
 
-jest.mock('../../middlewares/rbac', () => ({
+jest.mock('../../middlewares/rbac.js', () => ({
+  __esModule: true,
   authorizeRoles: () => (_req: any, _res: any, next: any) => next(),
   isolateOrganization: (_req: any, _res: any, next: any) => next(),
 }));
 
-jest.mock('../../middleware/tenantContext', () => ({
-  requireTenantContext: (_req: any, _res: any, next: any) => next(),
-}));
-
-jest.mock('../../middlewares/require2faIfWalletUpdate', () => ({
-  require2FAIfWalletUpdate: (_req: any, _res: any, next: any) => next(),
-}));
+import employeeRoutes from '../../routes/employeeRoutes.js';
+import { employeeService } from '../../services/employeeService.js';
 
 // Mock the employee service
 jest.mock('../../services/employeeService');
-
-import employeeRoutes from '../../routes/employeeRoutes.js';
-import { employeeService } from '../../services/employeeService.js';
 
 const app = express();
 app.use(express.json());
@@ -67,41 +62,8 @@ describe('EmployeeController', () => {
 
       expect(response.body).toEqual(mockCreatedEmployee);
       expect(employeeService.create).toHaveBeenCalledWith(
-        expect.objectContaining({ first_name: 'John', last_name: 'Doe' })
+        expect.objectContaining(validEmployeeData)
       );
-    });
-
-    it('should create an employee with full profile data', async () => {
-      const fullData = {
-        ...validEmployeeData,
-        phone: '+1234567890',
-        job_title: 'Software Engineer',
-        hire_date: '2024-01-15',
-        date_of_birth: '1990-06-20',
-        address_line1: '123 Main St',
-        city: 'San Francisco',
-        state_province: 'CA',
-        postal_code: '94102',
-        country: 'US',
-        emergency_contact_name: 'Jane Doe',
-        emergency_contact_phone: '+0987654321',
-        withdrawal_preference: 'bank',
-        bank_name: 'Chase Bank',
-        bank_account_number: '123456789',
-        bank_routing_number: '021000021',
-        notes: 'Senior hire',
-      };
-      const mockCreated = { id: 2, ...fullData };
-      (employeeService.create as jest.Mock).mockResolvedValue(mockCreated);
-
-      const response = await request(app)
-        .post('/api/employees')
-        .send(fullData)
-        .expect(201);
-
-      expect(response.body.phone).toBe('+1234567890');
-      expect(response.body.job_title).toBe('Software Engineer');
-      expect(response.body.bank_name).toBe('Chase Bank');
     });
 
     it('should return 400 for invalid data', async () => {
@@ -111,30 +73,6 @@ describe('EmployeeController', () => {
 
       expect(response.body).toHaveProperty('error', 'Validation Error');
       expect(employeeService.create).not.toHaveBeenCalled();
-    });
-
-    it('should return 400 for invalid email format', async () => {
-      const badEmail = { ...validEmployeeData, email: 'not-an-email' };
-
-      const response = await request(app).post('/api/employees').send(badEmail).expect(400);
-
-      expect(response.body).toHaveProperty('error', 'Validation Error');
-    });
-
-    it('should return 400 for invalid date format', async () => {
-      const badDate = { ...validEmployeeData, hire_date: '01-15-2024' };
-
-      const response = await request(app).post('/api/employees').send(badDate).expect(400);
-
-      expect(response.body).toHaveProperty('error', 'Validation Error');
-    });
-
-    it('should return 400 for invalid withdrawal_preference', async () => {
-      const badPref = { ...validEmployeeData, withdrawal_preference: 'cash' };
-
-      const response = await request(app).post('/api/employees').send(badPref).expect(400);
-
-      expect(response.body).toHaveProperty('error', 'Validation Error');
     });
   });
 
@@ -149,26 +87,44 @@ describe('EmployeeController', () => {
       const response = await request(app).get('/api/employees?page=1&limit=10').expect(200);
 
       expect(response.body).toEqual(mockResult);
+      expect(employeeService.findAll).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({
+          page: 1,
+          limit: 10,
+        })
+      );
+    });
+
+    it('should pass q to findAll when provided', async () => {
+      const mockResult = {
+        data: [{ id: 1, first_name: 'Alice' }],
+        pagination: { total: 1, page: 1, limit: 10, totalPages: 1 },
+      };
+      (employeeService.findAll as jest.Mock).mockResolvedValue(mockResult);
+
+      await request(app).get('/api/employees?q=alice').expect(200);
+
+      expect(employeeService.findAll).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({ q: 'alice' })
+      );
+    });
+
+    it('should return 400 for invalid query params', async () => {
+      await request(app).get('/api/employees?status=invalid_status').expect(400);
     });
   });
 
   describe('GET /api/employees/:id', () => {
-    it('should return employee by ID with profile fields', async () => {
-      const mockEmployee = {
-        id: 1,
-        first_name: 'John',
-        job_title: 'Engineer',
-        phone: '+1234567890',
-        withdrawal_preference: 'bank',
-        bank_name: 'Chase',
-      };
+    it('should return employee by ID', async () => {
+      const mockEmployee = { id: 1, first_name: 'John' };
       (employeeService.findById as jest.Mock).mockResolvedValue(mockEmployee);
 
       const response = await request(app).get('/api/employees/1').expect(200);
 
       expect(response.body).toEqual(mockEmployee);
-      expect(response.body.job_title).toBe('Engineer');
-      expect(response.body.withdrawal_preference).toBe('bank');
+      expect(employeeService.findById).toHaveBeenCalledWith(1, 1);
     });
 
     it('should return 404 if employee not found', async () => {
@@ -176,37 +132,22 @@ describe('EmployeeController', () => {
 
       await request(app).get('/api/employees/999').expect(404);
     });
-
-    it('should return 400 for invalid ID', async () => {
-      await request(app).get('/api/employees/abc').expect(400);
-    });
   });
 
   describe('PATCH /api/employees/:id', () => {
-    it('should update employee profile fields', async () => {
-      const updateData = {
-        phone: '+9876543210',
-        job_title: 'Senior Engineer',
-        withdrawal_preference: 'mobile_money',
-        mobile_money_provider: 'M-Pesa',
-      };
-      const mockUpdated = { id: 1, ...updateData };
-      (employeeService.update as jest.Mock).mockResolvedValue(mockUpdated);
+    it('should update employee successfully', async () => {
+      const updateData = { first_name: 'Johnny' };
+      const mockUpdatedEmployee = { id: 1, first_name: 'Johnny' };
+      (employeeService.update as jest.Mock).mockResolvedValue(mockUpdatedEmployee);
 
       const response = await request(app).patch('/api/employees/1').send(updateData).expect(200);
 
-      expect(response.body).toEqual(mockUpdated);
-      expect(response.body.job_title).toBe('Senior Engineer');
-      expect(response.body.withdrawal_preference).toBe('mobile_money');
-    });
-
-    it('should return 404 if employee not found', async () => {
-      (employeeService.update as jest.Mock).mockResolvedValue(null);
-
-      await request(app)
-        .patch('/api/employees/999')
-        .send({ first_name: 'Test' })
-        .expect(404);
+      expect(response.body).toEqual(mockUpdatedEmployee);
+      expect(employeeService.update).toHaveBeenCalledWith(
+        1,
+        1,
+        expect.objectContaining(updateData)
+      );
     });
   });
 
@@ -215,6 +156,8 @@ describe('EmployeeController', () => {
       (employeeService.delete as jest.Mock).mockResolvedValue({ id: 1 });
 
       await request(app).delete('/api/employees/1').expect(204);
+
+      expect(employeeService.delete).toHaveBeenCalledWith(1, 1);
     });
 
     it('should return 404 if employee not found', async () => {

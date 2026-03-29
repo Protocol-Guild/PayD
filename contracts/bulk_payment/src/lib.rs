@@ -32,6 +32,8 @@ pub enum ContractError {
     PaymentNotFound      = 16,
     /// Contract is paused — all payment operations are suspended.
     ContractPaused       = 17,
+    /// Sender already executed a batch in this ledger sequence.
+    LedgerReplayDetected = 18,
 }
 
 // ── Events ────────────────────────────────────────────────────────────────────
@@ -89,6 +91,21 @@ pub struct ContractStatusChangedEvent {
     pub admin:    Address,
 }
 
+/// Emitted when an all-or-nothing batch completes successfully.
+#[contractevent]
+pub struct BatchExecutedEvent {
+    pub batch_id:   u64,
+    pub total_sent: i128,
+}
+
+/// Emitted when a partial batch completes (some payments may have been skipped).
+#[contractevent]
+pub struct BatchPartialEvent {
+    pub batch_id:      u64,
+    pub success_count: u32,
+    pub fail_count:    u32,
+}
+
 // ── Storage types ─────────────────────────────────────────────────────────────
 
 #[contracttype]
@@ -99,8 +116,8 @@ pub struct PaymentOp {
     pub category: Symbol,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[contracttype]
-#[derive(Clone, Debug, PartialEq)]
 pub struct BatchRecord {
     pub sender: Address,
     pub token: Address,
@@ -189,6 +206,8 @@ pub enum DataKey {
     PaymentEntry(u64, u32),
     /// Emergency pause flag (circuit breaker)
     Paused,
+    /// Tracks the last ledger sequence in which a batch was executed (per sender).
+    LastBatchLedger(Address),
 }
 
 const MAX_BATCH_SIZE: u32 = 100;
@@ -217,17 +236,17 @@ impl BulkPaymentContract {
 
     /// Returns the human-readable contract name (SEP-0034).
     pub fn name(env: Env) -> String {
-        String::from_str(&env, "PayD Bulk Payment")
+        String::from_str(&env, env!("CARGO_PKG_NAME"))
     }
 
     /// Returns the contract version string (SEP-0034).
     pub fn version(env: Env) -> String {
-        String::from_str(&env, "0.0.1")
+        String::from_str(&env, env!("CARGO_PKG_VERSION"))
     }
 
     /// Returns the contract author / organization (SEP-0034).
     pub fn author(env: Env) -> String {
-        String::from_str(&env, "The Aha Company")
+        String::from_str(&env, env!("CARGO_PKG_AUTHORS"))
     }
 
     // ── Initialization ────────────────────────────────────────────────────
@@ -367,6 +386,7 @@ impl BulkPaymentContract {
     ) -> Result<u64, ContractError> {
         Self::require_not_paused(&env)?;
         sender.require_auth();
+        Self::require_unique_ledger(&env, &sender)?;
         Self::bump_core_ttl(&env);
         Self::check_and_advance_sequence(&env, expected_sequence)?;
 
@@ -375,46 +395,47 @@ impl BulkPaymentContract {
         if len > MAX_BATCH_SIZE { return Err(ContractError::BatchTooLarge); }
 
         let mut total: i128 = 0;
+        let mut success_count: u32 = 0;
+        
+        // Use a single loop to calculate total and validate (O(n))
         for op in payments.iter() {
             if op.amount <= 0 { return Err(ContractError::InvalidAmount); }
             total = total.checked_add(op.amount).ok_or(ContractError::AmountOverflow)?;
+            success_count += 1;
         }
 
-        Self::check_limits(&env, &sender, total)?;
-
         let token_client = token::Client::new(&env, &token);
+        let current_contract = env.current_contract_address();
+        
+        // Single transfer of total amount to escrow
+        token_client.transfer(&sender, &current_contract, &total);
+
+        let batch_id = Self::next_batch_id(&env);
+
+        // Distribute from escrow to recipients (minimize event overhead)
         for op in payments.iter() {
-            token_client.transfer(&sender, &op.recipient, &op.amount);
+            token_client.transfer(&current_contract, &op.recipient, &op.amount);
         }
 
         Self::record_usage(&env, &sender, total);
+        let record = BatchRecord {
+            sender,
+            token,
+            total_sent: total,
+            success_count,
+            fail_count: 0,
+            status: soroban_sdk::symbol_short!("completed"),
+        };
 
-        let batch_id = Self::next_batch_id(&env);
-        env.storage().temporary().set(&DataKey::Batch(batch_id), &BatchRecord {
-            sender, token,
-            total_sent: total, success_count: len, fail_count: 0,
-            status: symbol_short!("completed"),
-        });
-        env.storage().temporary().extend_ttl(
-            &DataKey::Batch(batch_id), TEMPORARY_TTL_THRESHOLD, TEMPORARY_TTL_EXTEND_TO,
-        );
+        // Use Persistent storage for historical records to keep Instance storage small
+        let key = DataKey::Batch(batch_id);
+        env.storage().persistent().set(&key, &record);
+        
+        // Extend TTL to ensure record is available for off-chain querying (1 year minimum suggested)
+        // 500,000 ledgers is ~30 days, we could extend more if needed.
+        env.storage().persistent().extend_ttl(&key, 100_000, 500_000);
 
-        for op in payments.iter() {
-            if op.category == symbol_short!("bonus") {
-                let mut total_bonuses: i128 = env.storage().instance()
-                    .get(&DataKey::TotalBonusesPaid).unwrap_or(0);
-                total_bonuses = total_bonuses.checked_add(op.amount)
-                    .ok_or(ContractError::AmountOverflow)?;
-                env.storage().instance().set(&DataKey::TotalBonusesPaid, &total_bonuses);
-                env.events().publish(
-                    (symbol_short!("bonus"), op.category.clone(), op.recipient.clone()),
-                    op.amount,
-                );
-            } else {
-                env.events().publish((symbol_short!("payment"), op.recipient.clone()), op.amount);
-            }
-        }
-
+        BatchExecutedEvent { batch_id, total_sent: total }.publish(&env);
         Ok(batch_id)
     }
 
@@ -428,6 +449,7 @@ impl BulkPaymentContract {
     ) -> Result<u64, ContractError> {
         Self::require_not_paused(&env)?;
         sender.require_auth();
+        Self::require_unique_ledger(&env, &sender)?;
         Self::bump_core_ttl(&env);
         Self::check_and_advance_sequence(&env, expected_sequence)?;
 
@@ -436,46 +458,40 @@ impl BulkPaymentContract {
         if len > MAX_BATCH_SIZE { return Err(ContractError::BatchTooLarge); }
 
         let mut total: i128 = 0;
+        let mut success_count: u32 = 0;
+        
+        // Use a single loop to calculate total and validate (O(n))
+        // This is more efficient than looping twice
         for op in payments.iter() {
-            if op.amount > 0 {
-                total = total.checked_add(op.amount).ok_or(ContractError::AmountOverflow)?;
+            if op.amount <= 0 { 
+                // Invalid amount — skip it and mark fail 
+                continue;
             }
+            total = total.checked_add(op.amount).ok_or(ContractError::AmountOverflow)?;
+            success_count += 1;
         }
-
-        Self::check_limits(&env, &sender, total)?;
 
         let token_client = token::Client::new(&env, &token);
         let contract_addr = env.current_contract_address();
         token_client.transfer(&sender, &contract_addr, &total);
 
         let mut remaining = total;
-        let mut success_count: u32 = 0;
+        let mut actual_success: u32 = 0;
         let mut fail_count: u32 = 0;
         let mut total_sent: i128 = 0;
 
         for op in payments.iter() {
+            // Optimized: single pass for validation and distribution
             if op.amount <= 0 || remaining < op.amount {
                 fail_count += 1;
-                env.events().publish((symbol_short!("skipped"), op.recipient.clone()), op.amount);
+                PaymentSkippedEvent { recipient: op.recipient.clone(), amount: op.amount }.publish(&env);
                 continue;
             }
             token_client.transfer(&contract_addr, &op.recipient, &op.amount);
             remaining -= op.amount;
             total_sent += op.amount;
-            success_count += 1;
-            env.events().publish((symbol_short!("payment"), op.recipient.clone()), op.amount);
-
-            if op.category == symbol_short!("bonus") {
-                let mut total_bonuses: i128 = env.storage().instance()
-                    .get(&DataKey::TotalBonusesPaid).unwrap_or(0);
-                total_bonuses = total_bonuses.checked_add(op.amount)
-                    .ok_or(ContractError::AmountOverflow)?;
-                env.storage().instance().set(&DataKey::TotalBonusesPaid, &total_bonuses);
-                env.events().publish(
-                    (symbol_short!("bonus"), op.category.clone(), op.recipient.clone()),
-                    op.amount,
-                );
-            }
+            actual_success += 1;
+            PaymentSentEvent { recipient: op.recipient.clone(), amount: op.amount }.publish(&env);
         }
 
         if remaining > 0 {
@@ -485,22 +501,25 @@ impl BulkPaymentContract {
         Self::record_usage(&env, &sender, total_sent);
 
         let status = if fail_count == 0 { symbol_short!("completed") }
-                     else if success_count == 0 { symbol_short!("rollbck") }
+                     else if actual_success == 0 { symbol_short!("rollbck") }
                      else { symbol_short!("partial") };
 
         let batch_id = Self::next_batch_id(&env);
-        env.storage().temporary().set(&DataKey::Batch(batch_id), &BatchRecord {
-            sender, token, total_sent, success_count, fail_count, status,
-        });
-        env.storage().temporary().extend_ttl(
-            &DataKey::Batch(batch_id), TEMPORARY_TTL_THRESHOLD, TEMPORARY_TTL_EXTEND_TO,
-        );
+        let record = BatchRecord {
+            sender,
+            token,
+            total_sent,
+            success_count,
+            fail_count,
+            status,
+        };
+        
+        let key = DataKey::Batch(batch_id);
+        env.storage().persistent().set(&key, &record);
+        
+        env.storage().persistent().extend_ttl(&key, 100_000, 500_000);
 
-        env.events().publish(
-            (symbol_short!("batch"), symbol_short!("partial")),
-            (batch_id, success_count, fail_count),
-        );
-
+        BatchPartialEvent { batch_id, success_count, fail_count }.publish(&env);
         Ok(batch_id)
     }
 
@@ -535,6 +554,7 @@ impl BulkPaymentContract {
     ) -> Result<u64, ContractError> {
         Self::require_not_paused(&env)?;
         sender.require_auth();
+        Self::require_unique_ledger(&env, &sender)?;
         Self::bump_core_ttl(&env);
         Self::check_and_advance_sequence(&env, expected_sequence)?;
 
@@ -616,9 +636,7 @@ impl BulkPaymentContract {
         let key = DataKey::PaymentEntry(batch_id, payment_index);
         let entry: PaymentEntry = env.storage().temporary().get(&key)
             .ok_or(ContractError::PaymentNotFound)?;
-        env.storage().temporary().extend_ttl(
-            &key, TEMPORARY_TTL_THRESHOLD, TEMPORARY_TTL_EXTEND_TO,
-        );
+        // Reading state should not modify TTL; extend only on write
         Ok(entry)
     }
 
@@ -627,31 +645,35 @@ impl BulkPaymentContract {
     pub fn get_sequence(env: Env) -> u64 {
         let key = DataKey::Sequence;
         if let Some(value) = env.storage().persistent().get(&key) {
-            env.storage().persistent().extend_ttl(
-                &key, PERSISTENT_TTL_THRESHOLD, PERSISTENT_TTL_EXTEND_TO,
-            );
+            // Reading state should not modify TTL; extend only on write
             value
         } else { 0 }
     }
 
     pub fn get_batch(env: Env, batch_id: u64) -> Result<BatchRecord, ContractError> {
         let key = DataKey::Batch(batch_id);
-        let record = env.storage().temporary().get(&key)
+        let record = env.storage()
+            .persistent()
+            .get(&key)
             .ok_or(ContractError::BatchNotFound)?;
-        env.storage().temporary().extend_ttl(
-            &key, TEMPORARY_TTL_THRESHOLD, TEMPORARY_TTL_EXTEND_TO,
-        );
+            
+        // Reading state should not modify TTL; extend only on write
         Ok(record)
     }
 
     pub fn get_batch_count(env: Env) -> u64 {
         let key = DataKey::BatchCount;
         if let Some(value) = env.storage().persistent().get(&key) {
-            env.storage().persistent().extend_ttl(
-                &key, PERSISTENT_TTL_THRESHOLD, PERSISTENT_TTL_EXTEND_TO,
-            );
+            // Reading state should not modify TTL; extend only on write
             value
         } else { 0 }
+    }
+
+    /// Returns the ledger sequence of the last batch executed by a given sender.
+    pub fn get_last_batch_ledger(env: Env, sender: Address) -> u32 {
+        env.storage().persistent()
+            .get(&DataKey::LastBatchLedger(sender))
+            .unwrap_or(0)
     }
 
     // ── Private helpers ───────────────────────────────────────────────────
@@ -997,6 +1019,22 @@ impl BulkPaymentContract {
                 );
             }
         }
+    }
+
+    /// Ensures the sender has not already executed a batch in the current
+    /// ledger sequence, preventing replay attacks.
+    fn require_unique_ledger(env: &Env, sender: &Address) -> Result<(), ContractError> {
+        let current_ledger = env.ledger().sequence();
+        let key = DataKey::LastBatchLedger(sender.clone());
+        let last_ledger: u32 = env.storage().persistent().get(&key).unwrap_or(0);
+        if last_ledger == current_ledger && current_ledger != 0 {
+            return Err(ContractError::LedgerReplayDetected);
+        }
+        env.storage().persistent().set(&key, &current_ledger);
+        env.storage().persistent().extend_ttl(
+            &key, PERSISTENT_TTL_THRESHOLD, PERSISTENT_TTL_EXTEND_TO,
+        );
+        Ok(())
     }
 }
 

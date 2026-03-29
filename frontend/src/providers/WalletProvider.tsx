@@ -40,6 +40,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [isConnecting, setIsConnecting] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [walletExtensionAvailable, setWalletExtensionAvailable] = useState(true);
+  const [network, setNetwork] = useState<'TESTNET' | 'PUBLIC'>('TESTNET');
   const [walletModalOpen, setWalletModalOpen] = useState(false);
   const [walletOptions, setWalletOptions] = useState<SelectableWallet[]>([]);
   const kitRef = useRef<StellarWalletsKit | null>(null);
@@ -50,7 +51,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setWalletExtensionAvailable(hasAnyWalletExtension());
 
     const newKit = new StellarWalletsKit({
-      network: WalletNetwork.TESTNET,
+      network: network === 'TESTNET' ? WalletNetwork.TESTNET : WalletNetwork.PUBLIC,
       modules: [new FreighterModule(), new xBullModule(), new LobstrModule()],
     });
     kitRef.current = newKit;
@@ -84,7 +85,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
 
     void attemptSilentReconnect();
-  }, [notifyWalletEvent]);
+  }, [notifyWalletEvent, network]);
 
   const loadWalletOptions = async (): Promise<SelectableWallet[]> => {
     const kit = kitRef.current;
@@ -112,7 +113,14 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setIsConnecting(true);
     try {
       kit.setWallet(selectedWalletId);
-      const { address } = await kit.getAddress();
+
+      const { address } = await Promise.race([
+        kit.getAddress(),
+        new Promise<{ address: string }>((_, reject) =>
+          setTimeout(() => reject(new Error('Connection timed out after 15 seconds.')), 15000)
+        ),
+      ]);
+
       setAddress(address);
       setWalletName(selectedWalletId);
       localStorage.setItem(LAST_WALLET_STORAGE_KEY, selectedWalletId);
@@ -221,6 +229,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         value={{
           address,
           walletName,
+          network,
+          setNetwork,
           isConnecting,
           isInitialized,
           walletExtensionAvailable,

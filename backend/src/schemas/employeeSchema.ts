@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { StrKey } from '@stellar/stellar-sdk';
 
 const dateStringSchema = z
   .string()
@@ -10,7 +11,13 @@ export const createEmployeeSchema = z.object({
   first_name: z.string().min(1, 'First name is required').max(100),
   last_name: z.string().min(1, 'Last name is required').max(100),
   email: z.string().email('Invalid email address'),
-  wallet_address: z.string().max(56).optional(),
+  wallet_address: z
+    .string()
+    .max(56)
+    .refine((value) => StrKey.isValidEd25519PublicKey(value), {
+      message: 'Invalid Stellar wallet address',
+    })
+    .optional(),
   position: z.string().max(100).optional(),
   department: z.string().max(100).optional(),
   status: z.enum(['active', 'inactive', 'pending']).optional().default('active'),
@@ -36,10 +43,7 @@ export const createEmployeeSchema = z.object({
   emergency_contact_phone: z.string().max(20).optional(),
 
   // Profile: withdrawal preferences (anchor integration)
-  withdrawal_preference: z
-    .enum(['bank', 'mobile_money', 'crypto'])
-    .optional()
-    .default('bank'),
+  withdrawal_preference: z.enum(['bank', 'mobile_money', 'crypto']).optional().default('bank'),
   bank_name: z.string().max(100).optional(),
   bank_account_number: z.string().max(50).optional(),
   bank_routing_number: z.string().max(50).optional(),
@@ -53,8 +57,19 @@ export const createEmployeeSchema = z.object({
 export const updateEmployeeSchema = createEmployeeSchema.partial().omit({ organization_id: true });
 
 export const employeeQuerySchema = z.object({
-  page: z.string().regex(/^\d+$/).transform(Number).optional().default('1' as any),
-  limit: z.string().regex(/^\d+$/).transform(Number).optional().default('10' as any),
+  page: z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .optional()
+    .default('1' as any),
+  limit: z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .optional()
+    .default('10' as any),
+  q: z.string().optional(),
   search: z.string().optional(),
   status: z.enum(['active', 'inactive', 'pending']).optional(),
   department: z.string().optional(),

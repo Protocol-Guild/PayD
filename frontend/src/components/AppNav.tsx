@@ -12,6 +12,7 @@ import {
   Menu,
   X,
   PieChart,
+  Briefcase,
 } from 'lucide-react';
 import { Avatar } from './Avatar';
 import { AvatarUpload } from './AvatarUpload';
@@ -21,7 +22,7 @@ const AppNav: React.FC = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isProfileEditorOpen, setIsProfileEditorOpen] = useState(false);
   const [userImageUrl, setUserImageUrl] = useState<string | undefined>(undefined);
-  const { address, walletName, isConnecting } = useWallet();
+  const { address, walletName, isConnecting, network, setNetwork } = useWallet();
 
   useEffect(() => {
     const savedImage = localStorage.getItem('payd:user-avatar');
@@ -39,6 +40,23 @@ const AppNav: React.FC = () => {
 
   const navLinks = (
     <>
+      <NavLink
+        to="/employer"
+        className={({ isActive }) =>
+          `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition ${
+            isActive
+              ? 'text-(--accent) bg-white/5'
+              : 'text-(--muted) hover:bg-white/10 hover:text-white'
+          }`
+        }
+        onClick={() => setMobileOpen(false)}
+      >
+        <span className="opacity-70">
+          <Briefcase className="w-4 h-4" />
+        </span>
+        <span className="hidden sm:inline">Employer</span>
+      </NavLink>
+
       <NavLink
         to="/payroll"
         className={({ isActive }) =>
@@ -186,6 +204,20 @@ const AppNav: React.FC = () => {
         <span className="hidden sm:inline">debugger</span>
       </NavLink>
 
+      <NavLink
+        to="/rewards"
+        onClick={() => setMobileOpen(false)}
+        className={({ isActive }) =>
+          `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition ${
+            isActive
+              ? 'text-(--accent) bg-white/5'
+              : 'text-(--muted) hover:bg-white/10 hover:text-white'
+          }`
+        }
+      >
+        Rewards
+      </NavLink>
+
       <Link
         to="/help"
         onClick={() => setMobileOpen(false)}
@@ -214,6 +246,24 @@ const AppNav: React.FC = () => {
 
         {/* User profile */}
         <div className="ml-auto flex items-center gap-2">
+          {/* Network Switcher */}
+          <div className="hidden md:flex items-center rounded-lg border border-(--border-hi) bg-(--surface) p-1">
+            <button
+              title="Switch to Testnet"
+              onClick={() => setNetwork('TESTNET')}
+              className={`px-3 py-1 text-xs font-semibold rounded-md transition ${network === 'TESTNET' ? 'bg-(--accent)/20 text-(--accent)' : 'text-(--muted) hover:text-(--text)'}`}
+            >
+              Testnet
+            </button>
+            <button
+              title="Switch to Mainnet"
+              onClick={() => setNetwork('PUBLIC')}
+              className={`px-3 py-1 text-xs font-semibold rounded-md transition ${network === 'PUBLIC' ? 'bg-success/20 text-success' : 'text-(--muted) hover:text-(--text)'}`}
+            >
+              Mainnet
+            </button>
+          </div>
+
           <div className="hidden xl:flex flex-col items-end rounded-lg border border-(--border-hi) bg-(--surface) px-3 py-1.5">
             <span className="text-[9px] uppercase tracking-wider text-(--muted)">
               {isConnecting

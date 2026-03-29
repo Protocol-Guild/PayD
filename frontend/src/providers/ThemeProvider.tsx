@@ -1,37 +1,39 @@
-import React, { createContext, use, useEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useState } from 'react';
+import { Theme, ThemeContext } from '../hooks/useTheme';
 
-type Theme = 'light' | 'dark';
+const STORAGE_KEY = 'payd-theme';
 
-interface ThemeContextType {
-  theme: Theme;
-  toggleTheme: () => void;
+function readStoredTheme(): Theme {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  return saved === 'light' || saved === 'dark' ? saved : 'dark';
 }
 
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+function persistTheme(next: Theme) {
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem(STORAGE_KEY, next);
+}
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setTheme] = useState<Theme>(() => {
-    const saved = localStorage.getItem('payd-theme');
-    return (saved as Theme) || 'dark';
-  });
+  const [theme, setTheme] = useState<Theme>(() => readStoredTheme());
+
+  useLayoutEffect(() => {
+    persistTheme(theme);
+  }, [theme]);
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('payd-theme', theme);
-  }, [theme]);
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== STORAGE_KEY || !e.newValue) return;
+      if (e.newValue === 'light' || e.newValue === 'dark') {
+        setTheme(e.newValue);
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
 
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
   };
 
   return <ThemeContext value={{ theme, toggleTheme }}>{children}</ThemeContext>;
-};
-
-export const useTheme = () => {
-  const context = use(ThemeContext);
-  if (context === undefined) {
-    throw new Error('useTheme must be used within a ThemeProvider');
-  }
-  return context;
 };
