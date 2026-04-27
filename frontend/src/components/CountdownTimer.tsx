@@ -7,6 +7,7 @@ export const CountdownTimer = ({ targetDate }: { targetDate: Date | null }) => {
     minutes: 0,
     seconds: 0,
   });
+  const [isLowTime, setIsLowTime] = useState(false);
 
   useEffect(() => {
     if (!targetDate) return;
@@ -20,12 +21,17 @@ export const CountdownTimer = ({ targetDate }: { targetDate: Date | null }) => {
         return false;
       }
 
-      setTimeLeft({
+      const newTimeLeft = {
         days: Math.floor(distance / (1000 * 60 * 60 * 24)),
         hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
         minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
         seconds: Math.floor((distance % (1000 * 60)) / 1000),
-      });
+      };
+
+      setTimeLeft(newTimeLeft);
+      
+      // Highlight when less than 1 hour remaining
+      setIsLowTime(distance < 60 * 60 * 1000);
 
       return true;
     };
@@ -44,26 +50,39 @@ export const CountdownTimer = ({ targetDate }: { targetDate: Date | null }) => {
   if (!targetDate) return null;
 
   const segments = [
-    { key: 'days', label: 'Days', value: String(timeLeft.days) },
-    { key: 'hours', label: 'Hrs', value: timeLeft.hours.toString().padStart(2, '0') },
-    { key: 'minutes', label: 'Min', value: timeLeft.minutes.toString().padStart(2, '0') },
-    { key: 'seconds', label: 'Sec', value: timeLeft.seconds.toString().padStart(2, '0') },
-  ];
+    { key: 'days', label: 'Days', value: String(timeLeft.days), show: timeLeft.days > 0 },
+    { key: 'hours', label: 'Hrs', value: timeLeft.hours.toString().padStart(2, '0'), show: true },
+    { key: 'minutes', label: 'Min', value: timeLeft.minutes.toString().padStart(2, '0'), show: true },
+    { key: 'seconds', label: 'Sec', value: timeLeft.seconds.toString().padStart(2, '0'), show: true },
+  ].filter(s => s.show);
 
   return (
     <div
-      className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-center sm:gap-4"
+      className="grid grid-cols-2 gap-2 sm:gap-3 md:flex md:flex-wrap md:items-center md:gap-4"
       role="timer"
       aria-live="polite"
-      aria-label="Time remaining until the next scheduled payroll run"
+      aria-atomic="true"
+      aria-label={`Time remaining: ${timeLeft.days} days, ${timeLeft.hours} hours, ${timeLeft.minutes} minutes, ${timeLeft.seconds} seconds until the next scheduled payroll run`}
     >
       {segments.map((segment) => (
         <div
           key={segment.key}
-          className="flex min-w-[4.5rem] flex-col items-center rounded-xl border border-hi bg-black/15 px-3 py-2"
+          className={`flex min-w-[4rem] sm:min-w-[4.5rem] flex-col items-center rounded-xl border transition-all duration-300 px-2 sm:px-3 py-2 ${
+            isLowTime
+              ? 'border-danger/30 bg-danger/5 shadow-lg shadow-danger/10'
+              : 'border-(--border-hi) bg-(--surface)/50'
+          }`}
         >
-          <span className="text-2xl font-mono font-black text-accent">{segment.value}</span>
-          <span className="text-[10px] uppercase tracking-widest text-muted">{segment.label}</span>
+          <span
+            className={`text-xl sm:text-2xl font-mono font-black transition-colors duration-300 ${
+              isLowTime ? 'text-danger animate-pulse' : 'text-(--accent)'
+            }`}
+          >
+            {segment.value}
+          </span>
+          <span className="text-[9px] sm:text-[10px] uppercase tracking-widest text-(--muted) mt-0.5">
+            {segment.label}
+          </span>
         </div>
       ))}
     </div>
