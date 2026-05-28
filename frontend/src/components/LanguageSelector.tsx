@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Icon } from '@stellar/design-system';
+import { Globe } from 'lucide-react';
 
 export const LanguageSelector = () => {
   const { i18n } = useTranslation();
@@ -15,11 +15,17 @@ export const LanguageSelector = () => {
   return (
     <button
       onClick={toggleLanguage}
-      className="px-3 py-2 rounded-lg glass border-hi hover:bg-white/5 active:scale-95 transition-all outline-none focus:outline-none focus:ring-2 focus:ring-accent/50 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-text min-h-[44px]"
+      className="px-3 py-2 rounded-lg border transition-all outline-none focus:outline-none focus:ring-2 focus:ring-offset-0 flex items-center gap-2 text-xs font-bold uppercase tracking-widest min-h-[44px] hover:bg-surface-hi active:scale-95"
+      style={{
+        backgroundColor: 'var(--surface)',
+        borderColor: 'var(--border)',
+        color: 'var(--text)',
+      }}
       title={i18n.language === 'en' ? 'Cambiar a Español' : 'Switch to English'}
       aria-label={`Change language to ${nextLang}. Current language: ${currentLang}`}
+      aria-pressed={false}
     >
-      <Icon.Globe01 size="sm" aria-hidden="true" />
+      <Globe size={16} aria-hidden="true" style={{ color: 'var(--accent)' }} />
       <span aria-hidden="true">{i18n.language === 'en' ? 'EN' : 'ES'}</span>
       <span className="sr-only">{currentLang}</span>
     </button>
