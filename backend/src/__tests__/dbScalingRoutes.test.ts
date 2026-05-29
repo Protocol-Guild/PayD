@@ -35,6 +35,8 @@ const mockGetLongRunningTransactions = jest.fn();
 const mockGetVacuumStats           = jest.fn();
 const mockGetConnectionBreakdown   = jest.fn();
 const mockGetDbSettings            = jest.fn();
+const mockGetSeqScanStats          = jest.fn();
+const mockGetWalStats              = jest.fn();
 
 jest.mock('../services/dbScalingService.js', () => ({
   DbScalingService: jest.fn().mockImplementation(() => ({
@@ -49,6 +51,8 @@ jest.mock('../services/dbScalingService.js', () => ({
     getVacuumStats:             mockGetVacuumStats,
     getConnectionBreakdown:     mockGetConnectionBreakdown,
     getDbSettings:              mockGetDbSettings,
+    getSeqScanStats:            mockGetSeqScanStats,
+    getWalStats:                mockGetWalStats,
     getLockContention:          mockGetLockContention,
     getUnusedIndexes:           mockGetUnusedIndexes,
     getReplicationLag:          mockGetReplicationLag,
@@ -113,6 +117,71 @@ describe('GET /api/v1/db-scaling/db-settings', () => {
     mockGetDbSettings.mockRejectedValue(new Error('pg error'));
 
     const res = await request(app).get('/api/v1/db-scaling/db-settings');
+
+    expect(res.status).toBe(500);
+  });
+});
+
+// ─── Part 38: GET /api/v1/db-scaling/seq-scan-stats ──────────────────────────
+
+describe('GET /api/v1/db-scaling/seq-scan-stats', () => {
+  it('returns 200 with sequential scan statistics', async () => {
+    mockGetSeqScanStats.mockResolvedValue([
+      { table: 'audit_logs', seqScans: 500, idxScans: 50, seqTupRead: 10000, idxTupFetch: 200, seqScanRatio: 0.909 },
+    ]);
+
+    const res = await request(app).get('/api/v1/db-scaling/seq-scan-stats');
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data[0]).toMatchObject({ table: 'audit_logs', seqScans: 500 });
+  });
+
+  it('respects the ?limit query parameter', async () => {
+    mockGetSeqScanStats.mockResolvedValue([]);
+
+    await request(app).get('/api/v1/db-scaling/seq-scan-stats?limit=5');
+
+    expect(mockGetSeqScanStats).toHaveBeenCalledWith(5);
+  });
+
+  it('returns 400 for an invalid limit', async () => {
+    const res = await request(app).get('/api/v1/db-scaling/seq-scan-stats?limit=abc');
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+  });
+
+  it('returns 500 when the service throws', async () => {
+    mockGetSeqScanStats.mockRejectedValue(new Error('pg error'));
+
+    const res = await request(app).get('/api/v1/db-scaling/seq-scan-stats');
+
+    expect(res.status).toBe(500);
+  });
+});
+
+// ─── Part 38: GET /api/v1/db-scaling/wal-stats ──────────────────────────────
+
+describe('GET /api/v1/db-scaling/wal-stats', () => {
+  it('returns 200 with WAL generation statistics', async () => {
+    mockGetWalStats.mockResolvedValue({
+      walRecords: 1000, walFpi: 50, walBytes: 5242880,
+      walBuffersFull: 2, walWrite: 100, walSync: 80,
+      walWriteTimeMs: 150, walSyncTimeMs: 200,
+    });
+
+    const res = await request(app).get('/api/v1/db-scaling/wal-stats');
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data).toMatchObject({ walBytes: 5242880, walRecords: 1000 });
+  });
+
+  it('returns 500 when the service throws', async () => {
+    mockGetWalStats.mockRejectedValue(new Error('pg error'));
+
+    const res = await request(app).get('/api/v1/db-scaling/wal-stats');
 
     expect(res.status).toBe(500);
   });
