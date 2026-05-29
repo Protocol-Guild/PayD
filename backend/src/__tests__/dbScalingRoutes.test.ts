@@ -1,8 +1,12 @@
 /**
- * Integration tests for the DB Scaling endpoints (Parts 39 & 40).
+ * Integration tests for the DB Scaling endpoints (Parts 37, 38, 39, 40, 42 & 50).
  *
+ * Issues #282 (Part 37) — connection breakdown, db settings
+ * Issues #283 (Part 38) — seq scan stats, WAL stats
  * Issues #284 (Part 39) — lock contention, unused indexes
  * Issues #285 (Part 40) — replication lag, table sizes
+ * Issues #287 (Part 42) — bgwriter stats, temp file usage
+ * Issues #295 (Part 50) — database stats, block I/O stats
  *
  * Strategy
  * ─────────
