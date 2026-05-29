@@ -33,6 +33,8 @@ const mockGetTableBloat            = jest.fn();
 const mockGetCacheHitRate          = jest.fn();
 const mockGetLongRunningTransactions = jest.fn();
 const mockGetVacuumStats           = jest.fn();
+const mockGetConnectionBreakdown   = jest.fn();
+const mockGetDbSettings            = jest.fn();
 
 jest.mock('../services/dbScalingService.js', () => ({
   DbScalingService: jest.fn().mockImplementation(() => ({
@@ -45,6 +47,8 @@ jest.mock('../services/dbScalingService.js', () => ({
     getCacheHitRate:            mockGetCacheHitRate,
     getLongRunningTransactions: mockGetLongRunningTransactions,
     getVacuumStats:             mockGetVacuumStats,
+    getConnectionBreakdown:     mockGetConnectionBreakdown,
+    getDbSettings:              mockGetDbSettings,
     getLockContention:          mockGetLockContention,
     getUnusedIndexes:           mockGetUnusedIndexes,
     getReplicationLag:          mockGetReplicationLag,
@@ -53,6 +57,66 @@ jest.mock('../services/dbScalingService.js', () => ({
 }));
 
 afterEach(() => jest.clearAllMocks());
+
+// ─── Part 37: GET /api/v1/db-scaling/connection-breakdown ────────────────────
+
+describe('GET /api/v1/db-scaling/connection-breakdown', () => {
+  it('returns 200 with connection groups by state and application', async () => {
+    mockGetConnectionBreakdown.mockResolvedValue([
+      { state: 'active', applicationName: 'payd-api', count: 5 },
+      { state: 'idle',   applicationName: 'payd-api', count: 12 },
+    ]);
+
+    const res = await request(app).get('/api/v1/db-scaling/connection-breakdown');
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data).toHaveLength(2);
+    expect(res.body.data[0]).toMatchObject({ state: 'active', count: 5 });
+  });
+
+  it('returns 200 with empty array when no connections exist', async () => {
+    mockGetConnectionBreakdown.mockResolvedValue([]);
+
+    const res = await request(app).get('/api/v1/db-scaling/connection-breakdown');
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toEqual([]);
+  });
+
+  it('returns 500 when the service throws', async () => {
+    mockGetConnectionBreakdown.mockRejectedValue(new Error('pg error'));
+
+    const res = await request(app).get('/api/v1/db-scaling/connection-breakdown');
+
+    expect(res.status).toBe(500);
+  });
+});
+
+// ─── Part 37: GET /api/v1/db-scaling/db-settings ───────────────────────────
+
+describe('GET /api/v1/db-scaling/db-settings', () => {
+  it('returns 200 with scaling-relevant pg_settings', async () => {
+    mockGetDbSettings.mockResolvedValue([
+      { name: 'max_connections', setting: '100', unit: null, category: 'Connections and Authentication / Connection Settings' },
+      { name: 'shared_buffers',  setting: '16384', unit: '8kB', category: 'Resource Usage / Memory' },
+    ]);
+
+    const res = await request(app).get('/api/v1/db-scaling/db-settings');
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data[0]).toMatchObject({ name: 'max_connections', setting: '100' });
+  });
+
+  it('returns 500 when the service throws', async () => {
+    mockGetDbSettings.mockRejectedValue(new Error('pg error'));
+
+    const res = await request(app).get('/api/v1/db-scaling/db-settings');
+
+    expect(res.status).toBe(500);
+  });
+});
 
 // ─── Part 39: GET /api/v1/db-scaling/lock-contention ─────────────────────────
 
