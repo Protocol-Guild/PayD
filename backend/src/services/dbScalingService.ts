@@ -279,6 +279,91 @@ export class DbScalingService {
     }));
   }
 
+  // ── Part 38 (#283) ───────────────────────────────────────────────────────
+
+  /**
+   * #283a — Sequential scan stats: tables where seq_scan dominates idx_scan,
+   * indicating missing or unused indexes.
+   */
+  async getSeqScanStats(limit = 20): Promise<{
+    table: string;
+    seqScans: number;
+    idxScans: number;
+    seqTupRead: number;
+    idxTupFetch: number;
+    seqScanRatio: number;
+  }[]> {
+    const rows = await this.prisma.$queryRaw<Array<{
+      relname: string;
+      seq_scan: bigint;
+      idx_scan: bigint;
+      seq_tup_read: bigint;
+      idx_tup_fetch: bigint;
+    }>>`
+      SELECT relname, seq_scan, idx_scan, seq_tup_read, idx_tup_fetch
+      FROM pg_stat_user_tables
+      WHERE seq_scan > 0
+      ORDER BY seq_scan DESC
+      LIMIT ${limit}
+    `;
+    return rows.map(r => {
+      const seq = Number(r.seq_scan);
+      const idx = Number(r.idx_scan);
+      return {
+        table:        r.relname,
+        seqScans:     seq,
+        idxScans:     idx,
+        seqTupRead:   Number(r.seq_tup_read),
+        idxTupFetch:  Number(r.idx_tup_fetch),
+        seqScanRatio: seq + idx > 0 ? seq / (seq + idx) : 0,
+      };
+    });
+  }
+
+  /**
+   * #283b — WAL generation statistics from pg_stat_wal.
+   * Returns cumulative WAL bytes written and record counts since last reset.
+   */
+  async getWalStats(): Promise<{
+    walRecords: number;
+    walFpi: number;
+    walBytes: number;
+    walBuffersFull: number;
+    walWrite: number;
+    walSync: number;
+    walWriteTimeMs: number;
+    walSyncTimeMs: number;
+  }> {
+    const rows = await this.prisma.$queryRaw<Array<{
+      wal_records: bigint;
+      wal_fpi: bigint;
+      wal_bytes: bigint;
+      wal_buffers_full: bigint;
+      wal_write: bigint;
+      wal_sync: bigint;
+      wal_write_time: number;
+      wal_sync_time: number;
+    }>>`
+      SELECT wal_records, wal_fpi, wal_bytes, wal_buffers_full,
+             wal_write, wal_sync, wal_write_time, wal_sync_time
+      FROM pg_stat_wal
+    `;
+    const r = rows[0] ?? {
+      wal_records: 0n, wal_fpi: 0n, wal_bytes: 0n, wal_buffers_full: 0n,
+      wal_write: 0n, wal_sync: 0n, wal_write_time: 0, wal_sync_time: 0,
+    };
+    return {
+      walRecords:       Number(r.wal_records),
+      walFpi:           Number(r.wal_fpi),
+      walBytes:         Number(r.wal_bytes),
+      walBuffersFull:   Number(r.wal_buffers_full),
+      walWrite:         Number(r.wal_write),
+      walSync:          Number(r.wal_sync),
+      walWriteTimeMs:   Math.round(r.wal_write_time / 1000),
+      walSyncTimeMs:    Math.round(r.wal_sync_time / 1000),
+    };
+  }
+
   // ── Part 39 (#284) ───────────────────────────────────────────────────────
 
   /**
