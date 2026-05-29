@@ -48,9 +48,9 @@ router.get('/health', (_req: Request, res: Response) => {
     });
   } catch (err) {
     logger.error({ err }, '[scalingRoutes] Failed to read pool stats');
-    return res.status(500).json(
-      apiErrorResponse(ErrorCodes.INTERNAL_ERROR, 'Failed to retrieve pool health'),
-    );
+    return res
+      .status(500)
+      .json(apiErrorResponse(ErrorCodes.INTERNAL_ERROR, 'Failed to retrieve pool health'));
   }
 });
 
@@ -92,7 +92,7 @@ router.get('/query-stats', async (req: Request, res: Response, next: NextFunctio
         WHERE execution_ms >= $1
         ORDER BY recorded_at DESC
         LIMIT $2`,
-      [minMs, limit],
+      [minMs, limit]
     );
 
     return res.status(200).json({
@@ -121,9 +121,7 @@ router.get('/query-stats', async (req: Request, res: Response, next: NextFunctio
 router.post('/refresh-view', async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const pool = getPool();
-    await pool.query(
-      'REFRESH MATERIALIZED VIEW CONCURRENTLY mv_org_daily_tx_summary',
-    );
+    await pool.query('REFRESH MATERIALIZED VIEW CONCURRENTLY mv_org_daily_tx_summary');
 
     logger.info('[scalingRoutes] mv_org_daily_tx_summary refreshed');
     return res.status(200).json({
@@ -132,6 +130,117 @@ router.post('/refresh-view', async (_req: Request, res: Response, next: NextFunc
     });
   } catch (err) {
     logger.error({ err }, '[scalingRoutes] Failed to refresh materialised view');
+    next(err);
+  }
+});
+
+// ─── Part 25 (#715) ──────────────────────────────────────────────────────────
+
+/**
+ * @openapi
+ * /api/v1/scaling/latency-percentiles:
+ *   get:
+ *     summary: p50 / p95 / p99 latency per endpoint (Part 25)
+ *     description: >
+ *       Computes approximate latency percentiles from the api_latency_histogram
+ *       table. Returns the top endpoints by p99 so you can spot regressions.
+ *     tags: [Scaling]
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 20 }
+ *       - in: query
+ *         name: windowMinutes
+ *         schema: { type: integer, default: 60 }
+ *     responses:
+ *       200:
+ *         description: Latency percentile breakdown per endpoint
+ */
+router.get('/latency-percentiles', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const limit = Math.min(Number(req.query.limit ?? 20), 100);
+    const windowMinutes = Math.min(Number(req.query.windowMinutes ?? 60), 1440);
+
+    const pool = getPool();
+    const { rows } = await pool.query<{
+      endpoint: string;
+      method: string;
+      p50_ms: number;
+      p95_ms: number;
+      p99_ms: number;
+      total_observations: string;
+      window_start: Date;
+    }>(
+      `SELECT
+         endpoint,
+         method,
+         PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY bucket_ms) AS p50_ms,
+         PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY bucket_ms) AS p95_ms,
+         PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY bucket_ms) AS p99_ms,
+         SUM(observations)                                        AS total_observations,
+         MIN(window_start)                                        AS window_start
+       FROM api_latency_histogram
+       WHERE recorded_at >= NOW() - ($1 * INTERVAL '1 minute')
+       GROUP BY endpoint, method
+       ORDER BY p99_ms DESC NULLS LAST
+       LIMIT $2`,
+      [windowMinutes, limit]
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: rows,
+      meta: { limit, windowMinutes, count: rows.length },
+    });
+  } catch (err) {
+    logger.error({ err }, '[scalingRoutes] Failed to fetch latency percentiles');
+    next(err);
+  }
+});
+
+/**
+ * @openapi
+ * /api/v1/scaling/pool-history:
+ *   get:
+ *     summary: Recent connection-pool health snapshots (Part 25)
+ *     description: >
+ *       Returns time-series snapshots from db_pool_health so operators can spot
+ *       connection-pool saturation trends without needing Grafana.
+ *     tags: [Scaling]
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 20 }
+ *     responses:
+ *       200:
+ *         description: Pool health snapshots, most recent first
+ */
+router.get('/pool-history', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const limit = Math.min(Number(req.query.limit ?? 20), 200);
+
+    const pool = getPool();
+    const { rows } = await pool.query<{
+      id: string;
+      total_conns: number;
+      idle_conns: number;
+      waiting_clients: number;
+      recorded_at: Date;
+    }>(
+      `SELECT id, total_conns, idle_conns, waiting_clients, recorded_at
+         FROM db_pool_health
+        ORDER BY recorded_at DESC
+        LIMIT $1`,
+      [limit]
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: rows,
+      meta: { limit, count: rows.length },
+    });
+  } catch (err) {
+    logger.error({ err }, '[scalingRoutes] Failed to fetch pool history');
     next(err);
   }
 });

@@ -136,3 +136,96 @@ describe('POST /api/v1/scaling/refresh-view', () => {
     expect(sqlCall).toContain('mv_org_daily_tx_summary');
   });
 });
+
+// ─── Part 25: latency-percentiles ────────────────────────────────────────────
+
+describe('GET /api/v1/scaling/latency-percentiles (Part 25)', () => {
+  afterEach(() => jest.clearAllMocks());
+
+  it('returns 200 with percentile rows', async () => {
+    const fakeRows = [
+      {
+        endpoint: 'GET /api/v1/employees',
+        method: 'GET',
+        p50_ms: 45,
+        p95_ms: 120,
+        p99_ms: 350,
+        total_observations: '1200',
+        window_start: new Date().toISOString(),
+      },
+    ];
+    mockQuery.mockResolvedValue({ rows: fakeRows });
+
+    const res = await request(app).get('/api/v1/scaling/latency-percentiles');
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0].p99_ms).toBe(350);
+    expect(res.body.meta).toMatchObject({ count: 1 });
+  });
+
+  it('returns empty array when no histogram data exists', async () => {
+    mockQuery.mockResolvedValue({ rows: [] });
+
+    const res = await request(app).get('/api/v1/scaling/latency-percentiles');
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(0);
+  });
+
+  it('caps limit at 100', async () => {
+    mockQuery.mockResolvedValue({ rows: [] });
+    await request(app).get('/api/v1/scaling/latency-percentiles?limit=9999');
+    const passedLimit = mockQuery.mock.calls[0][1][1];
+    expect(passedLimit).toBe(100);
+  });
+
+  it('uses provided windowMinutes in query', async () => {
+    mockQuery.mockResolvedValue({ rows: [] });
+    await request(app).get('/api/v1/scaling/latency-percentiles?windowMinutes=30');
+    const passedWindow = mockQuery.mock.calls[0][1][0];
+    expect(passedWindow).toBe(30);
+  });
+});
+
+// ─── Part 25: pool-history ────────────────────────────────────────────────────
+
+describe('GET /api/v1/scaling/pool-history (Part 25)', () => {
+  afterEach(() => jest.clearAllMocks());
+
+  it('returns 200 with pool snapshot rows', async () => {
+    const fakeRows = [
+      {
+        id: '1',
+        total_conns: 10,
+        idle_conns: 7,
+        waiting_clients: 0,
+        recorded_at: new Date().toISOString(),
+      },
+    ];
+    mockQuery.mockResolvedValue({ rows: fakeRows });
+
+    const res = await request(app).get('/api/v1/scaling/pool-history');
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0].total_conns).toBe(10);
+  });
+
+  it('caps limit at 200', async () => {
+    mockQuery.mockResolvedValue({ rows: [] });
+    await request(app).get('/api/v1/scaling/pool-history?limit=9999');
+    const passedLimit = mockQuery.mock.calls[0][1][0];
+    expect(passedLimit).toBe(200);
+  });
+
+  it('returns 500 on DB error', async () => {
+    mockQuery.mockRejectedValue(new Error('connection lost'));
+
+    const res = await request(app).get('/api/v1/scaling/pool-history');
+
+    expect(res.status).toBe(500);
+  });
+});
