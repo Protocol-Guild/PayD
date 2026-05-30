@@ -3,6 +3,7 @@ members = [
     "contracts/bulk_payment",
     "contracts/cross_asset_payment",
     "contracts/milestone_escrow",
+    "contracts/orgusd",
     "contracts/revenue_split",
     "contracts/vesting_escrow",
     "contracts/asset_path_payment",
