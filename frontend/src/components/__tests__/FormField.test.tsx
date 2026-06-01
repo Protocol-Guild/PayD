@@ -1,51 +1,44 @@
+import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { describe, expect, test } from 'vitest';
 import { FormField } from '../FormField';
 
 describe('FormField', () => {
-  test('renders label and input', () => {
+  it('renders label correctly', () => {
     render(
-      <FormField id="test-field" label="Test Label">
-        <input type="text" />
-      </FormField>
-    );
-
-    expect(screen.getByText('Test Label')).toBeTruthy();
-    expect(screen.getByRole('textbox')).toBeTruthy();
-  });
-
-  test('associates label with input via htmlFor', () => {
-    render(
-      <FormField id="email" label="Email">
+      <FormField id="email" label="Email Address">
         <input type="email" />
-      </FormField>
+      </FormField>,
     );
-
-    const label = screen.getByText('Email');
-    expect(label).toBeTruthy();
-    expect(label.tagName).toBe('LABEL');
-    expect(label.getAttribute('for')).toBe('email');
+    expect(screen.getByLabelText('Email Address')).toBeInTheDocument();
   });
 
-  test('passes id to child input', () => {
+  it('shows required indicator', () => {
     render(
-      <FormField id="username" label="Username">
+      <FormField id="name" label="Name" required={true}>
         <input type="text" />
-      </FormField>
+      </FormField>,
     );
-
-    const input = screen.getByRole('textbox');
-    expect(input.getAttribute('id')).toBe('username');
+    expect(screen.getByText('*')).toBeInTheDocument();
+    expect(screen.getByText('(required)')).toBeInTheDocument();
   });
 
-  test('shows required indicator for required fields', () => {
+  it('shows optional indicator when specified', () => {
     render(
-      <FormField id="name" label="Name" required>
+      <FormField id="middle" label="Middle Name" optional={true}>
         <input type="text" />
-      </FormField>
+      </FormField>,
     );
+    expect(screen.getByText('(optional)')).toBeInTheDocument();
+  });
 
-    expect(screen.getByText('(required)')).toBeTruthy();
+  it('displays error message', () => {
+    render(
+      <FormField id="email" label="Email" error="Invalid email format">
+        <input type="email" />
+      </FormField>,
+    );
+    expect(screen.getByText('Invalid email format')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toBeInTheDocument();
   });
 
   test('does not show required indicator when not required', () => {
@@ -164,5 +157,68 @@ describe('FormField', () => {
     const helpEl = screen.getByText('Useful tip');
 
     expect(input.getAttribute('aria-describedby')).toBe(helpEl.getAttribute('id'));
+  });
+
+  it('shows valid indicator when isValid prop is true', () => {
+    const { container } = render(
+      <FormField id="email" label="Email" isValid={true}>
+        <input type="email" />
+      </FormField>,
+    );
+    const checkIcon = container.querySelector('[role="status"]');
+    expect(checkIcon).toBeInTheDocument();
+  });
+
+  it('displays character count', () => {
+    render(
+      <FormField
+        id="bio"
+        label="Bio"
+        maxLength={200}
+        currentLength={85}
+      >
+        <textarea />
+      </FormField>,
+    );
+    expect(screen.getByText('85 / 200 characters')).toBeInTheDocument();
+  });
+
+  it('shows warning style when character count exceeds 80%', () => {
+    render(
+      <FormField
+        id="bio"
+        label="Bio"
+        maxLength={100}
+        currentLength={85}
+      >
+        <textarea />
+      </FormField>,
+    );
+    const charCount = screen.getByText('85 / 100 characters');
+    expect(charCount).toHaveClass('text-amber-400');
+  });
+
+  it('does not show help text when error is present', () => {
+    render(
+      <FormField
+        id="email"
+        label="Email"
+        error="Invalid"
+        helpText="Enter a valid email"
+      >
+        <input type="email" />
+      </FormField>,
+    );
+    expect(screen.queryByText('Enter a valid email')).not.toBeInTheDocument();
+  });
+
+  it('passes maxLength to input child', () => {
+    const { container } = render(
+      <FormField id="bio" label="Bio" maxLength={200}>
+        <textarea />
+      </FormField>,
+    );
+    const textarea = container.querySelector('textarea');
+    expect(textarea).toHaveAttribute('maxLength', '200');
   });
 });
