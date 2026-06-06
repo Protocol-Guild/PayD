@@ -21,8 +21,8 @@ CREATE INDEX IF NOT EXISTS idx_transactions_pending
 
 -- Only index unread notifications (keeps hot-path notification queries sub-ms)
 CREATE INDEX IF NOT EXISTS idx_notifications_unread
-  ON notifications (user_id, created_at DESC)
-  WHERE read = FALSE;
+  ON notifications (employee_id, created_at DESC)
+  WHERE status = 'pending';
 
 -- ---------------------------------------------------------------------------
 -- 2. Covering indexes to avoid heap fetches on common SELECT patterns
@@ -31,7 +31,7 @@ CREATE INDEX IF NOT EXISTS idx_notifications_unread
 -- Payroll runs list view: org + date + status + id in a single index scan
 CREATE INDEX IF NOT EXISTS idx_payroll_runs_covering
   ON payroll_runs (organization_id, created_at DESC)
-  INCLUDE (status, total_amount, currency);
+  INCLUDE (status, total_amount, asset_code);
 
 -- Employee list pagination (org + name lookup)
 CREATE INDEX IF NOT EXISTS idx_employees_org_name

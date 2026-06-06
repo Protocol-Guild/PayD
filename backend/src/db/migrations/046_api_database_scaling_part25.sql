@@ -50,7 +50,7 @@ CREATE INDEX IF NOT EXISTS idx_employees_list_covering
 
 CREATE INDEX IF NOT EXISTS idx_transactions_list_covering
   ON transactions (organization_id, status, created_at DESC)
-  INCLUDE (amount, type);
+  INCLUDE (amount, transaction_type);
 
 -- ---------------------------------------------------------------------------
 -- 4. Comments

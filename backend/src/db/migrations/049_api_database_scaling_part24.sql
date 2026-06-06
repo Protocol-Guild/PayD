@@ -101,7 +101,7 @@ CREATE INDEX IF NOT EXISTS idx_payroll_items_failed
 
 CREATE INDEX IF NOT EXISTS idx_bulk_batches_org_status
   ON bulk_payment_batches (organization_id, status, created_at DESC)
-  INCLUDE (total_payments, total_amount, asset_code);
+  INCLUDE (total_items, asset_code);
 
 -- ---------------------------------------------------------------------------
 -- 7. Prune function: pool utilisation (retain 7 days)

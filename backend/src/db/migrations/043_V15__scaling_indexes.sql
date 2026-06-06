@@ -4,11 +4,11 @@
 
 -- Create index for cursor-based pagination on created_at (common use case)
 CREATE INDEX IF NOT EXISTS idx_employees_created_at ON employees(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_payments_created_at ON payments(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_transactions_created_at ON transactions(created_at DESC);
 
 -- Create index for foreign keys if missing (often overlooked and causes table scans)
-CREATE INDEX IF NOT EXISTS idx_payments_employee_id ON payments(employee_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_employee_id ON transactions(employee_id);
 CREATE INDEX IF NOT EXISTS idx_payroll_runs_organization_id ON payroll_runs(organization_id);
 
 -- Create composite index for filtering payments by status and date (common in reporting)
-CREATE INDEX IF NOT EXISTS idx_payments_status_date ON payments(status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_transactions_status_date ON transactions(status, created_at DESC);

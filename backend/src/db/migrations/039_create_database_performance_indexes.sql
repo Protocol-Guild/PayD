@@ -18,7 +18,7 @@ CREATE INDEX IF NOT EXISTS idx_transactions_org_status_created
 
 -- Index for payment operations
 CREATE INDEX IF NOT EXISTS idx_payments_org_status
-  ON transactions (organization_id, type, status);
+  ON transactions (organization_id, transaction_type, status);
 
 -- Index for rate limiting and throttling logs cleanup
 CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at
@@ -30,19 +30,17 @@ CREATE INDEX IF NOT EXISTS idx_org_config_org_key
 
 -- Index for webhook subscription lookups
 CREATE INDEX IF NOT EXISTS idx_webhook_subscriptions_org_event
-  ON webhook_subscriptions (organization_id, event_type);
+  ON webhook_subscriptions (organization_id, events);
 
 -- Index for notification queries
 CREATE INDEX IF NOT EXISTS idx_notifications_user_read
-  ON notifications (user_id, read, created_at DESC);
+  ON notifications (employee_id, status, created_at DESC);
 
 -- Index for payroll audit queries
 CREATE INDEX IF NOT EXISTS idx_payroll_audit_run_id
   ON payroll_audit_logs (payroll_run_id);
 
--- Index for contract registry lookups
-CREATE INDEX IF NOT EXISTS idx_contract_registry_org
-  ON contract_registry (organization_id, contract_type);
+
 
 -- Index for bulk payment batches
 CREATE INDEX IF NOT EXISTS idx_bulk_payment_batches_org

@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import pool from '../config/database.js';
 import logger from '../utils/logger.js';
 
 export interface PoolStats {
@@ -17,40 +17,22 @@ export interface QueryResult<T> {
 const POOL_MAX = Number(process.env.DB_POOL_MAX ?? 20);
 const POOL_MIN = Number(process.env.DB_POOL_MIN ?? 2);
 
-let prismaInstance: PrismaClient | null = null;
-
-function getPrismaClient(): PrismaClient {
-  if (!prismaInstance) {
-    prismaInstance = new PrismaClient({
-      datasources: {
-        db: { url: process.env.DATABASE_URL },
-      },
-      log: [
-        { level: 'warn', emit: 'event' },
-        { level: 'error', emit: 'event' },
-      ],
-    });
-
-    prismaInstance.$on('warn' as never, (e: unknown) => {
-      logger.warn({ event: e }, 'Prisma warning');
-    });
-
-    prismaInstance.$on('error' as never, (e: unknown) => {
-      logger.error({ event: e }, 'Prisma error');
-    });
-  }
-  return prismaInstance;
+// Tagged-template helper that mirrors Prisma's $queryRaw<T>`SQL` API.
+// Uses the existing pg pool – no Prisma client needed.
+function query<T>(strings: TemplateStringsArray, ...values: unknown[]): Promise<T[]> {
+  let text = '';
+  strings.forEach((str, i) => {
+    text += str;
+    if (i < values.length) text += '$' + (i + 1);
+  });
+  return pool.query(text, values as unknown[]).then((r) => r.rows as T[]);
 }
 
-export class DbScalingService {
-  private prisma: PrismaClient;
 
-  constructor() {
-    this.prisma = getPrismaClient();
-  }
+export class DbScalingService {
 
   async getPoolStats(): Promise<PoolStats> {
-    const result = await this.prisma.$queryRaw<
+    const result = await query<
       Array<{ active: bigint; idle: bigint; waiting: bigint }>
     >`
       SELECT
@@ -73,7 +55,7 @@ export class DbScalingService {
   async runHealthCheck(): Promise<{ ok: boolean; latencyMs: number }> {
     const start = Date.now();
     try {
-      await this.prisma.$queryRaw`SELECT 1`;
+      await pool.query('SELECT 1');
       return { ok: true, latencyMs: Date.now() - start };
     } catch (err) {
       logger.error({ err }, 'DB health check failed');
@@ -85,7 +67,7 @@ export class DbScalingService {
     thresholdMs = 1000,
     limit = 20,
   ): Promise<Array<{ query: string; calls: number; avgMs: number; totalMs: number }>> {
-    const rows = await this.prisma.$queryRaw<
+    const rows = await query<
       Array<{ query: string; calls: bigint; mean_exec_time: number; total_exec_time: number }>
     >`
       SELECT query, calls, mean_exec_time, total_exec_time
@@ -107,7 +89,7 @@ export class DbScalingService {
   async getIndexUsage(): Promise<
     Array<{ table: string; index: string; scans: number; tuplesRead: number }>
   > {
-    const rows = await this.prisma.$queryRaw<
+    const rows = await query<
       Array<{
         relname: string;
         indexrelname: string;
@@ -135,7 +117,7 @@ export class DbScalingService {
 
   /** #289 — Table bloat: dead-tuple ratio per table from pg_stat_user_tables. */
   async getTableBloat(): Promise<{ table: string; liveRows: number; deadRows: number; bloatRatio: number }[]> {
-    const rows = await this.prisma.$queryRaw<Array<{ relname: string; n_live_tup: bigint; n_dead_tup: bigint }>>`
+    const rows = await query<Array<{ relname: string; n_live_tup: bigint; n_dead_tup: bigint }>>`
       SELECT relname, n_live_tup, n_dead_tup
       FROM pg_stat_user_tables
       ORDER BY n_dead_tup DESC
@@ -150,7 +132,7 @@ export class DbScalingService {
 
   /** #290 — Buffer cache hit rates from pg_statio_user_tables. */
   async getCacheHitRate(): Promise<{ table: string; heapHitRate: number; idxHitRate: number }[]> {
-    const rows = await this.prisma.$queryRaw<Array<{
+    const rows = await query<Array<{
       relname: string; heap_blks_hit: bigint; heap_blks_read: bigint; idx_blks_hit: bigint; idx_blks_read: bigint;
     }>>`
       SELECT relname, heap_blks_hit, heap_blks_read, idx_blks_hit, idx_blks_read
@@ -170,7 +152,7 @@ export class DbScalingService {
 
   /** #291 — Long-running transactions from pg_stat_activity. */
   async getLongRunningTransactions(minDurationSec = 10): Promise<{ pid: number; duration: string; state: string; query: string }[]> {
-    const rows = await this.prisma.$queryRaw<Array<{ pid: number; duration: string; state: string; query: string }>>`
+    const rows = await query<Array<{ pid: number; duration: string; state: string; query: string }>>`
       SELECT pid,
              (now() - xact_start)::text AS duration,
              state,
@@ -186,7 +168,7 @@ export class DbScalingService {
 
   /** #292 — Vacuum / analyse timestamps from pg_stat_user_tables. */
   async getVacuumStats(): Promise<{ table: string; lastVacuum: string | null; lastAutoVacuum: string | null; lastAnalyze: string | null }[]> {
-    const rows = await this.prisma.$queryRaw<Array<{
+    const rows = await query<Array<{
       relname: string; last_vacuum: Date | null; last_autovacuum: Date | null; last_analyze: Date | null;
     }>>`
       SELECT relname, last_vacuum, last_autovacuum, last_analyze
@@ -212,7 +194,7 @@ export class DbScalingService {
     applicationName: string;
     count: number;
   }[]> {
-    const rows = await this.prisma.$queryRaw<Array<{
+    const rows = await query<Array<{
       state: string;
       application_name: string;
       cnt: bigint;
@@ -244,7 +226,7 @@ export class DbScalingService {
     unit: string | null;
     category: string;
   }[]> {
-    const rows = await this.prisma.$queryRaw<Array<{
+    const rows = await query<Array<{
       name: string;
       setting: string;
       unit: string | null;
@@ -293,7 +275,7 @@ export class DbScalingService {
     idxTupFetch: number;
     seqScanRatio: number;
   }[]> {
-    const rows = await this.prisma.$queryRaw<Array<{
+    const rows = await query<Array<{
       relname: string;
       seq_scan: bigint;
       idx_scan: bigint;
@@ -334,7 +316,7 @@ export class DbScalingService {
     walWriteTimeMs: number;
     walSyncTimeMs: number;
   }> {
-    const rows = await this.prisma.$queryRaw<Array<{
+    const rows = await query<Array<{
       wal_records: bigint;
       wal_fpi: bigint;
       wal_bytes: bigint;
@@ -382,7 +364,7 @@ export class DbScalingService {
     buffersBackendFsync: number;
     buffersAlloc: number;
   }> {
-    const rows = await this.prisma.$queryRaw<Array<{
+    const rows = await query<Array<{
       checkpoints_timed: bigint;
       checkpoints_req: bigint;
       checkpoint_write_time: number;
@@ -430,7 +412,7 @@ export class DbScalingService {
     tempBytes: number;
     tempBytesPretty: string;
   }> {
-    const rows = await this.prisma.$queryRaw<Array<{
+    const rows = await query<Array<{
       datname: string;
       temp_files: bigint;
       temp_bytes: bigint;
@@ -469,7 +451,7 @@ export class DbScalingService {
     tempFiles: number;
     tempBytes: number;
   }> {
-    const rows = await this.prisma.$queryRaw<Array<{
+    const rows = await query<Array<{
       datname: string;
       numbackends: number;
       xact_commit: bigint;
@@ -517,7 +499,7 @@ export class DbScalingService {
     activeTimeMs: number;
     idleInTransactionTimeMs: number;
   }> {
-    const rows = await this.prisma.$queryRaw<Array<{
+    const rows = await query<Array<{
       datname: string;
       blk_read_time: number;
       blk_write_time: number;
@@ -559,7 +541,7 @@ export class DbScalingService {
     waitingQuery: string;
     waitDuration: string | null;
   }[]> {
-    const rows = await this.prisma.$queryRaw<Array<{
+    const rows = await query<Array<{
       waiting_pid: number;
       blocking_pid: number;
       locktype: string;
@@ -611,7 +593,7 @@ export class DbScalingService {
     index: string;
     indexSizeBytes: number;
   }[]> {
-    const rows = await this.prisma.$queryRaw<Array<{
+    const rows = await query<Array<{
       relname: string;
       indexrelname: string;
       index_size: bigint;
@@ -655,7 +637,7 @@ export class DbScalingService {
     flushLagBytes: number;
     replayLagBytes: number;
   }[]> {
-    const rows = await this.prisma.$queryRaw<Array<{
+    const rows = await query<Array<{
       client_addr: string | null;
       state: string;
       sent_lsn: string;
@@ -712,7 +694,7 @@ export class DbScalingService {
     checkpointSyncTimeMs: number;
     statsResetAt: string | null;
   }> {
-    const rows = await this.prisma.$queryRaw<Array<{
+    const rows = await query<Array<{
       checkpoints_timed: bigint;
       checkpoints_req: bigint;
       buffers_checkpoint: bigint;
@@ -782,7 +764,7 @@ export class DbScalingService {
     conflictsTotal: number;
     statsResetAt: string | null;
   }> {
-    const rows = await this.prisma.$queryRaw<Array<{
+    const rows = await query<Array<{
       datname: string;
       numbackends: number;
       xact_commit: bigint;
@@ -853,7 +835,7 @@ export class DbScalingService {
     toastBlksRead: number;
     toastBlksHit: number;
   }[]> {
-    const rows = await this.prisma.$queryRaw<Array<{
+    const rows = await query<Array<{
       relname: string;
       heap_blks_read: bigint;
       heap_blks_hit: bigint;
@@ -902,7 +884,7 @@ export class DbScalingService {
     idxTupRead: number;
     idxTupFetch: number;
   }[]> {
-    const rows = await this.prisma.$queryRaw<Array<{
+    const rows = await query<Array<{
       relname: string;
       indexrelname: string;
       idx_scan: bigint;
@@ -940,7 +922,7 @@ export class DbScalingService {
     toastBytes: number;
     totalPretty: string;
   }[]> {
-    const rows = await this.prisma.$queryRaw<Array<{
+    const rows = await query<Array<{
       relname: string;
       total_bytes: bigint;
       table_bytes: bigint;
@@ -986,7 +968,7 @@ export class DbScalingService {
     lastPlanReset: string | null;
     recordedAt: string;
   }[]> {
-    const rows = await this.prisma.$queryRaw<Array<{
+    const rows = await query<Array<{
       query_hash: string;
       query_text: string;
       plan_calls: bigint;
@@ -1023,7 +1005,7 @@ export class DbScalingService {
     bloatRatio: number;
     lastVacuum: string | null;
   }[]> {
-    const rows = await this.prisma.$queryRaw<Array<{
+    const rows = await query<Array<{
       relname: string;
       total_pretty: string;
       total_bytes: bigint;
@@ -1075,7 +1057,7 @@ export class DbScalingService {
     resolved: boolean;
     notes: string | null;
   }[]> {
-    const rows = await this.prisma.$queryRaw<Array<{
+    const rows = await query<Array<{
       id: bigint;
       detected_at: Date;
       pid1: number | null;
@@ -1114,7 +1096,7 @@ export class DbScalingService {
     unit: string | null;
     source: string;
   }> {
-    const rows = await this.prisma.$queryRaw<Array<{
+    const rows = await query<Array<{
       setting: string;
       unit: string | null;
       source: string;
@@ -1143,7 +1125,7 @@ export class DbScalingService {
     frozenXid: string;
     urgency: 'ok' | 'warning' | 'critical';
   }[]> {
-    const rows = await this.prisma.$queryRaw<Array<{
+    const rows = await query<Array<{
       relname: string;
       nspname: string;
       age: bigint;
@@ -1191,7 +1173,7 @@ export class DbScalingService {
     liveRows: number;
     bytesPerRow: number;
   }[]> {
-    const rows = await this.prisma.$queryRaw<Array<{
+    const rows = await query<Array<{
       table_name: string;
       index_name: string;
       index_size: bigint;
@@ -1247,7 +1229,7 @@ export class DbScalingService {
     heapHitRatio: number;
     idxHitRatio: number;
   }[]> {
-    const rows = await this.prisma.$queryRaw<Array<{
+    const rows = await query<Array<{
       relname: string;
       heap_blks_read: bigint;
       heap_blks_hit: bigint;
@@ -1302,7 +1284,7 @@ export class DbScalingService {
     maxDeadTuples: number;
     numDeadTuples: number;
   }[]> {
-    const rows = await this.prisma.$queryRaw<Array<{
+    const rows = await query<Array<{
       pid: number;
       datname: string;
       relname: string;
@@ -1356,7 +1338,7 @@ export class DbScalingService {
     cacheHitRate: number;
     windowStart: string;
   }[]> {
-    const rows = await this.prisma.$queryRaw<Array<{
+    const rows = await query<Array<{
       endpoint: string;
       call_count: bigint;
       avg_ms: number;

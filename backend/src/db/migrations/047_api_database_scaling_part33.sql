@@ -94,8 +94,8 @@ CREATE INDEX IF NOT EXISTS idx_bulk_items_batch_envelope
 -- ---------------------------------------------------------------------------
 
 CREATE INDEX IF NOT EXISTS idx_webhook_subs_active_event
-  ON webhook_subscriptions (event_type, organization_id)
-  WHERE active = TRUE;
+  ON webhook_subscriptions (events, organization_id)
+  WHERE is_active = TRUE;
 
 -- ---------------------------------------------------------------------------
 -- 7. Partial index: circuit_breaker_state for non-CLOSED circuits

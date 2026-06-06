@@ -31,6 +31,10 @@
       "description": "Health checks, discovery, and generated documentation endpoints"
     },
     {
+      "name": "Admin Audit",
+      "description": "Advanced audit log for all administrative actions"
+    },
+    {
       "name": "Analytics",
       "description": "Payroll expenditure analytics and reporting"
     },
@@ -77,6 +81,10 @@
     {
       "name": "Freeze",
       "description": "Administrative asset freeze and unfreeze operations"
+    },
+    {
+      "name": "Migrations",
+      "description": "Database migration status and rollback history (Issue"
     },
     {
       "name": "Multi-sig",
@@ -274,6 +282,140 @@
         "responses": {
           "200": {
             "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v1/admin-audit": {
+      "get": {
+        "summary": "List paginated admin audit log entries",
+        "tags": [
+          "Admin Audit"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "maximum": 200
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "in": "query",
+            "name": "actionType",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by action type (e.g. employee_created)"
+          },
+          {
+            "in": "query",
+            "name": "resourceType",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by resource type (e.g. employee, payment)"
+          },
+          {
+            "in": "query",
+            "name": "actorId",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "severity",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "info",
+                "warning",
+                "critical"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "fromDate",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "in": "query",
+            "name": "toDate",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of audit entries"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/admin-audit/summary": {
+      "get": {
+        "summary": "Aggregate counts by action type, resource type, and actor",
+        "tags": [
+          "Admin Audit"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Audit summary statistics"
+          }
+        }
+      }
+    },
+    "/api/v1/admin-audit/export": {
+      "get": {
+        "summary": "Export admin audit log as CSV (max 10 000 rows)",
+        "tags": [
+          "Admin Audit"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV file attachment",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           }
         }
       }
@@ -1339,6 +1481,196 @@
         }
       }
     },
+    "/api/v1/db-scaling/connection-breakdown": {
+      "get": {
+        "summary": "Active connections grouped by state and application (Part 37)",
+        "description": "Aggregates pg_stat_activity rows for the current database by backend state and application_name. Useful for spotting connection leaks or idle-in-transaction buildup per client.\n",
+        "tags": [
+          "DB Scaling"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Connection breakdown rows"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/api/v1/db-scaling/db-settings": {
+      "get": {
+        "summary": "Scaling-relevant PostgreSQL configuration parameters (Part 37)",
+        "description": "Returns a curated subset of pg_settings that affect connection pooling, memory allocation, WAL sizing, autovacuum, and query timeouts.\n",
+        "tags": [
+          "DB Scaling"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Database settings list"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/api/v1/db-scaling/seq-scan-stats": {
+      "get": {
+        "summary": "Tables with high sequential scan counts (Part 38)",
+        "description": "Lists user tables ordered by seq_scan descending. A high seqScanRatio indicates missing or unused indexes worth investigating.\n",
+        "tags": [
+          "DB Scaling"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sequential scan statistics per table"
+          },
+          "400": {
+            "description": "Invalid limit parameter"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/api/v1/db-scaling/wal-stats": {
+      "get": {
+        "summary": "WAL generation statistics since last stats reset (Part 38)",
+        "description": "Queries pg_stat_wal for cumulative WAL records, bytes written, buffer overflows, and write/sync timing.\n",
+        "tags": [
+          "DB Scaling"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "WAL statistics snapshot"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/api/v1/db-scaling/bgwriter-stats": {
+      "get": {
+        "summary": "Background writer and checkpoint activity statistics (Part 41)",
+        "description": "Returns a single-row snapshot from pg_stat_bgwriter covering checkpoint frequency (timed vs requested), buffer write counts per writer, backend fsync calls, and checkpoint I/O durations. Useful for tuning checkpoint_completion_target and bgwriter_lru_maxpages.\n",
+        "tags": [
+          "DB Scaling"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "BGWriter stats snapshot"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/api/v1/db-scaling/temp-file-usage": {
+      "get": {
+        "summary": "Temporary file spill usage for the current database (Part 42)",
+        "description": "Returns temp_files and temp_bytes from pg_stat_database. High values indicate queries exceeding work_mem and spilling sorts/hashes to disk.\n",
+        "tags": [
+          "DB Scaling"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Temp file usage snapshot"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/api/v1/db-scaling/database-stats": {
+      "get": {
+        "summary": "Database-level statistics for the current database (Part 41)",
+        "description": "Returns a snapshot from pg_stat_database for the active database, including transaction throughput (commits/rollbacks), overall buffer cache hit ratio, temporary file usage, deadlock count, and conflict count since the last stats reset.\n",
+        "tags": [
+          "DB Scaling"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Database-level stats snapshot"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/api/v1/db-scaling/block-io-stats": {
+      "get": {
+        "summary": "Block I/O and session timing statistics (Part 50)",
+        "description": "Returns cumulative blk_read_time, blk_write_time, session_time, active_time, and idle_in_transaction_time from pg_stat_database.\n",
+        "tags": [
+          "DB Scaling"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Block I/O timing snapshot"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
     "/api/v1/db-scaling/lock-contention": {
       "get": {
         "summary": "Active lock-wait chains between database backends (Part 39)",
@@ -1442,10 +1774,10 @@
         }
       }
     },
-    "/api/v1/db-scaling/bgwriter-stats": {
+    "/api/v1/db-scaling/table-io-stats": {
       "get": {
-        "summary": "Background writer and checkpoint activity statistics (Part 41)",
-        "description": "Returns a single-row snapshot from pg_stat_bgwriter covering checkpoint frequency (timed vs requested), buffer write counts per writer, backend fsync calls, and checkpoint I/O durations. Useful for tuning checkpoint_completion_target and bgwriter_lru_maxpages.\n",
+        "summary": "Per-table I/O statistics from pg_statio_user_tables (Part 49)",
+        "description": "Returns heap, index, and TOAST block read/hit counts per table ordered by total disk reads descending.  The computed heapCacheHitRatio reveals tables that are cache-cold and driving physical I/O.\n",
         "tags": [
           "DB Scaling"
         ],
@@ -1454,9 +1786,24 @@
             "bearerAuth": []
           }
         ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 30,
+              "maximum": 100
+            },
+            "description": "Maximum number of tables to return"
+          }
+        ],
         "responses": {
           "200": {
-            "description": "BGWriter stats snapshot"
+            "description": "Per-table I/O snapshot"
+          },
+          "400": {
+            "description": "Invalid limit parameter"
           },
           "500": {
             "description": "Internal server error"
@@ -1464,10 +1811,10 @@
         }
       }
     },
-    "/api/v1/db-scaling/database-stats": {
+    "/api/v1/db-scaling/index-usage-stats": {
       "get": {
-        "summary": "Database-level statistics for the current database (Part 41)",
-        "description": "Returns a snapshot from pg_stat_database for the active database, including transaction throughput (commits/rollbacks), overall buffer cache hit ratio, temporary file usage, deadlock count, and conflict count since the last stats reset.\n",
+        "summary": "Per-index access statistics from pg_stat_user_indexes (Part 49)",
+        "description": "Returns scan count, rows read, and rows fetched per index ordered by scan frequency descending.  Indexes with zero idx_scan are candidates for removal; hot indexes with high idx_tup_read inform cache sizing.\n",
         "tags": [
           "DB Scaling"
         ],
@@ -1476,9 +1823,24 @@
             "bearerAuth": []
           }
         ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 30,
+              "maximum": 100
+            },
+            "description": "Maximum number of indexes to return"
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Database-level stats snapshot"
+            "description": "Per-index usage snapshot"
+          },
+          "400": {
+            "description": "Invalid limit parameter"
           },
           "500": {
             "description": "Internal server error"
@@ -1813,6 +2175,75 @@
         "responses": {
           "200": {
             "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v1/migrations/status": {
+      "get": {
+        "summary": "Full migration status report",
+        "description": "Returns applied migrations, pending migrations with rollback availability, and recent rollback history.",
+        "tags": [
+          "Migrations"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Migration status report"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/api/v1/migrations/applied": {
+      "get": {
+        "summary": "List applied migrations",
+        "tags": [
+          "Migrations"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of applied migrations with checksums and timestamps"
+          }
+        }
+      }
+    },
+    "/api/v1/migrations/rollbacks": {
+      "get": {
+        "summary": "Migration rollback history",
+        "tags": [
+          "Migrations"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rollback event log, most recent first"
           }
         }
       }
@@ -2450,6 +2881,126 @@
         }
       }
     },
+    "/api/v1/payroll-bonus/bonuses/by-type/{bonusType}": {
+      "get": {
+        "summary": "List bonus items filtered by type (performance, referral, project, etc.)",
+        "tags": [
+          "Payroll Bonus"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bonusType",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "performance",
+                "referral",
+                "project",
+                "retention",
+                "spot",
+                "other"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid bonus type"
+          }
+        }
+      }
+    },
+    "/api/v1/payroll-bonus/bonuses/performance": {
+      "get": {
+        "summary": "List performance bonuses, optionally filtered by minimum score",
+        "tags": [
+          "Payroll Bonus"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "minScore",
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "description": "Minimum performance score (0–100)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid minScore"
+          }
+        }
+      }
+    },
+    "/api/v1/payroll-bonus/runs/{id}/report": {
+      "get": {
+        "summary": "Get a combined payroll run report (run metadata + full audit trail)",
+        "tags": [
+          "Payroll Bonus"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Payroll run ID"
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Audit log page (default 1)"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Audit log page size (default 50)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Combined run summary and audit trail"
+          },
+          "404": {
+            "description": "Payroll run not found"
+          }
+        }
+      }
+    },
     "/api/v1/rate-limit/status": {
       "get": {
         "summary": "Get current rate limit status",
@@ -2534,6 +3085,62 @@
         "responses": {
           "200": {
             "description": "View refreshed successfully"
+          }
+        }
+      }
+    },
+    "/api/v1/scaling/latency-percentiles": {
+      "get": {
+        "summary": "p50 / p95 / p99 latency per endpoint (Part 25)",
+        "description": "Computes approximate latency percentiles from the api_latency_histogram table. Returns the top endpoints by p99 so you can spot regressions.\n",
+        "tags": [
+          "Scaling"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "in": "query",
+            "name": "windowMinutes",
+            "schema": {
+              "type": "integer",
+              "default": 60
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Latency percentile breakdown per endpoint"
+          }
+        }
+      }
+    },
+    "/api/v1/scaling/pool-history": {
+      "get": {
+        "summary": "Recent connection-pool health snapshots (Part 25)",
+        "description": "Returns time-series snapshots from db_pool_health so operators can spot connection-pool saturation trends without needing Grafana.\n",
+        "tags": [
+          "Scaling"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pool health snapshots, most recent first"
           }
         }
       }
