@@ -68,6 +68,7 @@ export interface PathPaymentParams {
   minimumDestinationAmount: string;
   path: PaymentPath;
   memo?: string;
+  paymentType?: 'strict_send' | 'strict_receive';
 }
 
 export interface PathPaymentResult {
@@ -91,6 +92,49 @@ export interface LiquidityPoolStats {
     liquidity: string;
     volume24h: string;
   }>;
+}
+
+// New interfaces for payroll integration
+export interface EmployeePaymentItem {
+  employeeId: string;
+  employeeAddress: string;
+  destinationAsset: AssetInfo;
+  destinationAmount: string;
+  maximumSourceAmount: string;
+  minimumDestinationAmount: string;
+}
+
+export interface PayrollPathPaymentParams {
+  employerAddress: string;
+  sourceAsset: AssetInfo;
+  employees: EmployeePaymentItem[];
+  paymentType: 'strict_send' | 'strict_receive';
+  maxSlippageBps?: number;
+  maxPriceImpactBps?: number;
+}
+
+export interface PayrollRunResult {
+  success: boolean;
+  runId?: string;
+  contractRunId?: number;
+  totalEmployees: number;
+  successfulPayments: number;
+  failedPayments: number;
+  totalSourceAmount?: string;
+  totalDestinationAmount?: string;
+  errors: Array<{
+    employeeId: string;
+    error: string;
+  }>;
+}
+
+export interface EmployerPathConfig {
+  employerAddress: string;
+  defaultSourceAsset: AssetInfo;
+  maxSlippageBps: number;
+  maxPriceImpactBps: number;
+  autoApproveThreshold: string;
+  isActive: boolean;
 }
 
 const HORIZON_URL = process.env.STELLAR_HORIZON_URL || 'https://horizon-testnet.stellar.org';
@@ -353,14 +397,24 @@ export class AssetPathPaymentService {
       const maxSourceAmount = params.maximumSourceAmount;
       const minDestAmount = params.minimumDestinationAmount;
 
-      const operation = Operation.pathPaymentStrictSend({
-        sendAsset: sourceAsset,
-        sendAmount: params.sourceAmount || maxSourceAmount,
-        destination: params.destinationAccount,
-        destAsset,
-        destMin: minDestAmount,
-        path: pathAssets,
-      });
+      // Choose operation type based on paymentType parameter
+      const operation = params.paymentType === 'strict_receive'
+        ? Operation.pathPaymentStrictReceive({
+            sendAsset: sourceAsset,
+            sendMax: maxSourceAmount,
+            destination: params.destinationAccount,
+            destAsset,
+            destAmount: params.destinationAmount || minDestAmount,
+            path: pathAssets,
+          })
+        : Operation.pathPaymentStrictSend({
+            sendAsset: sourceAsset,
+            sendAmount: params.sourceAmount || maxSourceAmount,
+            destination: params.destinationAccount,
+            destAsset,
+            destMin: minDestAmount,
+            path: pathAssets,
+          });
 
       const transaction = new TransactionBuilder(sourceAccount, {
         fee: '100',
@@ -376,6 +430,8 @@ export class AssetPathPaymentService {
         sourceAsset: params.sourceAsset.code,
         destinationAsset: params.destinationAsset.code,
         sourceAmount: params.sourceAmount,
+        destinationAmount: params.destinationAmount,
+        paymentType: params.paymentType || 'strict_send',
         minDestAmount,
       });
 
@@ -383,7 +439,7 @@ export class AssetPathPaymentService {
         success: true,
         txHash: transaction.hash().toString('hex'),
         effectiveRate:
-          parseFloat(params.destinationAmount) / parseFloat(params.sourceAmount || '1'),
+          parseFloat(params.destinationAmount || '0') / parseFloat(params.sourceAmount || '1'),
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -419,6 +475,255 @@ export class AssetPathPaymentService {
         error: errorMessage,
       };
     }
+  }
+
+  // ── PAYROLL PATH PAYMENT METHODS ─────────────────────────────────
+
+  /// Configure employer for path payment payrolls
+  static async configureEmployerPathPayments(config: EmployerPathConfig): Promise<boolean> {
+    try {
+      // This would integrate with the Soroban contract
+      logger.info('Configuring employer for path payments', {
+        employer: config.employerAddress,
+        defaultSourceAsset: config.defaultSourceAsset,
+        maxSlippageBps: config.maxSlippageBps,
+        maxPriceImpactBps: config.maxPriceImpactBps,
+        autoApproveThreshold: config.autoApproveThreshold,
+      });
+
+      // TODO: Call Soroban contract configure_employer function
+      // const contractClient = new SorobanContractClient(...);
+      // await contractClient.configure_employer(...);
+
+      return true;
+    } catch (error) {
+      logger.error('Failed to configure employer path payments', { error, config });
+      return false;
+    }
+  }
+
+  /// Execute payroll using path payments for asset conversion
+  static async executePayrollPathPayments(
+    params: PayrollPathPaymentParams
+  ): Promise<PayrollRunResult> {
+    const result: PayrollRunResult = {
+      success: false,
+      totalEmployees: params.employees.length,
+      successfulPayments: 0,
+      failedPayments: 0,
+      errors: [],
+    };
+
+    try {
+      logger.info('Executing payroll path payments', {
+        employer: params.employerAddress,
+        sourceAsset: params.sourceAsset,
+        totalEmployees: params.employees.length,
+        paymentType: params.paymentType,
+      });
+
+      // Validate employer configuration
+      // TODO: Check if employer is configured for path payments
+      
+      // Calculate total amounts needed
+      let totalSourceNeeded = '0';
+      let totalDestExpected = '0';
+
+      if (params.paymentType === 'strict_send') {
+        totalSourceNeeded = params.employees
+          .reduce((sum, emp) => sum + parseFloat(emp.maximumSourceAmount), 0)
+          .toString();
+      } else {
+        totalDestExpected = params.employees
+          .reduce((sum, emp) => sum + parseFloat(emp.destinationAmount), 0)
+          .toString();
+      }
+
+      // TODO: Call Soroban contract initiate_payroll_run function
+      // const contractRunId = await contractClient.initiate_payroll_run(...);
+      const contractRunId = Date.now(); // Mock for now
+
+      result.contractRunId = contractRunId;
+      result.runId = `payroll_${contractRunId}`;
+
+      // Process each employee payment
+      for (const employee of params.employees) {
+        try {
+          // Find optimal path for this employee's payment
+          const paths = await this.findOptimalPath({
+            sourceAsset: params.sourceAsset,
+            destinationAsset: employee.destinationAsset,
+            amount: params.paymentType === 'strict_send' 
+              ? employee.maximumSourceAmount 
+              : employee.destinationAmount,
+            amountType: params.paymentType === 'strict_send' ? 'source' : 'destination',
+            maximumSlippage: params.maxSlippageBps ? params.maxSlippageBps / 100 : undefined,
+            maximumPriceImpact: params.maxPriceImpactBps ? params.maxPriceImpactBps / 100 : undefined,
+          });
+
+          if (paths.length === 0) {
+            throw new Error(`No path found from ${params.sourceAsset.code} to ${employee.destinationAsset.code}`);
+          }
+
+          const bestPath = paths[0];
+
+          // Execute the path payment
+          const paymentResult = await this.executePathPayment({
+            sourceAccount: params.employerAddress,
+            destinationAccount: employee.employeeAddress,
+            sourceAsset: params.sourceAsset,
+            destinationAsset: employee.destinationAsset,
+            sourceAmount: params.paymentType === 'strict_send' ? employee.maximumSourceAmount : undefined,
+            destinationAmount: params.paymentType === 'strict_receive' ? employee.destinationAmount : undefined,
+            maximumSourceAmount: employee.maximumSourceAmount,
+            minimumDestinationAmount: employee.minimumDestinationAmount,
+            path: bestPath,
+            paymentType: params.paymentType,
+          });
+
+          if (paymentResult.success) {
+            result.successfulPayments++;
+            
+            // TODO: Update contract with successful payment
+            // await contractClient.process_employee_payment(contractRunId, employee.employeeId, ...);
+            
+            logger.info('Employee payment successful', {
+              employeeId: employee.employeeId,
+              txHash: paymentResult.txHash,
+              actualSourceAmount: paymentResult.actualSourceAmount,
+              actualDestinationAmount: paymentResult.actualDestinationAmount,
+            });
+          } else {
+            result.failedPayments++;
+            result.errors.push({
+              employeeId: employee.employeeId,
+              error: paymentResult.error || 'Payment failed',
+            });
+
+            logger.error('Employee payment failed', {
+              employeeId: employee.employeeId,
+              error: paymentResult.error,
+            });
+          }
+        } catch (error) {
+          result.failedPayments++;
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          result.errors.push({
+            employeeId: employee.employeeId,
+            error: errorMessage,
+          });
+
+          logger.error('Employee payment processing failed', {
+            employeeId: employee.employeeId,
+            error: errorMessage,
+          });
+        }
+      }
+
+      // Complete the payroll run
+      // TODO: Call contract complete_payroll_run function
+      // await contractClient.complete_payroll_run(contractRunId, result.successfulPayments, result.failedPayments);
+
+      result.success = result.successfulPayments > 0;
+      result.totalSourceAmount = totalSourceNeeded;
+      result.totalDestinationAmount = totalDestExpected;
+
+      logger.info('Payroll path payments completed', {
+        runId: result.runId,
+        totalEmployees: result.totalEmployees,
+        successfulPayments: result.successfulPayments,
+        failedPayments: result.failedPayments,
+        success: result.success,
+      });
+
+      return result;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Payroll path payments failed', { error: errorMessage, params });
+
+      result.errors.push({
+        employeeId: 'ALL',
+        error: errorMessage,
+      });
+
+      return result;
+    }
+  }
+
+  /// Estimate payroll costs with path payment conversion
+  static async estimatePayrollPathCosts(
+    sourceAsset: AssetInfo,
+    employees: Array<{
+      destinationAsset: AssetInfo;
+      destinationAmount: string;
+    }>,
+    paymentType: 'strict_send' | 'strict_receive'
+  ): Promise<{
+    totalEstimatedSourceCost: string;
+    totalDestinationAmount: string;
+    averageSlippage: number;
+    averagePriceImpact: number;
+    feasibleEmployees: number;
+    infeasibleEmployees: Array<{ index: number; reason: string; }>;
+  }> {
+    let totalEstimatedCost = 0;
+    let totalDestAmount = 0;
+    let totalSlippage = 0;
+    let totalPriceImpact = 0;
+    let feasibleCount = 0;
+    const infeasibleEmployees: Array<{ index: number; reason: string; }> = [];
+
+    for (let i = 0; i < employees.length; i++) {
+      const employee = employees[i];
+      
+      try {
+        const paths = await this.findOptimalPath({
+          sourceAsset,
+          destinationAsset: employee.destinationAsset,
+          amount: employee.destinationAmount,
+          amountType: 'destination',
+        });
+
+        if (paths.length === 0) {
+          infeasibleEmployees.push({
+            index: i,
+            reason: `No path from ${sourceAsset.code} to ${employee.destinationAsset.code}`,
+          });
+          continue;
+        }
+
+        const bestPath = paths[0];
+        const estimatedSourceCost = parseFloat(bestPath.sourceAmount);
+        
+        if (estimatedSourceCost <= 0) {
+          infeasibleEmployees.push({
+            index: i,
+            reason: 'Invalid source amount calculated',
+          });
+          continue;
+        }
+
+        totalEstimatedCost += estimatedSourceCost;
+        totalDestAmount += parseFloat(employee.destinationAmount);
+        totalSlippage += bestPath.slippage;
+        totalPriceImpact += bestPath.priceImpact;
+        feasibleCount++;
+      } catch (error) {
+        infeasibleEmployees.push({
+          index: i,
+          reason: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    }
+
+    return {
+      totalEstimatedSourceCost: totalEstimatedCost.toString(),
+      totalDestinationAmount: totalDestAmount.toString(),
+      averageSlippage: feasibleCount > 0 ? totalSlippage / feasibleCount : 0,
+      averagePriceImpact: feasibleCount > 0 ? totalPriceImpact / feasibleCount : 0,
+      feasibleEmployees: feasibleCount,
+      infeasibleEmployees,
+    };
   }
 
   static async getLiquidityPools(assetPair?: {

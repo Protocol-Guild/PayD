@@ -2,7 +2,7 @@
 
 use soroban_sdk::{
     Address, Env, String, Symbol, Vec, contract, contracterror, contractevent, contractimpl,
-    contracttype, symbol_short, token,
+    contracttype, symbol_short, token, map, Map
 };
 
 /// Errors for path payment operations
@@ -23,6 +23,12 @@ pub enum PathPaymentError {
     InvalidPath = 11,
     PriceImpactTooHigh = 12,
     TransferFailed = 13,
+    PayrollRunNotFound = 14,
+    InvalidPayrollRun = 15,
+    EmployeeNotFound = 16,
+    DuplicateEmployeeInBatch = 17,
+    BatchTooLarge = 18,
+    InvalidEmployer = 19,
 }
 
 /// Storage keys
@@ -32,6 +38,10 @@ pub enum DataKey {
     Admin,
     PaymentCount,
     Payment(u64),
+    PayrollRunCount,
+    PayrollRun(u64),
+    EmployerConfig(Address),
+    BatchLimit,
 }
 
 /// Path hop representing intermediate asset in path payment
@@ -59,6 +69,51 @@ pub struct PathPaymentRecord {
     pub status: Symbol,
     pub error_message: Option<String>,
     pub partial_failure: bool,
+    pub payroll_run_id: Option<u64>,
+    pub employee_id: Option<String>,
+}
+
+/// Employer configuration for payroll path payments
+#[contracttype]
+#[derive(Clone, Debug, PartialEq)]
+pub struct EmployerConfig {
+    pub employer: Address,
+    pub default_source_asset: Address,
+    pub max_slippage_bps: u32,  // basis points (e.g., 500 = 5%)
+    pub max_price_impact_bps: u32,
+    pub auto_approve_threshold: i128,
+    pub is_active: bool,
+}
+
+/// Employee payment item for batch payroll
+#[contracttype]
+#[derive(Clone, Debug, PartialEq)]
+pub struct EmployeePayment {
+    pub employee_id: String,
+    pub employee_address: Address,
+    pub dest_asset: Address,
+    pub dest_amount: i128,
+    pub max_source_amount: i128,
+    pub min_dest_amount: i128,
+    pub status: Symbol,
+}
+
+/// Payroll run record for batch payments
+#[contracttype]
+#[derive(Clone, Debug, PartialEq)]
+pub struct PayrollRun {
+    pub run_id: u64,
+    pub employer: Address,
+    pub source_asset: Address,
+    pub total_employees: u32,
+    pub successful_payments: u32,
+    pub failed_payments: u32,
+    pub total_source_amount: i128,
+    pub total_dest_amount: i128,
+    pub status: Symbol,
+    pub created_at: u64,
+    pub completed_at: Option<u64>,
+    pub error_message: Option<String>,
 }
 
 /// Event emitted when a path payment is initiated
@@ -90,10 +145,41 @@ pub struct PathPaymentFailed {
     pub partial_failure: bool,
 }
 
+/// Event emitted when a payroll run is initiated
+#[contractevent]
+pub struct PayrollRunInitiated {
+    pub run_id: u64,
+    pub employer: Address,
+    pub source_asset: Address,
+    pub total_employees: u32,
+    pub total_source_amount: i128,
+}
+
+/// Event emitted when a payroll run completes
+#[contractevent]
+pub struct PayrollRunCompleted {
+    pub run_id: u64,
+    pub successful_payments: u32,
+    pub failed_payments: u32,
+    pub total_dest_amount: i128,
+}
+
+/// Event emitted when an employee payment in payroll completes
+#[contractevent]
+pub struct EmployeePaymentCompleted {
+    pub run_id: u64,
+    pub employee_id: String,
+    pub employee_address: Address,
+    pub dest_asset: Address,
+    pub actual_dest_amount: i128,
+    pub actual_source_amount: i128,
+}
+
 const PERSISTENT_TTL_THRESHOLD: u32 = 20_000;
 const PERSISTENT_TTL_EXTEND_TO: u32 = 120_000;
 const TEMPORARY_TTL_THRESHOLD: u32 = 2_000;
 const TEMPORARY_TTL_EXTEND_TO: u32 = 20_000;
+const DEFAULT_BATCH_LIMIT: u32 = 100;
 
 #[contract]
 pub struct AssetPathPaymentContract;
@@ -126,6 +212,12 @@ impl AssetPathPaymentContract {
         env.storage()
             .persistent()
             .set(&DataKey::PaymentCount, &0u64);
+        env.storage()
+            .persistent()
+            .set(&DataKey::PayrollRunCount, &0u64);
+        env.storage()
+            .persistent()
+            .set(&DataKey::BatchLimit, &DEFAULT_BATCH_LIMIT);
         Self::bump_core_ttl(&env);
     }
 
@@ -383,6 +475,304 @@ impl AssetPathPaymentContract {
         Ok(())
     }
 
+    // ── PAYROLL INTEGRATION FUNCTIONS ─────────────────────────────────
+
+    /// Configure employer settings for payroll path payments
+    pub fn configure_employer(
+        env: Env,
+        employer: Address,
+        default_source_asset: Address,
+        max_slippage_bps: u32,
+        max_price_impact_bps: u32,
+        auto_approve_threshold: i128,
+    ) -> Result<(), PathPaymentError> {
+        Self::require_admin(&env);
+
+        if max_slippage_bps > 10000 || max_price_impact_bps > 10000 {
+            return Err(PathPaymentError::InvalidAmount);
+        }
+
+        let config = EmployerConfig {
+            employer: employer.clone(),
+            default_source_asset,
+            max_slippage_bps,
+            max_price_impact_bps,
+            auto_approve_threshold,
+            is_active: true,
+        };
+
+        let key = DataKey::EmployerConfig(employer);
+        env.storage().persistent().set(&key, &config);
+        env.storage().persistent().extend_ttl(
+            &key,
+            PERSISTENT_TTL_THRESHOLD,
+            PERSISTENT_TTL_EXTEND_TO,
+        );
+
+        Ok(())
+    }
+
+    /// Get employer configuration
+    pub fn get_employer_config(env: Env, employer: Address) -> Option<EmployerConfig> {
+        let key = DataKey::EmployerConfig(employer);
+        let config: Option<EmployerConfig> = env.storage().persistent().get(&key);
+
+        if config.is_some() {
+            env.storage().persistent().extend_ttl(
+                &key,
+                PERSISTENT_TTL_THRESHOLD,
+                PERSISTENT_TTL_EXTEND_TO,
+            );
+        }
+        config
+    }
+
+    /// Initiate batch payroll using path payments
+    /// This function supports both PathPaymentStrictSend and PathPaymentStrictReceive
+    pub fn initiate_payroll_run(
+        env: Env,
+        employer: Address,
+        source_asset: Address,
+        employees: Vec<EmployeePayment>,
+        payment_type: Symbol, // "strict_send" or "strict_receive"
+    ) -> Result<u64, PathPaymentError> {
+        employer.require_auth();
+
+        // Validate employer configuration
+        let config = Self::get_employer_config(env.clone(), employer.clone())
+            .ok_or(PathPaymentError::InvalidEmployer)?;
+
+        if !config.is_active {
+            return Err(PathPaymentError::InvalidEmployer);
+        }
+
+        // Check batch size limit
+        let batch_limit: u32 = env
+            .storage()
+            .persistent()
+            .get(&DataKey::BatchLimit)
+            .unwrap_or(DEFAULT_BATCH_LIMIT);
+
+        if employees.len() > batch_limit {
+            return Err(PathPaymentError::BatchTooLarge);
+        }
+
+        // Validate employees and check for duplicates
+        let mut employee_set = map![&env];
+        let mut total_source_amount = 0i128;
+        let mut total_dest_amount = 0i128;
+
+        for employee in employees.iter() {
+            if employee_set.contains_key(employee.employee_id.clone()) {
+                return Err(PathPaymentError::DuplicateEmployeeInBatch);
+            }
+            employee_set.set(employee.employee_id.clone(), true);
+
+            if employee.dest_amount <= 0 || employee.max_source_amount <= 0 {
+                return Err(PathPaymentError::InvalidAmount);
+            }
+
+            if payment_type == symbol_short!("strict_send") {
+                total_source_amount += employee.max_source_amount;
+            } else {
+                total_dest_amount += employee.dest_amount;
+            }
+        }
+
+        // Create payroll run record
+        Self::bump_core_ttl(&env);
+        let mut run_count: u64 = env
+            .storage()
+            .persistent()
+            .get(&DataKey::PayrollRunCount)
+            .unwrap_or(0);
+        run_count += 1;
+        env.storage()
+            .persistent()
+            .set(&DataKey::PayrollRunCount, &run_count);
+
+        let payroll_run = PayrollRun {
+            run_id: run_count,
+            employer: employer.clone(),
+            source_asset: source_asset.clone(),
+            total_employees: employees.len() as u32,
+            successful_payments: 0,
+            failed_payments: 0,
+            total_source_amount,
+            total_dest_amount,
+            status: symbol_short!("pending"),
+            created_at: env.ledger().timestamp(),
+            completed_at: None,
+            error_message: None,
+        };
+
+        let run_key = DataKey::PayrollRun(run_count);
+        env.storage().persistent().set(&run_key, &payroll_run);
+        env.storage().persistent().extend_ttl(
+            &run_key,
+            PERSISTENT_TTL_THRESHOLD,
+            PERSISTENT_TTL_EXTEND_TO,
+        );
+
+        // If using strict_send, transfer total source amount to contract
+        if payment_type == symbol_short!("strict_send") && total_source_amount > 0 {
+            let token_client = token::Client::new(&env, &source_asset);
+            let contract_addr = env.current_contract_address();
+            token_client.transfer(&employer, &contract_addr, &total_source_amount);
+        }
+
+        PayrollRunInitiated {
+            run_id: run_count,
+            employer,
+            source_asset,
+            total_employees: employees.len() as u32,
+            total_source_amount,
+        }
+        .publish(&env);
+
+        Ok(run_count)
+    }
+
+    /// Process individual employee payment in payroll run (called by backend)
+    pub fn process_employee_payment(
+        env: Env,
+        run_id: u64,
+        employee_id: String,
+        actual_source_amount: i128,
+        actual_dest_amount: i128,
+    ) -> Result<(), PathPaymentError> {
+        Self::require_admin(&env);
+
+        let run_key = DataKey::PayrollRun(run_id);
+        let mut payroll_run: PayrollRun = env
+            .storage()
+            .persistent()
+            .get(&run_key)
+            .ok_or(PathPaymentError::PayrollRunNotFound)?;
+
+        if payroll_run.status != symbol_short!("pending") {
+            return Err(PathPaymentError::InvalidPayrollRun);
+        }
+
+        payroll_run.successful_payments += 1;
+        payroll_run.total_dest_amount += actual_dest_amount;
+
+        env.storage().persistent().set(&run_key, &payroll_run);
+        env.storage().persistent().extend_ttl(
+            &run_key,
+            PERSISTENT_TTL_THRESHOLD,
+            PERSISTENT_TTL_EXTEND_TO,
+        );
+
+        Ok(())
+    }
+
+    /// Complete payroll run
+    pub fn complete_payroll_run(
+        env: Env,
+        run_id: u64,
+        successful_payments: u32,
+        failed_payments: u32,
+    ) -> Result<(), PathPaymentError> {
+        Self::require_admin(&env);
+
+        let run_key = DataKey::PayrollRun(run_id);
+        let mut payroll_run: PayrollRun = env
+            .storage()
+            .persistent()
+            .get(&run_key)
+            .ok_or(PathPaymentError::PayrollRunNotFound)?;
+
+        if payroll_run.status != symbol_short!("pending") {
+            return Err(PathPaymentError::InvalidPayrollRun);
+        }
+
+        payroll_run.status = symbol_short!("completed");
+        payroll_run.successful_payments = successful_payments;
+        payroll_run.failed_payments = failed_payments;
+        payroll_run.completed_at = Some(env.ledger().timestamp());
+
+        env.storage().persistent().set(&run_key, &payroll_run);
+        env.storage().persistent().extend_ttl(
+            &run_key,
+            PERSISTENT_TTL_THRESHOLD,
+            PERSISTENT_TTL_EXTEND_TO,
+        );
+
+        PayrollRunCompleted {
+            run_id,
+            successful_payments,
+            failed_payments,
+            total_dest_amount: payroll_run.total_dest_amount,
+        }
+        .publish(&env);
+
+        Ok(())
+    }
+
+    /// Get payroll run details
+    pub fn get_payroll_run(env: Env, run_id: u64) -> Option<PayrollRun> {
+        let key = DataKey::PayrollRun(run_id);
+        let run: Option<PayrollRun> = env.storage().persistent().get(&key);
+
+        if run.is_some() {
+            env.storage().persistent().extend_ttl(
+                &key,
+                PERSISTENT_TTL_THRESHOLD,
+                PERSISTENT_TTL_EXTEND_TO,
+            );
+        }
+        run
+    }
+
+    /// Get total payroll run count
+    pub fn get_payroll_run_count(env: Env) -> u64 {
+        let key = DataKey::PayrollRunCount;
+        let count = env.storage().persistent().get(&key).unwrap_or(0);
+
+        if env.storage().persistent().has(&key) {
+            env.storage().persistent().extend_ttl(
+                &key,
+                PERSISTENT_TTL_THRESHOLD,
+                PERSISTENT_TTL_EXTEND_TO,
+            );
+        }
+        count
+    }
+
+    /// Set batch size limit (admin only)
+    pub fn set_batch_limit(env: Env, limit: u32) -> Result<(), PathPaymentError> {
+        Self::require_admin(&env);
+
+        if limit == 0 || limit > 1000 {
+            return Err(PathPaymentError::InvalidAmount);
+        }
+
+        env.storage().persistent().set(&DataKey::BatchLimit, &limit);
+        env.storage().persistent().extend_ttl(
+            &DataKey::BatchLimit,
+            PERSISTENT_TTL_THRESHOLD,
+            PERSISTENT_TTL_EXTEND_TO,
+        );
+
+        Ok(())
+    }
+
+    /// Get current batch limit
+    pub fn get_batch_limit(env: Env) -> u32 {
+        let key = DataKey::BatchLimit;
+        let limit = env.storage().persistent().get(&key).unwrap_or(DEFAULT_BATCH_LIMIT);
+
+        if env.storage().persistent().has(&key) {
+            env.storage().persistent().extend_ttl(
+                &key,
+                PERSISTENT_TTL_THRESHOLD,
+                PERSISTENT_TTL_EXTEND_TO,
+            );
+        }
+        limit
+    }
+
     /// Require admin authorization
     fn require_admin(env: &Env) {
         let admin: Address = env
@@ -400,7 +790,12 @@ impl AssetPathPaymentContract {
 
     /// Extend TTL for core storage entries
     fn bump_core_ttl(env: &Env) {
-        for key in [DataKey::Admin, DataKey::PaymentCount] {
+        for key in [
+            DataKey::Admin, 
+            DataKey::PaymentCount, 
+            DataKey::PayrollRunCount,
+            DataKey::BatchLimit
+        ] {
             if env.storage().persistent().has(&key) {
                 env.storage().persistent().extend_ttl(
                     &key,
