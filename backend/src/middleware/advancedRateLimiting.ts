@@ -84,7 +84,7 @@ export function advancedRateLimitMiddleware(options: AdvancedRateLimitOptions = 
     }
 
     try {
-      const result = await rateLimitService.checkRateLimit(clientIdentifier, effectiveTier);
+      const result = await rateLimitService.checkRateLimit(clientIdentifier, effectiveTier, req.tenantId);
 
       // Set standard rate limit headers
       res.setHeader('X-RateLimit-Limit', result.limit);

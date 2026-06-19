@@ -1,7 +1,29 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { employeeController } from '../controllers/employeeController.js';
 import authenticateJWT from '../middlewares/auth.js';
 import { authorizeRoles, isolateOrganization } from '../middlewares/rbac.js';
+import { tenantQuotaService, QuotaExceededError } from '../services/tenantQuotaService.js';
+
+async function enforceEmployeeQuota(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const orgId = req.tenantId ?? req.user?.organizationId;
+  if (!orgId) { next(); return; }
+  try {
+    await tenantQuotaService.assertEmployeeQuota(orgId);
+    next();
+  } catch (err) {
+    if (err instanceof QuotaExceededError) {
+      res.status(429).json({
+        error: 'Quota exceeded',
+        resource: err.resource,
+        current: err.current,
+        limit: err.limit,
+        message: `Employee quota reached (${err.current}/${err.limit}). Contact support to increase your limit.`,
+      });
+    } else {
+      next(err);
+    }
+  }
+}
 
 const router = Router();
 
@@ -16,6 +38,7 @@ router.post(
   '/',
   authorizeRoles('EMPLOYER'),
   isolateOrganization,
+  enforceEmployeeQuota,
   employeeController.create.bind(employeeController)
 );
 

@@ -28,6 +28,10 @@ import contractEventRoutes from './routes/contractEventRoutes.js';
 import certificateRoutes from './routes/certificateRoutes.js';
 import cashFlowForecastRoutes from './routes/cashFlowForecastRoutes.js';
 
+// Part 49 — admin, audit integrity, per-tenant rate limits, quotas
+import adminRoutes from './routes/adminRoutes.js';
+import tenantUsageRoutes from './routes/tenantUsageRoutes.js';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -70,6 +74,8 @@ app.use('/api/schedules', scheduleRoutes);
 app.use('/api/events', contractEventRoutes);
 app.use('/api/certificates', certificateRoutes);
 app.use('/api/cash-flow', cashFlowForecastRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/usage', tenantUsageRoutes);
 
 // 404 handler
 app.use((req, res) => {

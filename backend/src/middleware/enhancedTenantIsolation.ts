@@ -158,6 +158,46 @@ export const validateActiveTenant = async (
 };
 
 /**
+ * Middleware that logs access to tenant_access_logs for every authenticated
+ * request. This gives tenant administrators a full access trail and supports
+ * anomaly detection (e.g. spike in unique IPs, unusual paths).
+ */
+export const logTenantAccess = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  // Fire-and-forget — never delay the request for logging
+  setImmediate(async () => {
+    try {
+      const tenantId = req.tenantId || req.user?.organizationId;
+      if (!tenantId) return;
+
+      await pool.query(
+        `INSERT INTO tenant_access_logs
+           (tenant_id, user_id, user_email, user_role, method, path,
+            ip_address, user_agent, created_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8, NOW())`,
+        [
+          tenantId,
+          req.user?.id ?? null,
+          req.user?.email ?? null,
+          req.user?.role ?? null,
+          req.method,
+          req.path,
+          req.headers['x-forwarded-for']?.toString().split(',')[0]?.trim() ?? req.ip ?? null,
+          req.headers['user-agent'] ?? null,
+        ]
+      );
+    } catch (err) {
+      logger.error('Failed to write tenant_access_log', { err });
+    }
+  });
+
+  next();
+};
+
+/**
  * Middleware to enforce Row Level Security (RLS) at the database level
  * Sets PostgreSQL session variables for automatic tenant filtering
  */
