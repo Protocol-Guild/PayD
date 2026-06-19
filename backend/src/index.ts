@@ -7,6 +7,7 @@ import { initializeSocket } from './services/socketService.js';
 import { scheduleExecutor } from './services/scheduleExecutor.js';
 import { contractEventIndexer } from './services/contractEventIndexer.js';
 import { liquidityAlertChecker } from './services/forecasting/liquidityAlertChecker.js';
+import { scheduleDailyUsageSnapshots, scheduleNightlyIntegrityCheck } from './jobs/part49Jobs.js';
 
 dotenv.config();
 
@@ -33,6 +34,11 @@ server.listen(PORT, () => {
   // Initialize ContractEventIndexer
   contractEventIndexer.initialize();
   logger.info('ContractEventIndexer initialized');
+
+  // Part 49 — daily quota snapshots + nightly audit-chain integrity
+  scheduleDailyUsageSnapshots();
+  scheduleNightlyIntegrityCheck();
+  logger.info('Part-49 jobs scheduled (usage snapshots + audit integrity)');
 });
 
 // Graceful shutdown handling
