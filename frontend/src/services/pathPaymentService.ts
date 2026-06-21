@@ -3,14 +3,11 @@
  * Handles all API interactions for Stellar path payment operations
  */
 
-import { apiClient } from './apiClient';
+import axiosInstance from '../api/axiosInstance';
 import type {
   PathPaymentConfig,
-  PayrollExecutionRequest,
   PayrollExecutionResponse,
-  CostEstimateRequest,
   CostEstimateResponse,
-  PathDiscoveryRequest,
   PathDiscoveryResponse,
   PayrollRunStatus,
   SupportedAssetsResponse,
@@ -50,8 +47,8 @@ export class PathPaymentService {
     errors?: string[];
   }> {
     try {
-      const response = await apiClient.post(`${this.baseUrl}/configure`, config);
-      return response.data;
+      const response = await axiosInstance.post(`${this.baseUrl}/configure`, config);
+      return response.data as { success: boolean; config?: PathPaymentConfig; message?: string; errors?: string[] };
     } catch (error) {
       console.error('Failed to configure organization:', error);
       throw this.handleError(error);
@@ -67,8 +64,8 @@ export class PathPaymentService {
     message?: string;
   }> {
     try {
-      const response = await apiClient.get(`${this.baseUrl}/config`);
-      return response.data;
+      const response = await axiosInstance.get(`${this.baseUrl}/config`);
+      return response.data as { success: boolean; config?: PathPaymentConfig; message?: string };
     } catch (error) {
       console.error('Failed to get organization config:', error);
       throw this.handleError(error);
@@ -86,8 +83,8 @@ export class PathPaymentService {
     maxPriceImpactBps?: number;
   }): Promise<PayrollExecutionResponse> {
     try {
-      const response = await apiClient.post(`${this.baseUrl}/payroll/execute`, request);
-      return response.data;
+      const response = await axiosInstance.post(`${this.baseUrl}/payroll/execute`, request);
+      return response.data as PayrollExecutionResponse;
     } catch (error) {
       console.error('Failed to execute payroll:', error);
       throw this.handleError(error);
@@ -108,8 +105,8 @@ export class PathPaymentService {
     maxPriceImpactBps?: number;
   }): Promise<CostEstimateResponse> {
     try {
-      const response = await apiClient.post(`${this.baseUrl}/payroll/estimate`, request);
-      return response.data;
+      const response = await axiosInstance.post(`${this.baseUrl}/payroll/estimate`, request);
+      return response.data as CostEstimateResponse;
     } catch (error) {
       console.error('Failed to estimate payroll costs:', error);
       throw this.handleError(error);
@@ -135,8 +132,22 @@ export class PathPaymentService {
     message?: string;
   }> {
     try {
-      const response = await apiClient.get(`${this.baseUrl}/payroll/runs/${runId}`);
-      return response.data;
+      const response = await axiosInstance.get(`${this.baseUrl}/payroll/runs/${runId}`);
+      return response.data as {
+        success: boolean;
+        payrollRun?: PayrollRunStatus;
+        employeePayments?: Array<{
+          id: string;
+          employeeId: number;
+          employeeAddress: string;
+          destinationAsset: AssetInfo;
+          destinationAmount: string;
+          actualDestinationAmount?: string;
+          status: string;
+          errorMessage?: string;
+        }>;
+        message?: string;
+      };
     } catch (error) {
       console.error('Failed to get payroll run status:', error);
       throw this.handleError(error);
@@ -165,8 +176,13 @@ export class PathPaymentService {
       if (params?.offset) queryParams.append('offset', params.offset.toString());
 
       const url = `${this.baseUrl}/payroll/runs${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-      const response = await apiClient.get(url);
-      return response.data;
+      const response = await axiosInstance.get(url);
+      return response.data as {
+        success: boolean;
+        payrollRuns?: PayrollRunStatus[];
+        pagination?: { limit: number; offset: number; total: number };
+        message?: string;
+      };
     } catch (error) {
       console.error('Failed to get payroll runs history:', error);
       throw this.handleError(error);
@@ -186,8 +202,8 @@ export class PathPaymentService {
     maxPriceImpactBps?: number;
   }): Promise<PathDiscoveryResponse> {
     try {
-      const response = await apiClient.post(`${this.baseUrl}/paths/find`, request);
-      return response.data;
+      const response = await axiosInstance.post(`${this.baseUrl}/paths/find`, request);
+      return response.data as PathDiscoveryResponse;
     } catch (error) {
       console.error('Failed to find optimal paths:', error);
       throw this.handleError(error);
@@ -199,8 +215,8 @@ export class PathPaymentService {
    */
   async getSupportedAssets(): Promise<SupportedAssetsResponse> {
     try {
-      const response = await apiClient.get(`${this.baseUrl}/assets`);
-      return response.data;
+      const response = await axiosInstance.get(`${this.baseUrl}/assets`);
+      return response.data as SupportedAssetsResponse;
     } catch (error) {
       console.error('Failed to get supported assets:', error);
       throw this.handleError(error);
@@ -212,8 +228,8 @@ export class PathPaymentService {
    */
   async getLiquidityPoolStats(): Promise<LiquidityStatsResponse> {
     try {
-      const response = await apiClient.get(`${this.baseUrl}/liquidity/stats`);
-      return response.data;
+      const response = await axiosInstance.get(`${this.baseUrl}/liquidity/stats`);
+      return response.data as LiquidityStatsResponse;
     } catch (error) {
       console.error('Failed to get liquidity stats:', error);
       throw this.handleError(error);
@@ -223,13 +239,12 @@ export class PathPaymentService {
   /**
    * Subscribe to real-time payroll run updates
    */
-  subscribeToPayrollUpdates(runId: string, callback: (update: any) => void): () => void {
-    // WebSocket or Server-Sent Events implementation
+  subscribeToPayrollUpdates(runId: string, callback: (update: unknown) => void): () => void {
     const eventSource = new EventSource(`${this.baseUrl}/payroll/runs/${runId}/stream`);
-    
+
     eventSource.onmessage = (event) => {
       try {
-        const data = JSON.parse(event.data);
+        const data = JSON.parse(event.data as string) as unknown;
         callback(data);
       } catch (error) {
         console.error('Failed to parse payroll update:', error);
@@ -275,15 +290,9 @@ export class PathPaymentService {
    * Calculate estimated execution time based on batch size
    */
   estimateExecutionTime(employeeCount: number, averagePathLength: number = 2): number {
-    // Base time for transaction processing
-    const baseTimePerEmployee = 2; // seconds
-    
-    // Additional time for path complexity
+    const baseTimePerEmployee = 2;
     const pathComplexityFactor = averagePathLength * 0.5;
-    
-    // Network congestion factor
     const networkFactor = 1.2;
-    
     return Math.ceil(employeeCount * (baseTimePerEmployee + pathComplexityFactor) * networkFactor);
   }
 
@@ -300,12 +309,12 @@ export class PathPaymentService {
     const totalAmountsByAsset = new Map<string, string>();
 
     employees.forEach(emp => {
-      const assetKey = emp.destinationAsset.isNative 
-        ? 'XLM' 
+      const assetKey = emp.destinationAsset.isNative
+        ? 'XLM'
         : `${emp.destinationAsset.code}:${emp.destinationAsset.issuer}`;
-      
+
       uniqueAssetsMap.set(assetKey, emp.destinationAsset);
-      
+
       const currentTotal = parseFloat(totalAmountsByAsset.get(assetKey) || '0');
       const employeeAmount = parseFloat(emp.destinationAmount);
       totalAmountsByAsset.set(assetKey, (currentTotal + employeeAmount).toString());
@@ -313,7 +322,7 @@ export class PathPaymentService {
 
     const totalValue = Array.from(totalAmountsByAsset.values())
       .reduce((sum, amount) => sum + parseFloat(amount), 0);
-    
+
     return {
       totalEmployees: employees.length,
       uniqueAssets: Array.from(uniqueAssetsMap.values()),
@@ -339,14 +348,12 @@ export class PathPaymentService {
     const issues: string[] = [];
     const recommendations: string[] = [];
 
-    // Check batch size
     if (request.employees.length > 100) {
       issues.push('Batch size exceeds maximum limit of 100 employees');
       recommendations.push('Consider splitting the payroll into smaller batches');
     }
 
-    // Check asset diversity
-    const uniqueAssets = new Set(request.employees.map(emp => 
+    const uniqueAssets = new Set(request.employees.map(emp =>
       emp.destinationAsset.isNative ? 'XLM' : `${emp.destinationAsset.code}:${emp.destinationAsset.issuer}`
     ));
 
@@ -355,7 +362,6 @@ export class PathPaymentService {
       recommendations.push('Consider consolidating to fewer destination assets');
     }
 
-    // Validate all assets
     const invalidAssets = request.employees.filter(emp => !this.validateAsset(emp.destinationAsset));
     if (invalidAssets.length > 0) {
       issues.push(`${invalidAssets.length} employees have invalid destination assets`);
@@ -363,7 +369,6 @@ export class PathPaymentService {
     }
 
     try {
-      // Get cost estimate for feasibility check
       const estimate = await this.estimatePayrollCosts({
         sourceAsset: request.sourceAsset,
         employees: request.employees.map(emp => ({
@@ -387,7 +392,7 @@ export class PathPaymentService {
           estimatedDuration: this.estimateExecutionTime(request.employees.length),
         };
       }
-    } catch (error) {
+    } catch {
       issues.push('Unable to estimate payroll costs');
       recommendations.push('Check network connectivity and try again');
     }
@@ -399,21 +404,16 @@ export class PathPaymentService {
     };
   }
 
-  /**
-   * Handle API errors consistently
-   */
-  private handleError(error: any): Error {
-    if (error.response?.data?.message) {
-      return new Error(error.response.data.message);
-    }
-    
-    if (error.message) {
+  private handleError(error: unknown): Error {
+    if (error instanceof Error) {
+      const axiosError = error as Error & { response?: { data?: { message?: string } } };
+      if (axiosError.response?.data?.message) {
+        return new Error(axiosError.response.data.message);
+      }
       return new Error(error.message);
     }
-    
     return new Error('An unexpected error occurred');
   }
 }
 
-// Create singleton instance
 export const pathPaymentService = new PathPaymentService();

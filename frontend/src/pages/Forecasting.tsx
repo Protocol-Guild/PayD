@@ -65,7 +65,7 @@ export default function Forecasting() {
   });
 
   const { notifyError, notifySuccess } = useNotification();
-  const { socket, connected, subscribeToOrganization, unsubscribeFromOrganization } = useSocket();
+  const { socket, connected } = useSocket();
 
   useEffect(() => {
     const load = async () => {
@@ -77,10 +77,6 @@ export default function Forecasting() {
 
         const f = await getForecast(monthsForward);
         setForecast(f);
-
-        if (connected && f?.organizationId) {
-          subscribeToOrganization(f.organizationId);
-        }
       } catch (e: unknown) {
         notifyError(getErrorMessage(e) || 'Failed to load forecast');
       } finally {
@@ -89,13 +85,6 @@ export default function Forecasting() {
     };
 
     void load();
-
-    return () => {
-      if (forecast?.organizationId && connected) {
-        unsubscribeFromOrganization(forecast.organizationId);
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [monthsForward, connected]);
 
   useEffect(() => {

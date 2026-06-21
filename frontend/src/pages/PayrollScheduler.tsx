@@ -32,6 +32,7 @@ import {
   getLocalTimezoneLabel,
   type SchedulingConfig,
 } from '../utils/scheduling';
+import { deleteSchedule, getSchedules, type ScheduleRecord } from '../services/scheduleApi';
 
 interface PayrollFormState {
   employeeName: string;
@@ -78,7 +79,7 @@ const formatLocalDateInput = (date: Date) => {
 
 export default function PayrollScheduler() {
   const { t } = useTranslation();
-  const { notifySuccess, notify, notifyPaymentSuccess, notifyPaymentFailure, notifyApiError } =
+  const { notifySuccess, notify, notifyPaymentSuccess, notifyPaymentFailure, notifyApiError, notifyError } =
     useNotification();
   const { socket, subscribeToTransaction, unsubscribeFromTransaction } = useSocket();
   const [formData, setFormData] = useState<PayrollFormState>(initialFormState);
@@ -92,6 +93,8 @@ export default function PayrollScheduler() {
   const [activeSchedule, setActiveSchedule] = useState<SchedulingConfig | null>(null);
   const [nextRunDate, setNextRunDate] = useState<Date | null>(null);
   const [contractError, setContractError] = useState<ContractErrorDetail | null>(null);
+  const [dbSchedules, setDbSchedules] = useState<ScheduleRecord[]>([]);
+  const [isLoadingSchedules, setIsLoadingSchedules] = useState(false);
   const timezoneLabel = getLocalTimezoneLabel();
 
   const scheduleStorageKey = 'payd-scheduler-config';
@@ -147,6 +150,22 @@ export default function PayrollScheduler() {
     } catch {
       // Ignore invalid local storage payloads.
     }
+  }, []);
+
+  const fetchActiveSchedules = async () => {
+    setIsLoadingSchedules(true);
+    try {
+      const response = await getSchedules({ status: 'active' });
+      setDbSchedules(response.schedules);
+    } catch (err) {
+      console.error('Failed to fetch schedules:', err);
+    } finally {
+      setIsLoadingSchedules(false);
+    }
+  };
+
+  useEffect(() => {
+    void fetchActiveSchedules();
   }, []);
 
   const handleChange = (

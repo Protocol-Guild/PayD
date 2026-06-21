@@ -163,6 +163,7 @@ impl RevenueSplitContract {
             new_admin,
         }
         .publish(&env);
+        Ok(())
     }
 
     /// Updates the recipient splits dynamically (admin only).
@@ -172,7 +173,7 @@ impl RevenueSplitContract {
     ) -> Result<(), RevenueSplitError> {
         let admin = Self::load_admin(&env);
         admin.require_auth();
-        Self::validate_shares(&new_shares);
+        Self::validate_shares(&new_shares)?;
         let recipient_count = new_shares.len();
         Self::store_recipients(&env, &new_shares);
         Self::bump_core_ttl(&env);
@@ -470,45 +471,5 @@ impl RevenueSplitContract {
             }
         }
 
-        Ok(())
-    }
-
-    fn require_admin(env: &Env) -> Result<Address, ContractError> {
-        let admin: Address = env
-            .storage()
-            .instance()
-            .get(&DataKey::Admin)
-            .ok_or(ContractError::NotInitialized)?;
-
-        // require_auth traps on failure; we also convert missing init to a typed error above.
-        admin.require_auth();
-        Ok(admin)
-    }
-
-    fn validate_shares(env: &Env, shares: &Vec<RecipientShare>) -> Result<(), ContractError> {
-        if shares.len() == 0 {
-            return Err(ContractError::EmptyRecipients);
-        }
-
-        let mut total_bp: u32 = 0;
-        let mut seen: Vec<Address> = Vec::new(env);
-
-        for share in shares.iter() {
-            total_bp = total_bp.wrapping_add(share.basis_points);
-
-            // Prevent duplicates; duplicates create ambiguity and can cause unexpected dust behavior.
-            for addr in seen.iter() {
-                if addr == share.destination {
-                    return Err(ContractError::DuplicateRecipient);
-                }
-            }
-            seen.push_back(share.destination.clone());
-        }
-
-        if total_bp != TOTAL_BASIS_POINTS {
-            return Err(ContractError::SharesMustSumToTotal);
-        }
-
-        Ok(())
     }
 }

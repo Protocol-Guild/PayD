@@ -10,7 +10,7 @@ type ApiErrorPayload = {
  * Provides consistent error handling and base configuration.
  */
 const axiosInstance = axios.create({
-  baseURL: (import.meta.env.VITE_API_BASE_URL as string | undefined) || 'http://localhost:3000',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000',
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json',

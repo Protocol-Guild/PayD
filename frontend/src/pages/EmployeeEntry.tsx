@@ -1,5 +1,5 @@
 import { Alert, Button, Card, Input, Select } from '@stellar/design-system';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ArrowLeft,
@@ -121,6 +121,7 @@ export default function EmployeeEntry() {
   const [formData, setFormData] = useState<EmployeeFormState>(initialFormState);
   const [formErrors, setFormErrors] = useState<EmployeeFormErrors>({});
   const [notification, setNotification] = useState<EmployeeNotificationState | null>(null);
+  const [, setLoading] = useState(false);
   const { notifySuccess, notify } = useNotification();
   const { saving, lastSaved, loadSavedData, clearSavedData } = useAutosave<EmployeeFormState>(
     'employee-entry-draft',

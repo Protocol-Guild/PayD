@@ -23,14 +23,14 @@ export const usePathPayments = (organizationId?: number) => {
   }, [organizationId]);
 
   useEffect(() => {
-    loadConfig();
+    void loadConfig();
   }, [loadConfig]);
 
-  const updateConfig = useCallback(async (newConfig: Partial<PathPaymentConfig>) => {
+  const updateConfig = useCallback(async (newConfig: Pick<PathPaymentConfig, 'employerAddress' | 'defaultSourceAsset' | 'maxSlippageBps' | 'maxPriceImpactBps' | 'autoApproveThreshold' | 'isActive'>) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await pathPaymentService.configureOrganization(newConfig as any);
+      const response = await pathPaymentService.configureOrganization(newConfig);
       if (response.success) {
         setConfig(response.config || null);
       } else {
@@ -75,7 +75,7 @@ export const usePayrollRuns = (organizationId?: number) => {
   }, [organizationId]);
 
   useEffect(() => {
-    loadRuns();
+    void loadRuns();
   }, [loadRuns]);
 
   return {

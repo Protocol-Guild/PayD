@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { fetchExchangeRates, getStellarExpertLink } from '../services/currencyConversion';
 import { OrgUsdAmount } from '../types/assets';
+import { DraftPayslip, getMyDeductionsDraftPayslip } from '../services/benefitsApi';
 
 /**
  * Mock transaction data representing incoming payments for an employee.

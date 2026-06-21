@@ -108,7 +108,7 @@ export default function RevenueSplitDashboard() {
         (byRecipient.get(event.recipientLabel) || 0) + event.amount
       );
     });
-    return [...byRecipient.entries()].map(([recipient, amount]) => ({ recipient, amount }));
+    return [...byRecipient.entries()].map(([recipient, amount]: [string, number]) => ({ recipient, amount }));
   }, [events]);
 
   const totalDistributed = useMemo(
