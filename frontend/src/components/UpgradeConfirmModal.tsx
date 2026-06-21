@@ -27,6 +27,7 @@ import {
   ShieldCheck,
   ArrowRight,
   Copy,
+  ExternalLink,
   RefreshCw,
 } from 'lucide-react';
 import {
@@ -41,6 +42,9 @@ import {
   cancelUpgrade,
 } from '../services/contractUpgrade';
 import { useNotification } from '../hooks/useNotification';
+import { ContractErrorPanel } from './ContractErrorPanel';
+import { parseContractError } from '../utils/contractErrorParser';
+import { getTxExplorerUrl } from '../utils/stellarExpert';
 
 // ---------------------------------------------------------------------------
 // Style constants (consistent with AdminPanel.tsx)
@@ -162,6 +166,20 @@ function MigrationStepRow({ step }: { step: MigrationStep }) {
       </div>
     </div>
   );
+}
+
+function migrationProgress(steps: MigrationStep[]): {
+  completed: number;
+  total: number;
+  percent: number;
+} {
+  if (steps.length === 0) return { completed: 0, total: 0, percent: 0 };
+  const completed = steps.filter((s) => s.status === 'completed').length;
+  return {
+    completed,
+    total: steps.length,
+    percent: Math.round((completed / steps.length) * 100),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -368,18 +386,20 @@ export default function UpgradeConfirmModal({
 
   // ── Cancel (only valid for pre-execution states) ─────────────────────────
 
-  async function handleCancel() {
-    if (modal.step === 'review' || modal.step === 'authorize') {
+  const handleCancel = useCallback(async () => {
+    if (modal.step === 'review' || modal.step === 'authorize' || modal.step === 'executing') {
       try {
-        const logId = modal.upgradeLogId;
-        await cancelUpgrade(logId);
+        const logId = 'upgradeLogId' in modal ? modal.upgradeLogId : null;
+        if (logId) {
+          await cancelUpgrade(logId);
+        }
       } catch {
         // Best-effort cancel; ignore errors
       }
     }
     clearPoll();
     onClose();
-  }
+  }, [modal, clearPoll, onClose]);
 
   // ── Copy to clipboard helper ─────────────────────────────────────────────
 
@@ -396,30 +416,41 @@ export default function UpgradeConfirmModal({
     void handleCancel();
   }
 
+  // ── Keyboard event handler for ESC key ───────────────────────────────────
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !['executing', 'simulating'].includes(modal.step)) {
+        e.preventDefault();
+        void handleCancel();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [modal.step, handleCancel]);
+
   // ── Render ───────────────────────────────────────────────────────────────
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
       onClick={handleBackdropClick}
     >
       <div
-        className="relative w-full max-w-2xl bg-surface border border-hi rounded-2xl shadow-2xl overflow-hidden max-h-[95vh] flex flex-col"
+        className="relative w-full max-w-2xl mx-4 bg-surface border border-hi rounded-2xl shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal header */}
-        <div className="flex items-center justify-between px-4 md:px-6 pt-4 md:pt-6 pb-3 md:pb-4 border-b border-hi flex-shrink-0">
-          <div className="min-w-0 flex-1">
-            <h2 className="text-base md:text-lg font-black tracking-tight truncate">
-              Upgrade Contract
-            </h2>
-            <p className="text-xs text-muted font-mono mt-0.5 truncate">{contract.name}</p>
+        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-hi">
+          <div>
+            <h2 className="text-lg font-black tracking-tight">Upgrade Contract</h2>
+            <p className="text-xs text-muted font-mono mt-0.5">{contract.name}</p>
           </div>
           {!['executing', 'simulating'].includes(modal.step) && (
             <button
               onClick={() => void handleCancel()}
-              className="p-2 md:p-1.5 rounded-lg hover:bg-white/5 text-muted hover:text-text transition-colors touch-manipulation"
-              style={{ minHeight: '44px', minWidth: '44px' }}
+              className="p-1.5 rounded-lg hover:bg-white/5 text-muted hover:text-text transition-colors"
               aria-label="Close"
             >
               <X className="w-5 h-5" />
@@ -428,12 +459,12 @@ export default function UpgradeConfirmModal({
         </div>
 
         {/* Step breadcrumb */}
-        <div className="px-4 md:px-6 pt-3 md:pt-4 flex-shrink-0">
+        <div className="px-6 pt-4">
           <StepBreadcrumb current={currentStepIndex()} />
         </div>
 
         {/* Step content */}
-        <div className="px-4 md:px-6 pb-4 md:pb-6 overflow-y-auto flex-1">
+        <div className="px-6 pb-6 max-h-[70vh] overflow-y-auto">
           {/* ── Step 1: INPUT ─────────────────────────────────────────── */}
           {modal.step === 'input' && (
             <div className="flex flex-col gap-5">
@@ -506,8 +537,7 @@ export default function UpgradeConfirmModal({
               <button
                 onClick={() => void handleValidateAndSimulate()}
                 disabled={modal.validating || !modal.wasmHash.trim()}
-                className="flex items-center justify-center gap-2 py-3.5 bg-accent/20 text-accent border border-accent/40 font-black rounded-xl hover:bg-accent hover:text-black transition-all uppercase tracking-widest text-sm disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation w-full"
-                style={{ minHeight: '44px' }}
+                className="flex items-center justify-center gap-2 py-3.5 bg-accent/20 text-accent border border-accent/40 font-black rounded-xl hover:bg-accent hover:text-black transition-all uppercase tracking-widest text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {modal.validating ? (
                   <>
@@ -524,7 +554,7 @@ export default function UpgradeConfirmModal({
 
           {/* ── Step 2: SIMULATING ────────────────────────────────────── */}
           {modal.step === 'simulating' && (
-            <div className="flex flex-col items-center justify-center py-8 md:py-12 gap-5">
+            <div className="flex flex-col items-center justify-center py-12 gap-5">
               <div className="relative">
                 <div className="w-16 h-16 rounded-full border-2 border-accent/20 flex items-center justify-center">
                   <Loader2 className="w-8 h-8 text-accent animate-spin" />
@@ -589,6 +619,29 @@ export default function UpgradeConfirmModal({
                 newHash={modal.wasmHash}
               />
 
+              <div className="p-4 bg-black/20 border border-hi rounded-xl">
+                <p className={LABEL_CLASS}>What Will Change</p>
+                <ul className="mt-2 grid gap-2 text-xs">
+                  <li className="flex items-start gap-2">
+                    <span className="text-accent">•</span>
+                    <span>
+                      Contract <code className="font-mono">{contract.contract_id}</code> bytecode
+                      hash will change from current deployed hash to the new uploaded WASM hash.
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-accent">•</span>
+                    <span>
+                      Contract version metadata will increment after successful execution.
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-accent">•</span>
+                    <span>Post-upgrade migration scripts will run and report per-step status.</span>
+                  </li>
+                </ul>
+              </div>
+
               {/* Cost breakdown */}
               {modal.simulation.success && (
                 <div className="p-4 bg-black/20 border border-hi rounded-xl">
@@ -632,16 +685,14 @@ export default function UpgradeConfirmModal({
               <div className="flex gap-3 mt-2">
                 <button
                   onClick={() => void handleCancel()}
-                  className="flex-1 py-3 border border-hi rounded-xl text-sm font-bold text-muted hover:text-text hover:bg-white/5 transition-all uppercase tracking-widest touch-manipulation"
-                  style={{ minHeight: '44px' }}
+                  className="flex-1 py-3 border border-hi rounded-xl text-sm font-bold text-muted hover:text-text hover:bg-white/5 transition-all uppercase tracking-widest"
                 >
                   Cancel
                 </button>
                 {modal.simulation.success && (
                   <button
                     onClick={handleAcceptReview}
-                    className="flex-1 flex items-center justify-center gap-2 py-3 bg-accent/20 text-accent border border-accent/40 rounded-xl text-sm font-black hover:bg-accent hover:text-black transition-all uppercase tracking-widest touch-manipulation"
-                    style={{ minHeight: '44px' }}
+                    className="flex-1 flex items-center justify-center gap-2 py-3 bg-accent/20 text-accent border border-accent/40 rounded-xl text-sm font-black hover:bg-accent hover:text-black transition-all uppercase tracking-widest"
                   >
                     Proceed <ArrowRight className="w-4 h-4" />
                   </button>
@@ -699,7 +750,6 @@ export default function UpgradeConfirmModal({
                   placeholder="S..."
                   autoComplete="off"
                   spellCheck={false}
-                  style={{ minHeight: '44px' }}
                 />
                 <p className="mt-1.5 text-xs text-muted">
                   Your secret key is used only to sign this transaction and is never stored.
@@ -710,16 +760,14 @@ export default function UpgradeConfirmModal({
               <div className="flex gap-3 mt-2">
                 <button
                   onClick={() => void handleCancel()}
-                  className="flex-1 py-3 border border-hi rounded-xl text-sm font-bold text-muted hover:text-text hover:bg-white/5 transition-all uppercase tracking-widest touch-manipulation"
-                  style={{ minHeight: '44px' }}
+                  className="flex-1 py-3 border border-hi rounded-xl text-sm font-bold text-muted hover:text-text hover:bg-white/5 transition-all uppercase tracking-widest"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={() => void handleExecute()}
                   disabled={!modal.adminSecret.trim()}
-                  className="flex-1 py-3 bg-red-500/20 text-red-400 border border-red-500/40 rounded-xl text-sm font-black hover:bg-red-500 hover:text-white transition-all uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
-                  style={{ minHeight: '44px' }}
+                  className="flex-1 py-3 bg-red-500/20 text-red-400 border border-red-500/40 rounded-xl text-sm font-black hover:bg-red-500 hover:text-white transition-all uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Execute Upgrade
                 </button>
@@ -730,6 +778,30 @@ export default function UpgradeConfirmModal({
           {/* ── Step 5: EXECUTING ─────────────────────────────────────── */}
           {modal.step === 'executing' && (
             <div className="flex flex-col gap-5">
+              {(() => {
+                const progress = migrationProgress(modal.migrationSteps);
+                return (
+                  <div className="p-4 bg-black/20 border border-hi rounded-xl">
+                    <div className="flex items-center justify-between text-xs mb-2">
+                      <span className="font-bold uppercase tracking-widest text-muted">
+                        Migration Progress
+                      </span>
+                      <span className="font-mono text-text">
+                        {progress.total === 0
+                          ? 'Initializing…'
+                          : `${progress.completed}/${progress.total} (${progress.percent}%)`}
+                      </span>
+                    </div>
+                    <div className="h-2 w-full rounded-full bg-white/5 overflow-hidden">
+                      <div
+                        className="h-full bg-accent transition-all duration-300"
+                        style={{ width: `${progress.percent}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Transaction info */}
               {modal.txHash && (
                 <div className="p-4 bg-black/20 border border-hi rounded-xl">
@@ -738,10 +810,18 @@ export default function UpgradeConfirmModal({
                     <code className="flex-1 font-mono text-xs text-text break-all leading-relaxed">
                       {modal.txHash}
                     </code>
+                    <a
+                      href={getTxExplorerUrl(modal.txHash, contract.network)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="View on Stellar Expert"
+                      className="p-1.5 hover:bg-white/5 rounded text-muted hover:text-text transition-colors shrink-0"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
                     <button
                       onClick={() => copyToClipboard(modal.txHash!)}
-                      className="p-2 hover:bg-white/5 rounded text-muted hover:text-text transition-colors shrink-0 touch-manipulation"
-                      style={{ minHeight: '44px', minWidth: '44px' }}
+                      className="p-1.5 hover:bg-white/5 rounded text-muted hover:text-text transition-colors shrink-0"
                     >
                       <Copy className="w-3.5 h-3.5" />
                     </button>
@@ -807,10 +887,18 @@ export default function UpgradeConfirmModal({
                 <p className={LABEL_CLASS}>Transaction Hash</p>
                 <div className="flex items-center gap-2">
                   <code className="flex-1 font-mono text-xs break-all">{modal.txHash}</code>
+                  <a
+                    href={getTxExplorerUrl(modal.txHash, contract.network)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="View on Stellar Expert"
+                    className="p-1.5 hover:bg-white/5 rounded text-muted hover:text-text transition-colors shrink-0"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
                   <button
                     onClick={() => copyToClipboard(modal.txHash)}
-                    className="p-2 hover:bg-white/5 rounded text-muted hover:text-text transition-colors shrink-0 touch-manipulation"
-                    style={{ minHeight: '44px', minWidth: '44px' }}
+                    className="p-1.5 hover:bg-white/5 rounded text-muted hover:text-text transition-colors shrink-0"
                   >
                     <Copy className="w-3.5 h-3.5" />
                   </button>
@@ -818,8 +906,7 @@ export default function UpgradeConfirmModal({
               </div>
               <button
                 onClick={onClose}
-                className="w-full py-3 bg-accent/20 text-accent border border-accent/40 rounded-xl font-black uppercase tracking-widest text-sm hover:bg-accent hover:text-black transition-all touch-manipulation"
-                style={{ minHeight: '44px' }}
+                className="w-full py-3 bg-accent/20 text-accent border border-accent/40 rounded-xl font-black uppercase tracking-widest text-sm hover:bg-accent hover:text-black transition-all"
               >
                 Done
               </button>
@@ -838,14 +925,17 @@ export default function UpgradeConfirmModal({
                   The upgrade did not complete successfully.
                 </p>
               </div>
-              <div className="w-full p-4 bg-red-500/5 border border-red-500/30 rounded-xl">
-                <p className="text-xs text-red-400 break-words">{modal.error}</p>
+              <div className="w-full">
+                <ContractErrorPanel
+                  error={parseContractError(undefined, modal.error)}
+                  title="Upgrade Simulation / Execution Error"
+                />
               </div>
+
               <div className="flex gap-3 w-full">
                 <button
                   onClick={onClose}
-                  className="flex-1 py-3 border border-hi rounded-xl text-sm font-bold text-muted hover:text-text hover:bg-white/5 transition-all uppercase tracking-widest touch-manipulation"
-                  style={{ minHeight: '44px' }}
+                  className="flex-1 py-3 border border-hi rounded-xl text-sm font-bold text-muted hover:text-text hover:bg-white/5 transition-all uppercase tracking-widest"
                 >
                   Close
                 </button>
@@ -858,8 +948,7 @@ export default function UpgradeConfirmModal({
                       validationError: null,
                     })
                   }
-                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-black/20 border border-hi rounded-xl text-sm font-bold hover:bg-white/5 transition-all uppercase tracking-widest touch-manipulation"
-                  style={{ minHeight: '44px' }}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-black/20 border border-hi rounded-xl text-sm font-bold hover:bg-white/5 transition-all uppercase tracking-widest"
                 >
                   <RefreshCw className="w-4 h-4" /> Try Again
                 </button>

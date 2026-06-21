@@ -1,12 +1,3 @@
-/**
- * useSorobanContract — React hook for invoking deployed Soroban smart contracts.
- *
- * Abstracts XDR assembly, simulation pre-flight (simulateTransaction), wallet
- * signing (useWalletSigning), on-chain submission, and typed result decoding.
- * Error states are surfaced via useNotification toasts.
- *
- * @see docs/issues/071-soroban-contract-invocation-hook.md
- */
 import { useCallback, useState } from 'react';
 import {
   BASE_FEE,
@@ -28,7 +19,7 @@ type SorobanNativeArg = string | number | bigint | boolean | null;
 
 type SorobanArg = SorobanNativeArg | xdr.ScVal;
 
-export interface InvokeOptions<TResult> {
+interface InvokeOptions<TResult> {
   method: string;
   args?: SorobanArg[];
   parseResult?: (value: unknown) => TResult;
@@ -38,13 +29,13 @@ export interface InvokeOptions<TResult> {
   timeoutSeconds?: number;
 }
 
-export interface SorobanInvokeResult<TResult> {
+interface SorobanInvokeResult<TResult> {
   txHash: string;
   value: TResult | null;
   raw: unknown;
 }
 
-export interface UseSorobanContractState<TResult> {
+interface UseSorobanContractState<TResult> {
   invoke: (options: InvokeOptions<TResult>) => Promise<SorobanInvokeResult<TResult>>;
   loading: boolean;
   error: string | null;
@@ -100,10 +91,7 @@ function parseTypedResult<TResult>(
     return parser(raw);
   } catch (error) {
     const parserMessage = error instanceof Error ? error.message : 'Unknown parser error';
-    const newError = new Error(`Unable to decode contract result: ${parserMessage}`);
-    // Attach cause for error chaining (ES2022 feature, but works at runtime)
-    Object.assign(newError, { cause: error });
-    throw newError;
+    throw new Error(`Unable to decode contract result: ${parserMessage}`);
   }
 }
 

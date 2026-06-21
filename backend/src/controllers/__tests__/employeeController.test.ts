@@ -71,7 +71,8 @@ describe('EmployeeController', () => {
 
       const response = await request(app).post('/api/employees').send(invalidData).expect(400);
 
-      expect(response.body).toHaveProperty('error', 'Validation Error');
+      expect(response.body).toHaveProperty('code', 'VALIDATION_ERROR');
+      expect(response.body).toHaveProperty('message', 'Validation Error');
       expect(employeeService.create).not.toHaveBeenCalled();
     });
   });
@@ -94,6 +95,25 @@ describe('EmployeeController', () => {
           limit: 10,
         })
       );
+    });
+
+    it('should pass q to findAll when provided', async () => {
+      const mockResult = {
+        data: [{ id: 1, first_name: 'Alice' }],
+        pagination: { total: 1, page: 1, limit: 10, totalPages: 1 },
+      };
+      (employeeService.findAll as jest.Mock).mockResolvedValue(mockResult);
+
+      await request(app).get('/api/employees?q=alice').expect(200);
+
+      expect(employeeService.findAll).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({ q: 'alice' })
+      );
+    });
+
+    it('should return 400 for invalid query params', async () => {
+      await request(app).get('/api/employees?status=invalid_status').expect(400);
     });
   });
 

@@ -3,10 +3,13 @@ import { createContext, use } from 'react';
 export interface WalletContextType {
   address: string | null;
   walletName: string | null;
+  network: 'TESTNET' | 'PUBLIC';
+  setNetwork: (network: 'TESTNET' | 'PUBLIC') => void;
   isConnecting: boolean;
   isInitialized: boolean;
   walletExtensionAvailable: boolean;
-  connect: () => Promise<void>;
+  connect: () => Promise<string | null>;
+  requireWallet: () => Promise<string | null>;
   disconnect: () => void;
   signTransaction: (xdr: string) => Promise<string>;
   requireWallet: <T>(callback: () => Promise<T>) => Promise<T>;

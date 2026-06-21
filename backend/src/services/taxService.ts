@@ -1,7 +1,5 @@
 import { Pool } from 'pg';
 import pool from '../config/database.js';
-import { createTaxComplianceProvider } from './taxCompliance/factory.js';
-import type { TaxComplianceProvider } from './taxCompliance/types.js';
 
 export interface TaxRule {
   id: number;

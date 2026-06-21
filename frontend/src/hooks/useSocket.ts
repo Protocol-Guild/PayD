@@ -4,10 +4,12 @@ import { Socket } from 'socket.io-client';
 export interface SocketContextType {
   socket: Socket | null;
   connected: boolean;
+  /** True when the WebSocket transport has failed and the app is using HTTP polling as a fallback */
+  isPollingFallback: boolean;
   subscribeToTransaction: (transactionId: string) => void;
   unsubscribeFromTransaction: (transactionId: string) => void;
-  subscribeToOrganization: (organizationId: number) => void;
-  unsubscribeFromOrganization: (organizationId: number) => void;
+  subscribeToBulk: (batchId: string) => void;
+  unsubscribeFromBulk: (batchId: string) => void;
 }
 
 export const SocketContext = createContext<SocketContextType | undefined>(undefined);

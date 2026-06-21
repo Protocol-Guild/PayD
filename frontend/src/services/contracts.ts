@@ -10,15 +10,15 @@
  * 3. The service handles caching and retry logic automatically
  */
 
-import axios, { AxiosError } from 'axios';
+import axiosInstance from '../api/axiosInstance';
+import { AxiosError } from 'axios';
 import { ContractRegistry, ContractType, NetworkType } from './contracts.types';
 
 class ContractService {
   private cache: ContractRegistry | null = null;
   private lastFetch: number | null = null;
   private readonly CACHE_TTL = 3600000; // 1 hour in milliseconds
-  private readonly API_BASE_URL =
-    (import.meta.env.VITE_API_BASE_URL as string | undefined) || 'http://localhost:3000';
+  private readonly API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
   private readonly MAX_RETRIES = 3;
 
   /**
@@ -36,7 +36,9 @@ class ContractService {
 
     for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
       try {
-        const response = await axios.get<ContractRegistry>(`${this.API_BASE_URL}/api/contracts`);
+        const response = await axiosInstance.get<ContractRegistry>(
+          `${this.API_BASE_URL}/api/contracts`
+        );
 
         // Update cache
         this.cache = response.data;
@@ -57,12 +59,9 @@ class ContractService {
             `Failed to fetch contract registry after ${this.MAX_RETRIES} attempts:`,
             errorMessage
           );
-          const newError = new Error(
+          throw new Error(
             `Failed to fetch contracts after ${this.MAX_RETRIES} attempts: ${errorMessage}`
           );
-          // Attach cause for error chaining (ES2022 feature, but works at runtime)
-          Object.assign(newError, { cause: error });
-          throw newError;
         }
 
         // Exponential backoff: 1s, 2s, 4s

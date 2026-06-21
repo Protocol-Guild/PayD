@@ -1,6 +1,7 @@
 import { Asset, Keypair, Operation, TransactionBuilder } from '@stellar/stellar-sdk';
 import { StellarService } from './stellarService.js';
 import { pool } from '../config/database.js';
+import { TransactionVerificationQueueService } from './transactionVerificationQueueService.js';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -206,6 +207,15 @@ export class FreezeService {
 
     transaction.sign(issuerKeypair);
 
+    const simulation = await StellarService.simulateTransaction(transaction);
+    if (!simulation.success) {
+      throw new Error(
+        `Transaction simulation failed: ${simulation.errorMessage}. ` +
+          `This freeze operation would likely fail on-chain. ` +
+          `Please verify the account exists and the asset trustline is established.`
+      );
+    }
+
     const result = await server.submitTransaction(transaction);
 
     await writeAuditLog({
@@ -218,6 +228,16 @@ export class FreezeService {
       initiatedBy: assetIssuer,
       reason,
     });
+
+    // Verify on-chain & store immutable audit record (async).
+    try {
+      await TransactionVerificationQueueService.enqueue({
+        txHash: result.hash,
+        source: 'freeze',
+      });
+    } catch {
+      // Best-effort; the core freeze operation already succeeded on-chain.
+    }
 
     return {
       txHash: result.hash,
@@ -290,6 +310,16 @@ export class FreezeService {
 
         // Collect valid holders (skip issuer — it doesn't hold its own trustline)
         const validHolders = batch.filter((h) => h.account_id !== assetIssuer);
+
+        // Verify on-chain & store immutable audit record (async).
+        try {
+          await TransactionVerificationQueueService.enqueue({
+            txHash: txResult.hash,
+            source: 'freeze',
+          });
+        } catch {
+          // Best-effort
+        }
 
         // Single bulk INSERT instead of N round-trips
         await writeBulkAuditLog(

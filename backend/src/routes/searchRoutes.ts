@@ -11,22 +11,60 @@ router.use(authenticateJWT);
 router.use(isolateOrganization);
 
 /**
- * @route GET /api/search/organizations/:organizationId/employees
- * @desc Search and filter employees
+ * @swagger
+ * tags:
+ *   name: Data Search
+ *   description: Search and filter employees and transactions
+ */
+
+// Apply global authentication and isolation to all search routes
+router.use(authenticateJWT);
+router.use(isolateOrganization);
+router.use(requireTenantContext);
+
+/**
+ * @swagger
+ * /api/v1/search/organizations/{organizationId}/employees:
+ *   get:
+ *     summary: Search and filter employees
+ *     tags: [Data Search]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: organizationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Success
  */
 router.get(
   '/organizations/:organizationId/employees',
-  requireTenantContext,
   searchController.searchEmployees.bind(searchController)
 );
 
 /**
- * @route GET /api/search/organizations/:organizationId/transactions
- * @desc Search and filter transactions
+ * @swagger
+ * /api/v1/search/organizations/{organizationId}/transactions:
+ *   get:
+ *     summary: Search and filter transactions
+ *     tags: [Data Search]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: organizationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Success
  */
 router.get(
   '/organizations/:organizationId/transactions',
-  requireTenantContext,
   searchController.searchTransactions.bind(searchController)
 );
 

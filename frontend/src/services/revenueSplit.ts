@@ -1,10 +1,10 @@
 import {
+  Address,
   BASE_FEE,
   Contract,
   Networks,
   rpc,
   TransactionBuilder,
-  nativeToScVal,
   scValToNative,
   xdr,
 } from '@stellar/stellar-sdk';
@@ -15,12 +15,21 @@ const DEFAULT_RPC_URL =
   (import.meta.env.PUBLIC_STELLAR_RPC_URL as string | undefined) ||
   'https://soroban-testnet.stellar.org';
 
-const GET_ALLOCATIONS_METHOD =
-  (import.meta.env.VITE_REVENUE_SPLIT_GET_ALLOCATIONS_METHOD as string | undefined) ||
-  'get_allocations';
-const UPDATE_ALLOCATIONS_METHOD =
-  (import.meta.env.VITE_REVENUE_SPLIT_UPDATE_ALLOCATIONS_METHOD as string | undefined) ||
-  'set_allocations';
+const READ_METHOD_CANDIDATES = (
+  (import.meta.env.VITE_REVENUE_SPLIT_READ_METHODS as string | undefined) ||
+  'get_allocations,get_recipients,recipients'
+)
+  .split(',')
+  .map((value) => value.trim())
+  .filter(Boolean);
+
+const UPDATE_METHOD_CANDIDATES = (
+  (import.meta.env.VITE_REVENUE_SPLIT_UPDATE_METHODS as string | undefined) ||
+  'update_recipients,set_allocations'
+)
+  .split(',')
+  .map((value) => value.trim())
+  .filter(Boolean);
 
 export interface RevenueAllocation {
   recipient: string;
@@ -37,6 +46,12 @@ export interface DistributionEvent {
   recipientLabel: string;
 }
 
+export interface DistributionEventsOptions {
+  orgPublicKey?: string;
+  page?: number;
+  limit?: number;
+}
+
 function normalizeBaseUrl(url: string): string {
   return url.replace(/\/+$/, '');
 }
@@ -48,6 +63,7 @@ function getNetworkPassphrase(): string {
 
 function toNumber(value: unknown): number {
   if (typeof value === 'number') return value;
+  if (typeof value === 'bigint') return Number(value);
   if (typeof value === 'string') {
     const parsed = Number.parseFloat(value);
     return Number.isFinite(parsed) ? parsed : 0;
@@ -55,29 +71,60 @@ function toNumber(value: unknown): number {
   return 0;
 }
 
+function safeString(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'bigint' || typeof value === 'boolean') {
+    return String(value);
+  }
+  return '';
+}
+
+function payrollAuthHeaders(): Record<string, string> {
+  if (typeof localStorage === 'undefined') return {};
+  const token = localStorage.getItem('payd_auth_token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+function resolveOrgPublicKey(explicit?: string): string | null {
+  if (explicit) return explicit;
+  if (typeof localStorage === 'undefined') {
+    return (import.meta.env.VITE_ORG_PUBLIC_KEY as string | undefined) || null;
+  }
+
+  return (
+    localStorage.getItem('orgPublicKey') ||
+    localStorage.getItem('organizationPublicKey') ||
+    (import.meta.env.VITE_ORG_PUBLIC_KEY as string | undefined) ||
+    null
+  );
+}
+
+function allocationToPercent(raw: unknown): number {
+  const numeric = toNumber(raw);
+  if (numeric > 100) return numeric / 100;
+  return numeric;
+}
+
 function normalizeAllocationsFromNative(nativeValue: unknown): RevenueAllocation[] {
   if (!Array.isArray(nativeValue)) return [];
 
   return nativeValue
-    .map((entry: unknown) => {
+    .map((entry) => {
       if (Array.isArray(entry)) {
-        const [recipient, percentageRaw] = entry as [unknown, unknown];
+        const values = entry as unknown[];
         return {
-          recipient: typeof recipient === 'string' ? recipient : '',
-          percentage: toNumber(percentageRaw),
+          recipient: safeString(values[0]),
+          percentage: allocationToPercent(values[1]),
         };
       }
 
       if (entry && typeof entry === 'object') {
         const item = entry as Record<string, unknown>;
         return {
-          recipient:
-            typeof item.recipient === 'string'
-              ? item.recipient
-              : typeof item.address === 'string'
-                ? item.address
-                : '',
-          percentage: toNumber(item.percentage ?? item.weight ?? item.share),
+          recipient: safeString(item.recipient ?? item.address ?? item.destination),
+          percentage: allocationToPercent(
+            item.percentage ?? item.weight ?? item.share ?? item.basis_points
+          ),
         };
       }
 
@@ -86,11 +133,12 @@ function normalizeAllocationsFromNative(nativeValue: unknown): RevenueAllocation
     .filter((entry) => entry.recipient);
 }
 
-export async function fetchRevenueSplitAllocations(
+async function simulateReadCall<T>(
   contractId: string,
   sourceAddress: string,
+  method: string,
   rpcUrlOverride?: string
-): Promise<RevenueAllocation[]> {
+): Promise<T> {
   const rpcUrl = normalizeBaseUrl(rpcUrlOverride || DEFAULT_RPC_URL);
   const server = new rpc.Server(rpcUrl, { allowHttp: rpcUrl.startsWith('http://') });
   const account = await server.getAccount(sourceAddress);
@@ -100,7 +148,7 @@ export async function fetchRevenueSplitAllocations(
     fee: BASE_FEE,
     networkPassphrase: getNetworkPassphrase(),
   })
-    .addOperation(contract.call(GET_ALLOCATIONS_METHOD))
+    .addOperation(contract.call(method))
     .setTimeout(60)
     .build();
 
@@ -120,7 +168,7 @@ export async function fetchRevenueSplitAllocations(
   }
 
   const payload = (await rpcResponse.json()) as {
-    result?: { retval?: string; error?: string };
+    result?: { retval?: string };
     error?: { message?: string };
   };
 
@@ -129,12 +177,61 @@ export async function fetchRevenueSplitAllocations(
   }
 
   if (!payload.result?.retval) {
-    return [];
+    throw new Error(`Contract method "${method}" returned no value.`);
   }
 
   const retval = xdr.ScVal.fromXDR(payload.result.retval, 'base64');
-  const nativeValue: unknown = scValToNative(retval);
-  return normalizeAllocationsFromNative(nativeValue);
+  return scValToNative(retval) as T;
+}
+
+function buildRecipientSharesScVal(allocations: RevenueAllocation[]): xdr.ScVal {
+  const entries = allocations.map((entry) => {
+    const basisPoints = Math.round(entry.percentage * 100);
+
+    return xdr.ScVal.scvMap([
+      new xdr.ScMapEntry({
+        key: xdr.ScVal.scvSymbol('destination'),
+        val: Address.fromString(entry.recipient).toScVal(),
+      }),
+      new xdr.ScMapEntry({
+        key: xdr.ScVal.scvSymbol('basis_points'),
+        val: xdr.ScVal.scvU32(basisPoints),
+      }),
+    ]);
+  });
+
+  return xdr.ScVal.scvVec(entries);
+}
+
+export async function fetchRevenueSplitAllocations(
+  contractId: string,
+  sourceAddress: string,
+  rpcUrlOverride?: string
+): Promise<RevenueAllocation[]> {
+  const errors: string[] = [];
+
+  for (const method of READ_METHOD_CANDIDATES) {
+    try {
+      const nativeValue = await simulateReadCall<unknown>(
+        contractId,
+        sourceAddress,
+        method,
+        rpcUrlOverride
+      );
+      const allocations = normalizeAllocationsFromNative(nativeValue);
+      if (allocations.length > 0) {
+        return allocations;
+      }
+    } catch (error) {
+      errors.push(error instanceof Error ? error.message : `Read failed for ${method}`);
+    }
+  }
+
+  if (errors.length > 0) {
+    throw new Error(errors[errors.length - 1]);
+  }
+
+  return [];
 }
 
 export async function updateRevenueAllocations(options: {
@@ -148,63 +245,84 @@ export async function updateRevenueAllocations(options: {
   const server = new rpc.Server(rpcUrl, { allowHttp: rpcUrl.startsWith('http://') });
   const account = await server.getAccount(options.sourceAddress);
   const contract = new Contract(options.contractId);
+  const allocationPayload = buildRecipientSharesScVal(options.allocations);
 
-  const allocationPayload = options.allocations.map((entry) => [
-    entry.recipient,
-    Number.parseFloat(entry.percentage.toFixed(4)),
-  ]);
+  let lastError: Error | null = null;
 
-  const tx = new TransactionBuilder(account, {
-    fee: BASE_FEE,
-    networkPassphrase: getNetworkPassphrase(),
-  })
-    .addOperation(contract.call(UPDATE_ALLOCATIONS_METHOD, nativeToScVal(allocationPayload)))
-    .setTimeout(60)
-    .build();
+  for (const method of UPDATE_METHOD_CANDIDATES) {
+    try {
+      const tx = new TransactionBuilder(account, {
+        fee: BASE_FEE,
+        networkPassphrase: getNetworkPassphrase(),
+      })
+        .addOperation(contract.call(method, allocationPayload))
+        .setTimeout(60)
+        .build();
 
-  const simulation = await simulateTransaction({ envelopeXdr: tx.toXDR() });
-  if (!simulation.success) {
-    throw new Error(simulation.description || 'Simulation failed for allocation update');
+      const simulation = await simulateTransaction({ envelopeXdr: tx.toXDR() });
+      if (!simulation.success) {
+        throw new Error(simulation.description || 'Simulation failed for allocation update');
+      }
+
+      const prepared = await server.prepareTransaction(tx);
+      const signedXdr = await options.signTransaction(prepared.toXDR());
+      const signedTx = TransactionBuilder.fromXDR(signedXdr, getNetworkPassphrase());
+      const submitted = await server.sendTransaction(signedTx);
+
+      if (submitted.status === 'ERROR') {
+        throw new Error('Allocation update transaction failed.');
+      }
+
+      return { txHash: submitted.hash };
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(`Update failed for ${method}`);
+    }
   }
 
-  const prepared = await server.prepareTransaction(tx);
-  const signedXdr = await options.signTransaction(prepared.toXDR());
-  const signedTx = TransactionBuilder.fromXDR(signedXdr, getNetworkPassphrase());
-  const submitted = await server.sendTransaction(signedTx);
-
-  if (submitted.status === 'ERROR') {
-    throw new Error('Allocation update transaction failed.');
-  }
-
-  return { txHash: submitted.hash };
+  throw lastError || new Error('Allocation update transaction failed.');
 }
 
 export async function fetchDistributionEvents(
-  organizationId: number,
-  page = 1,
-  limit = 30
+  options: DistributionEventsOptions = {}
 ): Promise<DistributionEvent[]> {
+  const orgPublicKey = resolveOrgPublicKey(options.orgPublicKey);
+  if (!orgPublicKey) {
+    throw new Error('Organization public key is unavailable for audit history.');
+  }
+
+  const page = options.page ?? 1;
+  const limit = options.limit ?? 30;
   const response = await fetch(
-    `${normalizeBaseUrl(API_BASE_URL)}/api/v1/payroll/audit?organizationId=${organizationId}&page=${page}&limit=${limit}`
+    `${normalizeBaseUrl(API_BASE_URL)}/api/v1/payroll/audit?orgPublicKey=${encodeURIComponent(orgPublicKey)}&page=${page}&limit=${limit}`,
+    { headers: payrollAuthHeaders() }
   );
+
   if (!response.ok) {
     throw new Error(`Failed to fetch distribution events (${response.status})`);
   }
 
   const payload = (await response.json()) as {
     success: boolean;
-    data: Array<Record<string, unknown>>;
+    data?: Array<Record<string, unknown>> | { data?: Array<Record<string, unknown>> };
   };
 
-  return (payload.data || []).map((event: Record<string, unknown>) => ({
+  const rawEvents = Array.isArray(payload.data)
+    ? payload.data
+    : Array.isArray(payload.data?.data)
+      ? payload.data.data
+      : [];
+
+  return rawEvents.map((event) => ({
     id: Number(event.id ?? 0),
-    createdAt: typeof event.created_at === 'string' ? event.created_at : '',
-    txHash: typeof event.tx_hash === 'string' ? event.tx_hash : null,
+    createdAt: safeString(event.created_at ?? event.timestamp),
+    txHash: safeString(event.tx_hash) || null,
     amount: toNumber(event.amount),
-    assetCode: typeof event.asset_code === 'string' ? event.asset_code : 'USDC',
-    action: typeof event.action === 'string' ? event.action : 'unknown',
+    assetCode: safeString(event.asset_code ?? 'USDC') || 'USDC',
+    action: safeString(event.action ?? event.category ?? 'distribution'),
     recipientLabel:
-      `${typeof event.employee_first_name === 'string' ? event.employee_first_name : ''} ${typeof event.employee_last_name === 'string' ? event.employee_last_name : ''}`.trim() ||
-      (typeof event.employee_email === 'string' ? event.employee_email : 'Unknown recipient'),
+      `${safeString(event.employee_first_name)} ${safeString(event.employee_last_name)}`.trim() ||
+      safeString(event.employee_email) ||
+      safeString(event.recipient) ||
+      'Unknown recipient',
   }));
 }

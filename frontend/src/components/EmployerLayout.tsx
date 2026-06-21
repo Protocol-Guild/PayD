@@ -1,79 +1,214 @@
-import React, { useState } from 'react';
-import { Outlet } from 'react-router-dom';
-import { DashboardSidebar } from './DashboardSidebar';
-import { DashboardTopBar } from './DashboardTopBar';
-import { Menu, X } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import {
+  Menu,
+  ArrowLeft,
+  CreditCard,
+  Users,
+  Upload,
+  BarChart3,
+  FileText,
+  Globe,
+  History,
+  PieChart,
+  Settings,
+} from 'lucide-react';
+import { Button, Heading, Text } from '@stellar/design-system';
+import ConnectAccount from './ConnectAccount';
+import { LanguageSelector } from './LanguageSelector';
+import { ThemeToggle } from './ThemeToggle';
+import ErrorBoundary from './ErrorBoundary';
+import ErrorFallback from './ErrorFallback';
+import { Breadcrumb } from './Breadcrumb';
+import { NetworkSwitcher } from './NetworkSwitcher';
+import { useNativeXlmBalance } from '../hooks/useNativeXlmBalance';
+import { useTransactionNotifications } from '../hooks/useTransactionNotifications';
+import { useWallet } from '../hooks/useWallet';
+import { TransactionPendingOverlay } from './TransactionPendingOverlay';
+import { TransactionProvider } from '../contexts/TransactionContext';
 
-export const EmployerLayout: React.FC = () => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+const ORG_NAME =
+  (import.meta.env.VITE_ORG_DISPLAY_NAME as string | undefined)?.trim() || 'Organization';
 
-  const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
+function formatXlm(balance: string | null | undefined): string {
+  if (balance == null) return '—';
+  const n = Number(balance);
+  if (!Number.isFinite(n)) return balance;
+  return `${n.toLocaleString(undefined, { maximumFractionDigits: 6 })} XLM`;
+}
+
+const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+  `group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${
+    isActive
+      ? 'bg-[color-mix(in_srgb,var(--accent)_18%,transparent)] text-[var(--accent)] shadow-[0_0_20px_rgba(74,240,184,0.15)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-8 before:w-1 before:rounded-r-full before:bg-[var(--accent)]'
+      : 'text-[var(--muted)] hover:bg-white/5 hover:text-[var(--text)] hover:translate-x-0.5'
+  }`;
+
+const iconClass =
+  'h-4 w-4 shrink-0 opacity-80 transition-transform duration-200 group-hover:scale-110';
+
+const EmployerLayoutContent: React.FC = () => {
+  const location = useLocation();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const { address } = useWallet();
+  const { data: xlmBalance, isFetching: balanceLoading } = useNativeXlmBalance();
+  const { transactions, dismissTransaction } = useTransactionNotifications();
+
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [location.pathname]);
+
+  const NavItems = (
+    <>
+      <NavLink to="/employer/payroll" className={navLinkClass}>
+        <CreditCard className={iconClass} aria-hidden />
+        <span>Payroll</span>
+      </NavLink>
+      <NavLink to="/employer/employee" className={navLinkClass}>
+        <Users className={iconClass} aria-hidden />
+        <span>Employees</span>
+      </NavLink>
+      <NavLink to="/employer/bulk-upload" className={navLinkClass}>
+        <Upload className={iconClass} aria-hidden />
+        <span>Bulk upload</span>
+      </NavLink>
+      <NavLink to="/employer/analytics" className={navLinkClass}>
+        <BarChart3 className={iconClass} aria-hidden />
+        <span>Analytics</span>
+      </NavLink>
+      <NavLink to="/employer/reports" className={navLinkClass}>
+        <FileText className={iconClass} aria-hidden />
+        <span>Reports</span>
+      </NavLink>
+      <NavLink to="/employer/cross-asset-payment" className={navLinkClass}>
+        <Globe className={iconClass} aria-hidden />
+        <span>Cross-asset</span>
+      </NavLink>
+      <NavLink to="/employer/transactions" className={navLinkClass}>
+        <History className={iconClass} aria-hidden />
+        <span>Transactions</span>
+      </NavLink>
+      <NavLink to="/employer/revenue-split" className={navLinkClass}>
+        <PieChart className={iconClass} aria-hidden />
+        <span>Revenue split</span>
+      </NavLink>
+      <NavLink to="/employer/settings" className={navLinkClass}>
+        <Settings className={iconClass} aria-hidden />
+        <span>Settings</span>
+      </NavLink>
+      <NavLink
+        to="/"
+        className="mt-4 flex items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-medium text-[var(--muted)] hover:text-[var(--text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+      >
+        <ArrowLeft className={iconClass} aria-hidden />
+        <span>Full site navigation</span>
+      </NavLink>
+    </>
+  );
 
   return (
-    <div className="min-h-screen bg-(--bg) text-(--text)">
-      {/* Desktop Sidebar */}
-      <div className="hidden lg:block fixed left-0 top-0 h-screen w-64 z-50">
-        <DashboardSidebar />
-      </div>
-
-      {/* Mobile Sidebar Overlay */}
-      {isSidebarOpen && (
-        <div
-          className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]"
-          onClick={toggleSidebar}
+    <div className="flex min-h-screen" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
+      {/* Mobile overlay */}
+      {mobileNavOpen ? (
+        <button
+          type="button"
+          aria-label="Close navigation menu"
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={() => setMobileNavOpen(false)}
         />
-      )}
+      ) : null}
 
-      {/* Mobile Sidebar Content */}
-      <div
-        className={`
-                lg:hidden fixed left-0 top-0 h-full w-64 z-[70] transition-transform duration-300 ease-in-out transform
-                ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-            `}
+      {/* Sidebar */}
+      <aside
+        id="employer-sidebar"
+        className={`fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col border-r border-[var(--border-hi)] bg-[color-mix(in_srgb,var(--surface)_96%,transparent)] backdrop-blur-xl transition-transform duration-200 lg:translate-x-0 ${
+          mobileNavOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        }`}
+        aria-label="Employer navigation"
       >
-        <DashboardSidebar onClose={toggleSidebar} />
-      </div>
-
-      {/* Main Content Area */}
-      <div className="flex flex-col min-h-screen lg:pl-64">
-        {/* Mobile Top Bar */}
-        <header className="lg:hidden h-16 px-6 border-b border-(--border) bg-(--bg)/80 backdrop-blur-xl flex items-center justify-between sticky top-0 z-40">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg grid place-items-center font-extrabold text-black text-sm tracking-tight shadow-[0_0_20px_rgba(74,240,184,0.3)] bg-linear-to-br from-(--accent) to-(--accent2)">
-              P
-            </div>
-            <span className="text-xl font-extrabold tracking-tight">
-              Pay<span className="text-(--accent)">D</span>
-            </span>
-          </div>
-          <button
-            onClick={toggleSidebar}
-            className="p-2 rounded-lg bg-(--surface) border border-(--border) hover:bg-(--surface-hi) transition-colors"
-            aria-label="Toggle Sidebar"
+        <div className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-4 lg:pt-4">
+          <Text
+            as="p"
+            size="sm"
+            weight="bold"
+            addlClassName="mb-2 px-3 text-[var(--muted)] uppercase tracking-wider"
           >
-            {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
+            Employer
+          </Text>
+          <nav className="flex flex-col gap-1" aria-label="Employer pages">
+            {NavItems}
+          </nav>
+        </div>
+      </aside>
+
+      <div className="flex min-h-screen flex-1 flex-col lg:pl-72">
+        {/* Top bar */}
+        <header
+          className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between gap-4 border-b border-[var(--border-hi)] px-4 sm:px-6"
+          style={{
+            background: 'color-mix(in srgb, var(--bg) 88%, transparent)',
+          }}
+        >
+          <div className="flex min-w-0 items-center gap-3">
+            <Button
+              variant="tertiary"
+              size="sm"
+              className="lg:hidden"
+              aria-expanded={mobileNavOpen}
+              aria-controls="employer-sidebar"
+              onClick={() => setMobileNavOpen((o) => !o)}
+              icon={<Menu className="h-4 w-4" aria-hidden />}
+            />
+            <div className="min-w-0">
+              <Heading as="h1" size="md" weight="bold" addlClassName="truncate tracking-tight">
+                {ORG_NAME}
+              </Heading>
+              <Breadcrumb />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div
+              className="flex min-w-0 max-w-[9rem] flex-col rounded-lg border border-[var(--border-hi)] bg-[var(--surface)] px-2 py-1 text-right sm:max-w-none sm:min-w-[8rem] sm:px-3 sm:py-1.5"
+              role="status"
+              aria-live="polite"
+              aria-label="Wallet XLM balance"
+            >
+              <span className="text-[9px] font-semibold uppercase tracking-wider text-[var(--muted)] sm:text-[10px]">
+                Balance
+              </span>
+              <span
+                className="truncate font-mono text-xs text-[var(--accent)] sm:text-sm"
+                aria-busy={balanceLoading}
+              >
+                {!address ? 'Connect wallet' : balanceLoading ? '…' : formatXlm(xlmBalance ?? null)}
+              </span>
+            </div>
+            <NetworkSwitcher />
+            <LanguageSelector />
+            <ThemeToggle />
+            <ConnectAccount />
+          </div>
         </header>
 
-        <DashboardTopBar />
-
-        <main className="flex-1 p-6 lg:p-10 max-w-[1600px] w-full mx-auto">
-          <div className="page-fade">
+        <main className="flex-1 overflow-x-hidden px-4 py-6 sm:px-6">
+          <ErrorBoundary fallback={<ErrorFallback />}>
             <Outlet />
-          </div>
+          </ErrorBoundary>
         </main>
-
-        <footer className="p-8 border-t border-(--border) text-(--muted) text-xs flex flex-wrap justify-between items-center gap-4">
-          <p>© {new Date().getFullYear()} PayD — Licensed under Apache 2.0</p>
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-(--accent) shadow-[0_0_8px_var(--accent)]" />
-            <span className="uppercase tracking-widest font-mono text-[10px]">
-              Stellar Testnet Node · V22.1.0
-            </span>
-          </div>
-        </footer>
       </div>
+
+      {/* Transaction Pending Overlay */}
+      <TransactionPendingOverlay transactions={transactions} onDismiss={dismissTransaction} />
     </div>
+  );
+};
+
+const EmployerLayout: React.FC = () => {
+  return (
+    <TransactionProvider>
+      <EmployerLayoutContent />
+    </TransactionProvider>
   );
 };
 

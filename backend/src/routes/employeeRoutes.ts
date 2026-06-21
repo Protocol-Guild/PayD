@@ -1,34 +1,24 @@
-import { Router, Request, Response, NextFunction } from 'express';
+import { Router } from 'express';
 import { employeeController } from '../controllers/employeeController.js';
+import { bulkImportController } from '../controllers/bulkImportController.js';
 import authenticateJWT from '../middlewares/auth.js';
 import { authorizeRoles, isolateOrganization } from '../middlewares/rbac.js';
-import { tenantQuotaService, QuotaExceededError } from '../services/tenantQuotaService.js';
-
-async function enforceEmployeeQuota(req: Request, res: Response, next: NextFunction): Promise<void> {
-  const orgId = req.tenantId ?? req.user?.organizationId;
-  if (!orgId) { next(); return; }
-  try {
-    await tenantQuotaService.assertEmployeeQuota(orgId);
-    next();
-  } catch (err) {
-    if (err instanceof QuotaExceededError) {
-      res.status(429).json({
-        error: 'Quota exceeded',
-        resource: err.resource,
-        current: err.current,
-        limit: err.limit,
-        message: `Employee quota reached (${err.current}/${err.limit}). Contact support to increase your limit.`,
-      });
-    } else {
-      next(err);
-    }
-  }
-}
 
 const router = Router();
 
 // Apply authentication to all employee routes
 router.use(authenticateJWT);
+
+/**
+ * @route POST /api/employees/bulk-import
+ * @desc Bulk import employees from CSV
+ */
+router.post(
+  '/bulk-import',
+  authorizeRoles('EMPLOYER'),
+  isolateOrganization,
+  bulkImportController.import.bind(bulkImportController)
+);
 
 /**
  * @route POST /api/employees
@@ -76,6 +66,17 @@ router.patch(
 );
 
 /**
+ * @route PUT /api/employees/:id
+ * @desc Update an employee
+ */
+router.put(
+  '/:id',
+  authorizeRoles('EMPLOYER'),
+  isolateOrganization,
+  employeeController.update.bind(employeeController)
+);
+
+/**
  * @route DELETE /api/employees/:id
  * @desc Soft delete an employee
  */
@@ -84,18 +85,6 @@ router.delete(
   authorizeRoles('EMPLOYER'),
   isolateOrganization,
   employeeController.delete.bind(employeeController)
-);
-
-/**
- * @route POST /api/employees/bulk-import
- * @desc Bulk import employees from CSV
- */
-import { bulkImportController } from '../controllers/bulkImportController.js';
-router.post(
-  '/bulk-import',
-  authorizeRoles('EMPLOYER'),
-  isolateOrganization,
-  bulkImportController.import.bind(bulkImportController)
 );
 
 export default router;

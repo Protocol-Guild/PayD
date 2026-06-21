@@ -1,36 +1,47 @@
 import { Router } from 'express';
-import { ContractEventController } from '../controllers/contractEventController.js';
-import { authenticateJWT } from '../middlewares/auth.js';
-import { isolateOrganization } from '../middlewares/rbac.js';
+import { ContractEventsController } from '../controllers/contractEventsController.js';
 
 const router = Router();
 
-// Apply authentication to all event routes
-router.use(authenticateJWT);
-router.use(isolateOrganization);
+/**
+ * @swagger
+ * tags:
+ *   name: Contract Events
+ *   description: On-chain contract event indexing
+ */
 
 /**
- * @route GET /api/events/indexer/status
+ * @swagger
+ * /api/events/{contractId}:
+ *   get:
+ *     summary: List indexed contract events
+ *     tags: [Contract Events]
+ *     parameters:
+ *       - in: path
+ *         name: contractId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: eventType
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Success
  */
-router.get(
-  '/indexer/status',
-  ContractEventController.getIndexerStatus
-);
-
-/**
- * @route GET /api/events/:contractId
- */
-router.get(
-  '/:contractId',
-  ContractEventController.getEventsByContract
-);
-
-/**
- * @route GET /api/events
- */
-router.get(
-  '/',
-  ContractEventController.getAllEvents
-);
+router.get('/:contractId', ContractEventsController.listByContract);
 
 export default router;

@@ -1,6 +1,10 @@
 import { Router } from 'express';
 import { throttlingMiddleware } from '../../middlewares/throttlingMiddleware.js';
-import { authRateLimit, apiRateLimit, dataRateLimit } from '../../middlewares/rateLimitMiddleware.js';
+import {
+  authRateLimit,
+  apiRateLimit,
+  dataRateLimit,
+} from '../../middlewares/rateLimitMiddleware.js';
 import searchRoutes from '../searchRoutes.js';
 import employeeRoutes from '../employeeRoutes.js';
 import paymentRoutes from '../paymentRoutes.js';
@@ -19,12 +23,28 @@ import multiSigRoutes from '../multiSigRoutes.js';
 import rateLimitRoutes from '../rateLimitRoutes.js';
 import freezeRoutes from '../freezeRoutes.js';
 import contractUpgradeRoutes from '../contractUpgradeRoutes.js';
-import forecastRoutes from '../forecastRoutes.js';
-import benefitsRoutes from '../benefitsRoutes.js';
+import claimRoutes from '../claimRoutes.js';
+import feeRoutes from '../feeRoutes.js';
+import assetPathPaymentRoutes from '../assetPathPaymentRoutes.js';
+import pathPaymentRoutes from '../pathPaymentRoutes.js';
+import tenantConfigRoutes from '../tenantConfigRoutes.js';
+import bulkPaymentRoutes from '../bulkPaymentRoutes.js';
+import webhookRoutes from '../webhookNotificationRoutes.js';
+import notificationRoutes from '../notificationRoutes.js';
+import ratesRoutes from '../ratesRoutes.js';
+import stellarThrottlingRoutes from '../stellarThrottlingRoutes.js';
+import organizationRoutes from '../organizationRoutes.js';
+import orgAuditRoutes from '../orgAuditRoutes.js';
+import transactionRoutes from '../transactionRoutes.js';
+import circuitBreakerRoutes from '../circuitBreakerRoutes.js';
+import analyticsRoutes from '../analyticsRoutes.js';
+import migrationStatusRoutes from '../migrationStatusRoutes.js';
+import adminAuditRoutes from '../adminAuditRoutes.js';
 
 const router = Router();
 
 router.use('/auth', authRateLimit(), authRoutes);
+
 router.use('/search', dataRateLimit(), searchRoutes);
 router.use('/employees', dataRateLimit(), employeeRoutes);
 router.use('/payments', apiRateLimit(), throttlingMiddleware(), paymentRoutes);
@@ -43,6 +63,22 @@ router.use('/multisig', apiRateLimit(), multiSigRoutes);
 router.use('/rate-limit', apiRateLimit(), rateLimitRoutes);
 router.use('/freeze', apiRateLimit(), freezeRoutes);
 router.use('/contracts', apiRateLimit(), contractUpgradeRoutes);
-router.use('/benefits', dataRateLimit(), benefitsRoutes);
+router.use('/claims', dataRateLimit(), claimRoutes);
+router.use('/fees', dataRateLimit(), feeRoutes);
+router.use('/path-payments', apiRateLimit(), pathPaymentRoutes);
+router.use('/asset-path-payments', apiRateLimit(), assetPathPaymentRoutes);
+router.use('/tenant-configs', dataRateLimit(), tenantConfigRoutes);
+router.use('/bulk-payments', apiRateLimit(), bulkPaymentRoutes);
+router.use('/webhooks', apiRateLimit(), webhookRoutes);
+router.use('/notifications', apiRateLimit(), notificationRoutes);
+router.use('/rates', dataRateLimit(), ratesRoutes);
+router.use('/stellar-throttling', apiRateLimit(), stellarThrottlingRoutes);
+router.use('/organizations', dataRateLimit(), organizationRoutes);
+router.use('/org-audit', dataRateLimit(), orgAuditRoutes);
+router.use('/transactions', dataRateLimit(), transactionRoutes);
+router.use('/circuit-breakers', apiRateLimit(), circuitBreakerRoutes);
+router.use('/analytics', dataRateLimit(), analyticsRoutes);
+router.use('/migrations', apiRateLimit(), migrationStatusRoutes);
+router.use('/admin-audit', dataRateLimit(), adminAuditRoutes);
 
 export default router;
