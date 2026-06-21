@@ -175,9 +175,36 @@ describe('TaxService', () => {
 
       expect(result.gross_amount).toBe(5000);
       expect(result.deductions).toHaveLength(1);
-      expect(result.deductions[0].deducted_amount).toBe(1000);
+      expect(result.deductions[0]!.deducted_amount).toBe(1000);
       expect(result.total_tax).toBe(1000);
       expect(result.net_amount).toBe(4000);
+    });
+
+    it('should calculate deductions via provider when employeeId is provided (using residency country)', async () => {
+      mockQuery
+        .mockResolvedValueOnce({ rows: [{ country: 'DE' }] })
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: 1,
+              name: 'Income Tax',
+              type: 'percentage',
+              value: 20,
+              is_active: true,
+              priority: 0,
+            },
+          ],
+        });
+
+      const result = await taxService.calculateDeductions(1, 5000, 123, 'EUR');
+
+      expect(result.gross_amount).toBe(5000);
+      expect(result.total_tax).toBe(1000);
+      expect(result.net_amount).toBe(4000);
+
+      expect(mockQuery).toHaveBeenCalledTimes(2);
+      expect(String(mockQuery.mock.calls[0][0])).toContain('SELECT country FROM employees');
+      expect(mockQuery.mock.calls[0][1]).toEqual([123, 1]);
     });
 
     it('should calculate fixed deductions correctly', async () => {
@@ -198,7 +225,7 @@ describe('TaxService', () => {
 
       expect(result.gross_amount).toBe(5000);
       expect(result.deductions).toHaveLength(1);
-      expect(result.deductions[0].deducted_amount).toBe(150);
+      expect(result.deductions[0]!.deducted_amount).toBe(150);
       expect(result.total_tax).toBe(150);
       expect(result.net_amount).toBe(4850);
     });
@@ -223,9 +250,9 @@ describe('TaxService', () => {
 
       expect(result.gross_amount).toBe(10000);
       expect(result.deductions).toHaveLength(3);
-      expect(result.deductions[0].deducted_amount).toBe(2200); // 22% of 10000
-      expect(result.deductions[1].deducted_amount).toBe(500); // 5% of 10000
-      expect(result.deductions[2].deducted_amount).toBe(150); // fixed 150
+      expect(result.deductions[0]!.deducted_amount).toBe(2200); // 22% of 10000
+      expect(result.deductions[1]!.deducted_amount).toBe(500); // 5% of 10000
+      expect(result.deductions[2]!.deducted_amount).toBe(150); // fixed 150
       expect(result.total_tax).toBe(2850);
       expect(result.net_amount).toBe(7150);
     });

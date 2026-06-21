@@ -44,6 +44,23 @@ fn setup() -> (Env, Address, Address, BulkPaymentContractClient<'static>) {
     (env, sender, token_id, client)
 }
 
+fn setup_with_sender_balance(sender_balance: i128) -> (Env, Address, Address, BulkPaymentContractClient<'static>) {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let token_admin = Address::generate(&env);
+    let token_id = env.register_stellar_asset_contract_v2(token_admin.clone()).address();
+    let sender = Address::generate(&env);
+    StellarAssetClient::new(&env, &token_id).mint(&sender, &sender_balance);
+
+    let admin = Address::generate(&env);
+    let contract_id = env.register(BulkPaymentContract,());
+    let client = BulkPaymentContractClient::new(&env, &contract_id);
+    client.initialize(&admin);
+
+    (env, sender, token_id, client)
+}
+
 fn one_payment(env: &Env) -> Vec<PaymentOp> {
     let mut payments: Vec<PaymentOp> = Vec::new(env);
     payments.push_back(PaymentOp {
@@ -140,6 +157,16 @@ fn test_execute_batch_negative_amount_panics() {
 }
 
 #[test]
+#[should_panic(expected = "Error(Contract, #7)")]
+fn test_execute_batch_amount_overflow_panics() {
+    let (env, sender, token, client) = setup();
+    let mut payments: Vec<PaymentOp> = Vec::new(&env);
+    payments.push_back(PaymentOp { recipient: Address::generate(&env), amount: i128::MAX });
+    payments.push_back(PaymentOp { recipient: Address::generate(&env), amount: 1 });
+    client.execute_batch(&sender, &token, &payments, &0);
+}
+
+#[test]
 #[should_panic(expected = "Error(Contract, #8)")]
 fn test_execute_batch_sequence_replay_panics() {
     let (env, sender, token, client) = setup();
@@ -178,7 +205,7 @@ fn test_partial_batch_skips_insufficient_funds() {
     let (env, sender, token, client) = setup();
 
     let r1 = Address::generate(&env);
-    let r2 = Address::generate(&env); // will be skipped (amount = 0)
+    let r2 = Address::generate(&env);
 
     let mut payments: Vec<PaymentOp> = Vec::new(&env);
     payments.push_back(PaymentOp {
@@ -199,9 +226,9 @@ fn test_partial_batch_skips_insufficient_funds() {
     assert_eq!(record.fail_count, 1);
 
     let tc = TokenClient::new(&env, &token);
-    assert_eq!(tc.balance(&r1), 500_000);
+    assert_eq!(tc.balance(&r1), 500);
     assert_eq!(tc.balance(&r2), 0);
-    assert_eq!(tc.balance(&sender), 500_000); // refunded the unspent pull
+    assert_eq!(tc.balance(&sender), 100); // refunded the unspent pull
 }
 
 #[test]

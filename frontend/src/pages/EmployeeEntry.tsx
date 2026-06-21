@@ -25,6 +25,8 @@ import { useAutosave } from '../hooks/useAutosave';
 import { useNotification } from '../hooks/useNotification';
 import { generateWallet } from '../services/stellar';
 
+import api from '../utils/api';
+
 interface EmployeeFormState {
   fullName: string;
   workEmail: string;
@@ -125,6 +127,47 @@ export default function EmployeeEntry() {
     formData
   );
   const { t } = useTranslation();
+
+  interface EmployeeApiResponse {
+    id: number;
+    first_name: string;
+    last_name: string;
+    email: string;
+    position?: string;
+    job_title?: string;
+    wallet_address?: string;
+    status: string;
+  }
+
+  interface EmployeesApiResponse {
+    data: EmployeeApiResponse[];
+    pagination?: unknown;
+  }
+
+  const fetchEmployees = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await api.get<EmployeesApiResponse>('/employees');
+      // Backend returns { data: [...], pagination: {...} }
+      const mapped: EmployeeItem[] = response.data.data.map((emp) => ({
+        id: String(emp.id),
+        name: `${emp.first_name} ${emp.last_name}`,
+        email: emp.email,
+        position: emp.position ?? emp.job_title ?? 'Employee',
+        wallet: emp.wallet_address,
+        status: emp.status === 'active' ? ('Active' as const) : ('Inactive' as const),
+      }));
+      setEmployees(mapped);
+    } catch (err) {
+      console.error('Failed to fetch employees:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchEmployees();
+  }, [fetchEmployees]);
 
   useEffect(() => {
     const saved = loadSavedData();

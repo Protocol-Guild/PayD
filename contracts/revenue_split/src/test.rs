@@ -26,6 +26,29 @@ fn create_token_contract<'a>(
 // ══════════════════════════════════════════════════════════════════════════════
 
 #[test]
+fn test_distribution_invalid_amount_returns_error() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let token_admin = Address::generate(&env);
+    let (token_id, stellar_asset_client, token_client) = create_token_contract(&env, &token_admin);
+
+    let contract_id = env.register(RevenueSplitContract, ());
+    let contract_client = RevenueSplitContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let recipient1 = Address::generate(&env);
+    let shares = Vec::from_array(&env, [RecipientShare { destination: recipient1.clone(), basis_points: 10000 }]);
+    contract_client.init(&admin, &shares);
+
+    let sender = Address::generate(&env);
+    stellar_asset_client.mint(&sender, &1000);
+
+    assert!(contract_client.try_distribute(&token_id, &sender, &0).is_err());
+    assert_eq!(token_client.balance(&sender), 1000);
+}
+
+#[test]
 fn test_initialization() {
     let env = Env::default();
     let contract_id = env.register(RevenueSplitContract, ());
@@ -120,6 +143,55 @@ fn test_double_init() {
         }],
     );
 
+    env.mock_all_auths();
+    assert!(client.try_init(&admin, &shares).is_err());
+}
+
+#[test]
+fn test_init_empty_recipients_returns_error() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_id = env.register(RevenueSplitContract, ());
+    let client = RevenueSplitContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let shares = Vec::<RecipientShare>::new(&env);
+
+    assert!(client.try_init(&admin, &shares).is_err());
+}
+
+#[test]
+fn test_init_duplicate_recipient_returns_error() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_id = env.register(RevenueSplitContract, ());
+    let client = RevenueSplitContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let recipient1 = Address::generate(&env);
+
+    let shares = Vec::from_array(&env, [
+        RecipientShare { destination: recipient1.clone(), basis_points: 5000 },
+        RecipientShare { destination: recipient1.clone(), basis_points: 5000 },
+    ]);
+
+    assert!(client.try_init(&admin, &shares).is_err());
+}
+
+#[test]
+#[should_panic]
+fn test_init_requires_admin_auth() {
+    let env = Env::default();
+    let contract_id = env.register(RevenueSplitContract, ());
+    let client = RevenueSplitContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let recipient1 = Address::generate(&env);
+    let shares = Vec::from_array(&env, [RecipientShare { destination: recipient1, basis_points: 10000 }]);
+
+    // No mock auths => require_auth should panic
     client.init(&admin, &shares);
     let result = client.try_init(&admin, &shares);
     assert_eq!(result, Err(Ok(RevenueSplitError::AlreadyInitialized)));

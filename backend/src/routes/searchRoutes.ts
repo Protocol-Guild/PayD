@@ -6,6 +6,10 @@ import { requireTenantContext } from '../middleware/tenantContext.js';
 
 const router = Router();
 
+// Apply global authentication and isolation to all search routes
+router.use(authenticateJWT);
+router.use(isolateOrganization);
+
 /**
  * @swagger
  * tags:

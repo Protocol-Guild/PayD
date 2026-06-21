@@ -16,6 +16,11 @@ export interface AuditRecord {
   successful: boolean;
   metadata: Record<string, unknown> | null;
   created_at: string;
+  employee_name?: string;
+  asset?: string;
+  amount?: string;
+  status?: string;
+  is_contract_event?: boolean;
 }
 
 export class TransactionAuditService {
@@ -131,15 +136,30 @@ export class TransactionAuditService {
     const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     const countResult = await pool.query(
-      `SELECT COUNT(*) FROM transaction_audit_logs ${where}`,
+      `SELECT COUNT(DISTINCT tal.id) FROM transaction_audit_logs tal
+       LEFT JOIN payroll_audit_logs pal ON tal.tx_hash = pal.tx_hash
+       LEFT JOIN employees e ON pal.employee_id = e.id
+       ${where}`,
       values.slice()
     );
     const total = parseInt(countResult.rows[0].count, 10);
 
     values.push(limit, offset);
     const dataResult = await pool.query(
-      `SELECT * FROM transaction_audit_logs ${where}
-       ORDER BY created_at DESC
+      `SELECT tal.*,
+              e.first_name || ' ' || COALESCE(e.last_name, '') as employee_name,
+              pal.asset_code as asset,
+              pal.amount as amount,
+              CASE WHEN tal.successful THEN 'Completed' ELSE 'Failed' END as status,
+              false as is_contract_event
+       FROM transaction_audit_logs tal
+       LEFT JOIN (
+           SELECT tx_hash, MAX(employee_id) as employee_id, MAX(asset_code) as asset_code, SUM(amount) as amount 
+           FROM payroll_audit_logs GROUP BY tx_hash
+       ) pal ON tal.tx_hash = pal.tx_hash
+       LEFT JOIN employees e ON pal.employee_id = e.id
+       ${where}
+       ORDER BY tal.created_at DESC
        LIMIT $${paramIdx++} OFFSET $${paramIdx++}`,
       values
     );

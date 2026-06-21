@@ -28,6 +28,7 @@ router.post(
   '/',
   authorizeRoles('EMPLOYER'),
   isolateOrganization,
+  enforceEmployeeQuota,
   employeeController.create.bind(employeeController)
 );
 

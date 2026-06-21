@@ -42,10 +42,10 @@ export class PaymentController {
       }
 
       // 1. Authenticate
-      const token = await AnchorService.authenticate(domain, clientKeypair);
+      const token = await AnchorService.authenticate(domain as string, clientKeypair);
 
       // 2. Initiate Payment
-      const result = await AnchorService.initiatePayment(domain, token, paymentData);
+      const result = await AnchorService.initiatePayment(domain as string, token, paymentData);
 
       await Sep31TrackingService.recordInitiation({
         organizationId: req.user?.organizationId ?? null,

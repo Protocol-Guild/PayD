@@ -25,7 +25,7 @@ export default function CrossAssetPayment() {
   const { address, connect, requireWallet } = useWallet();
   const { sign } = useWalletSigning();
   const [assetIn, setAssetIn] = useState('USDC');
-  const [assetOut, setAssetOut] = useState('NGN');
+  const [assetOut, setAssetOut] = useState('XLM');
   const [amount, setAmount] = useState('');
   const [receiver, setReceiver] = useState('');
   const [paths, setPaths] = useState<ConversionPath[]>([]);
@@ -159,6 +159,7 @@ export default function CrossAssetPayment() {
       setLiveStatusMessage('Submitted. Waiting for live settlement updates...');
       notifyPaymentSuccess(result.txHash, 'Payment submitted');
     } catch (error) {
+      console.error(error);
       setStatus('error');
       setOverlayStatus('error');
       const parsed = parseContractError(
@@ -250,7 +251,6 @@ export default function CrossAssetPayment() {
                   >
                     <option>USDC</option>
                     <option>XLM</option>
-                    <option>EURT</option>
                   </select>
                 </div>
                 <div className="mt-6">
@@ -265,6 +265,8 @@ export default function CrossAssetPayment() {
                     onChange={(e) => setAssetOut(e.target.value)}
                     className="w-full rounded-xl border border-zinc-800 bg-[#0a0a0c] px-4 py-3 outline-none"
                   >
+                    <option>XLM</option>
+                    <option>USDC</option>
                     <option>NGN</option>
                     <option>BRL</option>
                     <option>ARS</option>
@@ -323,7 +325,6 @@ export default function CrossAssetPayment() {
             </div>
           </div>
 
-          {/* Right Column: Info & Status */}
           <div className="space-y-8">
             {/* Path Options Panel */}
             {(isLoadingPaths || paths.length > 0) && (
@@ -388,7 +389,6 @@ export default function CrossAssetPayment() {
               </div>
             )}
 
-            {/* Status Panel */}
             {status !== 'idle' && (
               <div className="relative overflow-hidden rounded-[2rem] border border-blue-900/30 bg-[#16161a] p-6 shadow-xl sm:p-8">
                 <div className="absolute top-0 right-0 p-4">

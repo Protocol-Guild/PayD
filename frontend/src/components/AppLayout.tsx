@@ -60,6 +60,7 @@ const AppLayout: React.FC = () => {
           </div>
         </div>
       </header>
+      <WalletExtensionBanner />
 
       {/* Main */}
       <main className="flex flex-col flex-1 pt-(--header-h)">
@@ -73,7 +74,7 @@ const AppLayout: React.FC = () => {
 
       {/* Footer */}
       <footer
-        className="flex flex-wrap justify-between items-center gap-2 px-6 py-5 border-t text-xs font-mono text-(--muted)"
+        className="flex flex-wrap justify-between items-center gap-2 px-4 md:px-6 py-4 md:py-5 border-t text-xs font-mono text-(--muted)"
         style={{ borderColor: 'var(--border-hi)' }}
       >
         <span>

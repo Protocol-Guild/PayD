@@ -233,9 +233,9 @@ export default function AdminPanel() {
   }
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-start p-12 max-w-5xl mx-auto w-full">
+    <div className="flex-1 flex flex-col items-center justify-start p-4 sm:p-6 lg:p-12 max-w-5xl mx-auto w-full">
       {/* Header */}
-      <div className="w-full mb-8 flex items-end justify-between border-b border-hi pb-8">
+      <div className="w-full mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-end sm:justify-between border-b border-hi pb-4 sm:pb-8 gap-4">
         <div>
           <Heading as="h1" size="lg" weight="bold" addlClassName="mb-2 tracking-tight">
             Security <span className="text-red-500">Center</span>
@@ -252,7 +252,7 @@ export default function AdminPanel() {
       </div>
 
       {/* Tab bar */}
-      <div className="w-full mb-8 flex gap-4 border-b border-hi overflow-x-auto">
+      <div className="w-full mb-6 sm:mb-8 flex gap-2 sm:gap-4 border-b border-hi overflow-x-auto -mx-4 sm:-mx-6 lg:-mx-12 px-4 sm:px-6 lg:px-12 scrollbar-hide">
         {(Object.keys(TAB_LABELS) as ActiveTab[]).map((tab) => (
           <button key={tab} onClick={() => setActiveTab(tab)} className={tabClass(tab)}>
             {tab === 'contracts' && <Code2 className="inline w-3.5 h-3.5 mr-1.5 -mt-0.5" />}
@@ -266,11 +266,11 @@ export default function AdminPanel() {
       <Card>
         {/* ── Account Control ─────────────────────────────────────── */}
         {activeTab === 'account' && (
-          <div className="flex flex-col gap-6 max-w-2xl">
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              <ShieldAlert className="w-5 h-5 text-red-500" /> Account Level Freeze
+          <div className="flex flex-col gap-4 sm:gap-6 max-w-2xl">
+            <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" /> Account Level Freeze
             </h2>
-            <p className="text-sm text-muted">
+            <p className="text-xs sm:text-sm text-muted">
               Instantly block or restore an individual account's ability to transact with your
               asset.
             </p>
@@ -355,11 +355,11 @@ export default function AdminPanel() {
 
         {/* ── Global Asset Control ─────────────────────────────────── */}
         {activeTab === 'global' && (
-          <div className="flex flex-col gap-6 max-w-2xl">
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-red-500" /> Global Asset Freeze
+          <div className="flex flex-col gap-4 sm:gap-6 max-w-2xl">
+            <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" /> Global Asset Freeze
             </h2>
-            <div className="bg-red-500/10 border border-red-500/30 p-4 rounded-xl text-red-400 text-sm">
+            <div className="bg-red-500/10 border border-red-500/30 p-3 sm:p-4 rounded-xl text-red-400 text-xs sm:text-sm">
               <strong>WARNING:</strong> This will freeze ALL accounts holding this asset. Reserve
               for systemic security breaches only.
             </div>
@@ -431,11 +431,11 @@ export default function AdminPanel() {
 
         {/* ── Status Check ─────────────────────────────────────────── */}
         {activeTab === 'status' && (
-          <div className="flex flex-col gap-6 max-w-2xl">
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              <Search className="w-5 h-5 text-accent" /> Trustline Status
+          <div className="flex flex-col gap-4 sm:gap-6 max-w-2xl">
+            <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
+              <Search className="w-4 h-4 sm:w-5 sm:h-5 text-accent" /> Trustline Status
             </h2>
-            <p className="text-sm text-muted">
+            <p className="text-xs sm:text-sm text-muted">
               Verify whether an account's trustline is currently frozen for a given asset.
             </p>
 
@@ -496,7 +496,7 @@ export default function AdminPanel() {
                     Status
                   </span>
                   <span
-                    className={`px-3 py-1 rounded text-xs font-black uppercase tracking-widest border ${
+                    className={`px-3 py-1.5 rounded text-xs font-black uppercase tracking-widest border ${
                       statusResult.isFrozen
                         ? 'bg-red-500/20 text-red-500 border-red-500/30'
                         : 'bg-emerald-500/20 text-emerald-500 border-emerald-500/30'
@@ -505,27 +505,29 @@ export default function AdminPanel() {
                     {statusResult.isFrozen ? 'Frozen' : 'Active'}
                   </span>
                 </div>
-                <dl className="grid gap-2 text-sm">
-                  <div className="flex gap-2">
-                    <dt className="text-muted min-w-[110px]">Account</dt>
-                    <dd className="font-mono text-xs truncate">{statusResult.targetAccount}</dd>
+                <dl className="grid gap-3 text-xs sm:text-sm">
+                  <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
+                    <dt className="text-muted sm:min-w-[110px]">Account</dt>
+                    <dd className="font-mono text-xs break-all sm:truncate">
+                      {statusResult.targetAccount}
+                    </dd>
                   </div>
-                  <div className="flex gap-2">
-                    <dt className="text-muted min-w-[110px]">Asset</dt>
+                  <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
+                    <dt className="text-muted sm:min-w-[110px]">Asset</dt>
                     <dd className="font-bold">{statusResult.assetCode}</dd>
                   </div>
                   {statusResult.latestAction && (
                     <>
-                      <div className="flex gap-2">
-                        <dt className="text-muted min-w-[110px]">Last Action</dt>
+                      <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
+                        <dt className="text-muted sm:min-w-[110px]">Last Action</dt>
                         <dd className="capitalize">{statusResult.latestAction.action}</dd>
                       </div>
-                      <div className="flex gap-2">
-                        <dt className="text-muted min-w-[110px]">Reason</dt>
-                        <dd>{statusResult.latestAction.reason || '—'}</dd>
+                      <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
+                        <dt className="text-muted sm:min-w-[110px]">Reason</dt>
+                        <dd className="break-words">{statusResult.latestAction.reason || '—'}</dd>
                       </div>
-                      <div className="flex gap-2">
-                        <dt className="text-muted min-w-[110px]">Timestamp</dt>
+                      <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
+                        <dt className="text-muted sm:min-w-[110px]">Timestamp</dt>
                         <dd className="font-mono text-xs">
                           {new Date(statusResult.latestAction.created_at).toLocaleString()}
                         </dd>
@@ -546,10 +548,10 @@ export default function AdminPanel() {
 
         {/* ── Audit Logs ───────────────────────────────────────────── */}
         {activeTab === 'logs' && (
-          <div className="flex flex-col gap-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <Activity className="w-5 h-5 text-accent" /> Freeze Audit Logs
+          <div className="flex flex-col gap-4 sm:gap-6">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+              <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
+                <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-accent" /> Freeze Audit Logs
               </h2>
               <div className="flex items-center gap-3">
                 {logsTotal > 0 && (
@@ -569,7 +571,8 @@ export default function AdminPanel() {
               </div>
             </div>
 
-            <div className="overflow-x-auto w-full">
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto w-full">
               <table className="w-full text-left border-collapse text-sm">
                 <thead>
                   <tr className="border-b border-hi text-muted uppercase tracking-wider text-[10px]">
@@ -624,6 +627,56 @@ export default function AdminPanel() {
                   )}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-3">
+              {logs.length === 0 ? (
+                <div className="p-8 text-center text-muted text-sm">
+                  {logsLoading ? 'Loading…' : 'No freeze logs found.'}
+                </div>
+              ) : (
+                logs.map((log: FreezeLog) => (
+                  <div
+                    key={log.id}
+                    className="border border-hi/50 rounded-lg p-4 bg-black/5 space-y-3"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-mono text-muted mb-1">
+                          {new Date(log.created_at).toLocaleString()}
+                        </div>
+                        <div className="text-xs font-mono break-all">{log.target_account}</div>
+                      </div>
+                      <span
+                        className={`px-2 py-1 rounded text-[10px] uppercase font-bold tracking-widest flex-shrink-0 ${
+                          log.action === 'freeze'
+                            ? 'bg-red-500/20 text-red-500'
+                            : 'bg-emerald-500/20 text-emerald-500'
+                        }`}
+                      >
+                        {log.action}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-muted">Asset:</span>
+                        <span className="ml-1 font-bold">{log.asset_code}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted">Scope:</span>
+                        <span className="ml-1 capitalize">{log.scope}</span>
+                      </div>
+                    </div>
+                    {log.reason && (
+                      <div className="text-xs">
+                        <span className="text-muted">Reason:</span>
+                        <div className="mt-1 text-text break-words">{log.reason}</div>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
             </div>
 
             {/* Pagination */}

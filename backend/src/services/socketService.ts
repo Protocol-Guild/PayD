@@ -104,6 +104,22 @@ export const emitTransactionUpdate = (transactionId: string, status: string, dat
       ...data,
     });
   } catch (error) {
-    console.warn('Failed to emit transaction update (Socket.IO might not be initialized yet)');
+    console.warn(
+      'Failed to emit transaction update (Socket.IO might not be initialized yet)',
+      error
+    );
+  }
+};
+
+export const emitLiquidityAlert = (organizationId: number, payload: any) => {
+  try {
+    const ioInstance = getIO();
+    ioInstance.to(`organization:${organizationId}`).emit('liquidity:alert', {
+      organizationId,
+      timestamp: new Date().toISOString(),
+      ...payload,
+    });
+  } catch (error) {
+    console.warn('Failed to emit liquidity alert (Socket.IO might not be initialized yet)', error);
   }
 };

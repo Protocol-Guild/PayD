@@ -212,10 +212,12 @@ export default function PayrollScheduler() {
       }
     };
 
-    socket.on('transaction:update', handleTransactionUpdate);
+    const activeSocket = socket;
+
+    activeSocket.on('transaction:update', handleTransactionUpdate);
 
     return () => {
-      socket.off('transaction:update', handleTransactionUpdate);
+      activeSocket.off('transaction:update', handleTransactionUpdate);
     };
   }, [socket, notifyPaymentSuccess]);
 
@@ -330,6 +332,17 @@ export default function PayrollScheduler() {
     }
   };
 
+  const handleCancelSchedule = async (id: number) => {
+    try {
+      await deleteSchedule(id);
+      notifySuccess('Schedule cancelled', 'The automation has been halted.');
+      void fetchActiveSchedules();
+    } catch (err) {
+      console.error('Failed to cancel schedule:', err);
+      notifyError('Cancellation failed', 'Unable to reach the server.');
+    }
+  };
+
   const handleRemoveClaim = (id: string) => {
     unsubscribeFromTransaction(id);
     const updatedClaims = pendingClaims.filter((c) => c.id !== id);
@@ -355,12 +368,13 @@ export default function PayrollScheduler() {
             as="p"
             size="sm"
             weight="regular"
-            addlClassName="text-muted font-mono tracking-wider uppercase"
+            addlClassName="text-muted font-mono tracking-wider uppercase text-xs sm:text-sm"
           >
+            {}
             {t('payroll.subtitle', 'Automated distribution engine')}
           </Text>
         </div>
-        <div className="flex flex-col items-end gap-2">
+        <div className="flex flex-row sm:flex-col items-center sm:items-end gap-3 sm:gap-2">
           <AutosaveIndicator saving={saving} lastSaved={lastSaved} />
           <button
             type="button"
@@ -412,7 +426,7 @@ export default function PayrollScheduler() {
               </p>
             ) : null}
           </div>
-          <div className="bg-bg border border-hi rounded-xl p-4 shadow-inner">
+          <div className="bg-bg border border-hi rounded-xl p-3 sm:p-4 shadow-inner w-full md:w-auto">
             <span className="block text-[10px] uppercase font-bold text-muted mb-2 tracking-widest text-center">
               Next Scheduled Run
             </span>
@@ -433,14 +447,14 @@ export default function PayrollScheduler() {
           <PayrollScheduleForm />
         </div>
       ) : (
-        <div className="w-full grid grid-cols-1 lg:grid-cols-5 gap-8 mb-12">
+        <div className="w-full grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6 lg:gap-8 mb-6 sm:mb-8 lg:mb-12">
           <div className="lg:col-span-3">
             <form
               onSubmit={(e: React.FormEvent) => {
                 e.preventDefault();
                 void handleInitialize();
               }}
-              className="w-full grid grid-cols-1 md:grid-cols-2 gap-6 card glass noise"
+              className="w-full grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 card glass noise p-4 sm:p-6"
             >
               <div className="md:col-span-2">
                 <FormField
@@ -483,7 +497,9 @@ export default function PayrollScheduler() {
                   value={formData.frequency}
                   onChange={handleChange}
                 >
+                  {}
                   <option value="weekly">{t('payroll.frequencyWeekly', 'Weekly')}</option>
+                  {}
                   <option value="monthly">{t('payroll.frequencyMonthly', 'Monthly')}</option>
                 </SelectComponent>
               </div>
@@ -590,9 +606,104 @@ export default function PayrollScheduler() {
         </div>
       )}
 
-      <div className="w-full">
-        <Heading as="h2" size="sm" weight="bold" addlClassName="mb-4">
-          Pending Claims
+      <div className="w-full mb-6 sm:mb-8 lg:mb-12">
+        <Heading as="h2" size="sm" weight="bold" addlClassName="mb-4 text-lg sm:text-xl">
+          Scheduled Automations
+        </Heading>
+        {isLoadingSchedules ? (
+          <div className="flex justify-center p-8">
+            <span className="animate-spin text-accent">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <path d="M22 12a10 10 0 0 1-10 10" />
+              </svg>
+            </span>
+          </div>
+        ) : dbSchedules.length === 0 ? (
+          <Card>
+            <Text
+              as="p"
+              size="sm"
+              weight="regular"
+              addlClassName="text-muted p-4 text-xs sm:text-sm"
+            >
+              No active payroll schedules found in the database.
+            </Text>
+          </Card>
+        ) : (
+          <ul className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+            {dbSchedules.map((schedule) => (
+              <li key={schedule.id} className="card glass noise relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-3">
+                  <span className="px-2 py-0.5 rounded-full bg-success/20 text-success text-[10px] font-bold uppercase tracking-widest">
+                    {schedule.status}
+                  </span>
+                </div>
+                <div className="p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center text-accent">
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-base capitalize">
+                        {schedule.frequency} Distribution
+                      </h4>
+                      <p className="text-xs text-muted font-mono">{schedule.timeOfDay} UTC</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 mb-6">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted">Next Run</span>
+                      <span className="font-mono text-text">
+                        {new Date(schedule.nextRunTimestamp).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted">Recipients</span>
+                      <span className="font-bold text-text">
+                        {schedule.paymentConfig.recipients.length} Employees
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      void handleCancelSchedule(schedule.id);
+                    }}
+                    className="w-full py-3 bg-danger/10 hover:bg-danger/20 text-danger text-xs font-bold rounded-lg transition-colors touch-manipulation min-h-[44px]"
+                  >
+                    Cancel Automation
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className="w-full mb-6 sm:mb-8 lg:mb-12">
+        <Heading as="h2" size="sm" weight="bold" addlClassName="mb-4 text-lg sm:text-xl">
+          Recent Manual Claims
         </Heading>
         <Card>
           {pendingClaims.length === 0 ? (
@@ -603,19 +714,19 @@ export default function PayrollScheduler() {
               </Text>
             </div>
           ) : (
-            <ul className="flex flex-col gap-4">
+            <ul className="flex flex-col gap-3 sm:gap-4 p-4 sm:p-6">
               {pendingClaims.map((claim: PendingClaim) => (
-                <li key={claim.id} className="border border-hi p-4 rounded-lg">
-                  <div className="flex justify-between mb-2">
-                    <Heading as="h3" size="xs" weight="bold">
+                <li key={claim.id} className="border border-hi p-3 sm:p-4 rounded-lg">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-0 mb-3">
+                    <Heading as="h3" size="xs" weight="bold" addlClassName="text-sm sm:text-base">
                       {claim.employeeName}
                     </Heading>
-                    <span className="bg-accent/20 text-accent px-2 py-1 rounded-full text-xs">
+                    <span className="bg-accent/20 text-accent px-2 py-1 rounded-full text-xs self-start sm:self-auto">
                       {claim.status}
                     </span>
                   </div>
-                  <div className="text-sm text-muted flex justify-between items-center">
-                    <div>
+                  <div className="text-xs sm:text-sm text-muted flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                    <div className="flex-1 min-w-0 space-y-1">
                       <Text as="p" size="xs" weight="regular">
                         Amount: {claim.amount} USDC
                       </Text>
@@ -626,7 +737,7 @@ export default function PayrollScheduler() {
                         as="p"
                         size="xs"
                         weight="regular"
-                        addlClassName="font-mono truncate max-w-[200px]"
+                        addlClassName="font-mono break-all sm:truncate sm:max-w-[200px]"
                         title={claim.claimantPublicKey}
                       >
                         To: {claim.claimantPublicKey}
@@ -634,7 +745,7 @@ export default function PayrollScheduler() {
                     </div>
                     <button
                       onClick={() => handleRemoveClaim(claim.id)}
-                      className="text-danger hover:text-danger/80 text-sm font-medium"
+                      className="text-danger hover:text-danger/80 text-sm font-medium py-2 px-4 rounded-lg hover:bg-danger/10 transition-colors touch-manipulation min-h-[44px] self-start sm:self-auto"
                     >
                       Cancel
                     </button>

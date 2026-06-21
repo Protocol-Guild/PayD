@@ -75,3 +75,32 @@ process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('unhandledRejection', (reason) => {
   logger.error('Unhandled Promise rejection', { error: reason });
 });
+
+// Graceful shutdown handling
+const shutdown = () => {
+  logger.info('Shutting down gracefully...');
+
+  // Stop the schedule executor
+  scheduleExecutor.stop();
+
+  liquidityAlertChecker.stop();
+
+  // Stop the contract event indexer
+  contractEventIndexer.stop();
+
+  // Close the server
+  server.close(() => {
+    logger.info('Server closed');
+    process.exit(0);
+  });
+
+  // Force shutdown after 10 seconds
+  setTimeout(() => {
+    logger.error('Forced shutdown after timeout');
+    process.exit(1);
+  }, 10000);
+};
+
+// Listen for termination signals
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);

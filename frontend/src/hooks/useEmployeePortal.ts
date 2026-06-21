@@ -30,6 +30,7 @@ export interface EmployeeBalance {
 interface UseEmployeePortalReturn {
   transactions: EmployeeTransaction[];
   balance: EmployeeBalance | null;
+  deductionsDraft: DraftPayslip | null;
   isLoading: boolean;
   error: string | null;
   selectedCurrency: string;
@@ -134,6 +135,7 @@ const ITEMS_PER_PAGE = 8;
 export function useEmployeePortal(): UseEmployeePortalReturn {
   const [transactions, setTransactions] = useState<EmployeeTransaction[]>([]);
   const [balance, setBalance] = useState<EmployeeBalance | null>(null);
+  const [deductionsDraft, setDeductionsDraft] = useState<DraftPayslip | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedCurrency, setSelectedCurrency] = useState('NGN');
@@ -173,6 +175,13 @@ export function useEmployeePortal(): UseEmployeePortalReturn {
         exchangeRate: rate,
         lastUpdated: new Date(),
       });
+
+      try {
+        const draft = await getMyDeductionsDraftPayslip();
+        setDeductionsDraft(draft);
+      } catch {
+        setDeductionsDraft(null);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load data');
     } finally {
@@ -212,6 +221,7 @@ export function useEmployeePortal(): UseEmployeePortalReturn {
   return {
     transactions: paginatedTransactions,
     balance,
+    deductionsDraft,
     isLoading,
     error,
     selectedCurrency,

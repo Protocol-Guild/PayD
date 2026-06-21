@@ -161,6 +161,23 @@ const AppNav: React.FC = () => {
       </NavLink>
 
       <NavLink
+        to="/cash-flow"
+        className={({ isActive }) =>
+          `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition ${
+            isActive
+              ? 'text-(--accent) bg-white/5'
+              : 'text-(--muted) hover:bg-white/10 hover:text-white'
+          }`
+        }
+        onClick={() => setMobileOpen(false)}
+      >
+        <span className="opacity-70">
+          <TrendingUp className="w-4 h-4" />
+        </span>
+        <span className="hidden sm:inline">Cash Flow</span>
+      </NavLink>
+
+      <NavLink
         to="/cross-asset-payment"
         aria-label="Cross-Asset"
         className={({ isActive }) =>
@@ -287,9 +304,10 @@ const AppNav: React.FC = () => {
           aria-controls="mobile-navigation-drawer"
           aria-haspopup="dialog"
           onClick={() => setMobileOpen(!mobileOpen)}
-          className="lg:hidden p-2 rounded-md hover:bg-white/5 transition"
+          className="lg:hidden p-3 rounded-md hover:bg-white/5 transition touch-manipulation"
+          style={{ minHeight: '44px', minWidth: '44px' }} // Touch-friendly size
         >
-          {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
 
         {/* User profile */}
