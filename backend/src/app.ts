@@ -32,6 +32,11 @@ import cashFlowForecastRoutes from './routes/cashFlowForecastRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import tenantUsageRoutes from './routes/tenantUsageRoutes.js';
 
+// Part 48 — request auditing, rate limiting, tenant security
+import { requestAuditLoggerMiddleware } from './middleware/requestAuditLogger.js';
+import { organizationRateLimiter } from './middleware/organizationRateLimiter.js';
+import { detectSqlInjection } from './middleware/tenantSecurityMonitor.js';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -54,6 +59,11 @@ app.get('/.well-known/stellar.toml', (req, res) => {
 
 // Middleware for versioning
 app.use(apiVersionMiddleware);
+
+// Part 48 — request audit logging, rate limiting, SQL injection detection
+app.use('/api', requestAuditLoggerMiddleware());
+app.use('/api', organizationRateLimiter());
+app.use('/api', detectSqlInjection());
 
 // Feature / PR specific routes
 app.use('/auth', authRoutes);
