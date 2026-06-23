@@ -12,6 +12,9 @@ import {
   Award,
   Receipt,
   AlertCircle,
+  Gift,
+  Loader2,
+  CheckCircle,
 } from 'lucide-react';
 import { useEmployeePortal, EmployeeTransaction } from '../hooks/useEmployeePortal';
 import {
