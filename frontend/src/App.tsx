@@ -21,6 +21,7 @@ import TaxComplianceWizard from './pages/TaxComplianceWizard';
 import EmployeePortal from './pages/EmployeePortal';
 import Login from './pages/Login';
 import AuthCallback from './pages/AuthCallback';
+import ProtectedRoute from './components/ProtectedRoute';
 import { useTranslation } from 'react-i18next';
 import { contractService } from './services/contracts';
 
@@ -36,9 +37,20 @@ function App() {
 
   return (
     <Routes>
-      <Route element={<EmployerLayout />}>
+      {/* Public Routes */}
+      <Route path="/login" element={<Login />} />
+      <Route path="/auth-callback" element={<AuthCallback />} />
+
+      {/* Employer Section (Protected + Layout) */}
+      <Route
+        element={
+          <ProtectedRoute allowedRoles={['EMPLOYER']}>
+            <EmployerLayout />
+          </ProtectedRoute>
+        }
+      >
         <Route
-          path="/"
+          index
           element={
             <ErrorBoundary
               fallback={
@@ -52,8 +64,9 @@ function App() {
             </ErrorBoundary>
           }
         />
+
         <Route
-          path="/payroll"
+          path="payroll"
           element={
             <ErrorBoundary
               fallback={
@@ -67,8 +80,9 @@ function App() {
             </ErrorBoundary>
           }
         />
+
         <Route
-          path="/employee"
+          path="employee"
           element={
             <ErrorBoundary
               fallback={
@@ -82,31 +96,18 @@ function App() {
             </ErrorBoundary>
           }
         />
+
         <Route
-          path="/portal"
-          element={
-            <ErrorBoundary
-              fallback={
-                <ErrorFallback
-                  title="Employee Portal Error"
-                  description="Something went wrong loading your portal."
-                />
-              }
-            >
-              <EmployeePortal />
-            </ErrorBoundary>
-          }
-        />
-        <Route
-          path="/reports"
+          path="reports"
           element={
             <ErrorBoundary fallback={<ErrorFallback />}>
               <CustomReportBuilder />
             </ErrorBoundary>
           }
         />
+
         <Route
-          path="/debug"
+          path="debug"
           element={
             <ErrorBoundary
               fallback={
@@ -120,8 +121,9 @@ function App() {
             </ErrorBoundary>
           }
         />
+
         <Route
-          path="/debug/:contractName"
+          path="debug/:contractName"
           element={
             <ErrorBoundary
               fallback={
@@ -135,46 +137,52 @@ function App() {
             </ErrorBoundary>
           }
         />
+
         <Route
-          path="/admin"
+          path="admin"
           element={
             <ErrorBoundary fallback={<ErrorFallback />}>
               <AdminPanel />
             </ErrorBoundary>
           }
         />
+
         <Route
-          path="/settings"
+          path="settings"
           element={
             <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
               <Settings />
             </ErrorBoundary>
           }
         />
+
         <Route
-          path="/help"
+          path="help"
           element={
             <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
               <HelpCenter />
             </ErrorBoundary>
           }
         />
+
         <Route
-          path="/cross-asset-payment"
+          path="cross-asset-payment"
           element={
             <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
               <CrossAssetPayment />
             </ErrorBoundary>
           }
         />
+
         <Route
-          path="/transactions"
+          path="transactions"
           element={
             <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
               <TransactionHistory />
             </ErrorBoundary>
           }
         />
+
         <Route
           path="/forecast"
           element={
@@ -191,8 +199,9 @@ function App() {
             </ErrorBoundary>
           }
         />
+
         <Route
-          path="/revenue-split"
+          path="revenue-split"
           element={
             <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
               <RevenueSplitDashboard />
@@ -208,8 +217,26 @@ function App() {
           }
         />
       </Route>
-      <Route path="/login" element={<Login />} />
-      <Route path="/auth-callback" element={<AuthCallback />} />
+
+      {/* Employee Portal (Protected) */}
+      <Route
+        path="/portal"
+        element={
+          <ProtectedRoute allowedRoles={['EMPLOYEE']}>
+            <ErrorBoundary
+              fallback={
+                <ErrorFallback
+                  title="Employee Portal Error"
+                  description="Something went wrong loading your portal."
+                />
+              }
+            >
+              <EmployeePortal />
+            </ErrorBoundary>
+          </ProtectedRoute>
+        }
+      />
+
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
