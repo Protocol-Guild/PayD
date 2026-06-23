@@ -6,9 +6,11 @@ import { authorizeRoles } from '../middlewares/rbac.js';
 const router = Router();
 
 router.use(authenticateJWT);
-router.use(authorizeRoles('EMPLOYER'));
+router.use(authorizeRoles('EMPLOYER', 'ADMIN'));
 
 router.post('/issue', AssetController.issueOrgUsd);
 router.post('/clawback', AssetController.clawback);
+router.get('/clawback/logs', AssetController.getClawbackLogs);
 
 export default router;
+

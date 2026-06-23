@@ -1,4 +1,4 @@
-export type UserRole = 'EMPLOYER' | 'EMPLOYEE';
+export type UserRole = 'EMPLOYER' | 'EMPLOYEE' | 'ADMIN';
 
 export interface JWTPayload {
   id: number;
