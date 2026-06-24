@@ -3,6 +3,14 @@ import { employeeController } from '../controllers/employeeController.js';
 import authenticateJWT from '../middlewares/auth.js';
 import { authorizeRoles, isolateOrganization } from '../middlewares/rbac.js';
 import { tenantQuotaService, QuotaExceededError } from '../services/tenantQuotaService.js';
+import { auditSensitiveOperation } from '../middleware/auditLogger.js';
+import { syncTenantFromUser } from '../middleware/tenantContext.js';
+import {
+  strictTenantBoundary,
+  validateActiveTenant,
+  logTenantAccess,
+} from '../middleware/enhancedTenantIsolation.js';
+import { isFeatureEnabled } from '../config/env.js';
 
 async function enforceEmployeeQuota(req: Request, res: Response, next: NextFunction): Promise<void> {
   const orgId = req.tenantId ?? req.user?.organizationId;
@@ -25,10 +33,20 @@ async function enforceEmployeeQuota(req: Request, res: Response, next: NextFunct
   }
 }
 
+function enhancedIsolation(): any[] {
+  if (!isFeatureEnabled('TENANT_ISOLATION_STRICT_MODE')) {
+    return [];
+  }
+  return [syncTenantFromUser, strictTenantBoundary, validateActiveTenant, logTenantAccess];
+}
+
 const router = Router();
 
 // Apply authentication to all employee routes
 router.use(authenticateJWT);
+
+// Enhanced tenant isolation — runs after auth (req.user is available)
+router.use(...enhancedIsolation());
 
 /**
  * @route POST /api/employees
@@ -77,12 +95,13 @@ router.patch(
 
 /**
  * @route DELETE /api/employees/:id
- * @desc Soft delete an employee
+ * @desc Soft delete an employee (sensitive operation — fully audited)
  */
 router.delete(
   '/:id',
   authorizeRoles('EMPLOYER'),
   isolateOrganization,
+  auditSensitiveOperation('employee_delete'),
   employeeController.delete.bind(employeeController)
 );
 
