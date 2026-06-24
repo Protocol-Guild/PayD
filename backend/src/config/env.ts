@@ -20,6 +20,11 @@ const envSchema = z.object({
   RATE_LIMIT_DATA_MAX: z.string().default('200'),
   JWT_SECRET: z.string().default('dev-jwt-secret'),
   JWT_REFRESH_SECRET: z.string().default('dev-jwt-refresh-secret'),
+  AUDIT_LOGGING_ENABLED: z.string().default('true'),
+  ADVANCED_RATE_LIMIT_ENABLED: z.string().default('true'),
+  TENANT_ISOLATION_STRICT_MODE: z.string().default('true'),
+  RATE_LIMIT_LOG_VIOLATIONS: z.string().default('true'),
+  REQUEST_ID_PREFIX: z.string().default('payd'),
 });
 
 export const config = envSchema.parse(process.env);
@@ -44,3 +49,9 @@ export const getRateLimitConfig = () => ({
     maxRequests: parseInt(config.RATE_LIMIT_DATA_MAX, 10),
   },
 });
+
+export const isFeatureEnabled = (flag: string): boolean => {
+  const val = process.env[flag];
+  if (val === undefined) return true;
+  return val.toLowerCase() === 'true' || val === '1';
+};

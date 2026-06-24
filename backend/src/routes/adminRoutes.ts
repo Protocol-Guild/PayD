@@ -3,6 +3,7 @@ import { auditIntegrityService } from '../services/auditIntegrityService.js';
 import { TenantRateLimitService } from '../services/tenantRateLimitService.js';
 import { pool } from '../config/database.js';
 import { requireAdminJustification } from '../middleware/requireAdminJustification.js';
+import { auditSensitiveOperation } from '../middleware/auditLogger.js';
 import logger from '../utils/logger.js';
 
 const router = Router();
@@ -19,7 +20,11 @@ const router = Router();
  * Query params:
  *   limit  — max rows to check (default 100 000)
  */
-router.get('/audit/integrity', async (req: Request, res: Response) => {
+router.get(
+  '/audit/integrity',
+  requireAdminJustification,
+  auditSensitiveOperation('audit_integrity_check'),
+  async (req: Request, res: Response) => {
   try {
     const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
     const result = await auditIntegrityService.verifyIntegrity({ limit });
@@ -94,6 +99,7 @@ router.patch('/tenants/:orgId/rate-limits', requireAdminJustification, async (re
 /**
  * GET /api/admin/access-logs
  * Return platform-admin cross-tenant access log entries.
+ * Requires admin justification — this endpoint exposes cross-tenant access data.
  *
  * Query params:
  *   organizationId  — filter by target organisation
@@ -102,7 +108,7 @@ router.patch('/tenants/:orgId/rate-limits', requireAdminJustification, async (re
  *   to              — ISO date upper bound
  *   page, limit
  */
-router.get('/access-logs', async (req: Request, res: Response) => {
+router.get('/access-logs', requireAdminJustification, async (req: Request, res: Response) => {
   const { organizationId, adminUserId, from, to, page = '1', limit = '50' } = req.query;
 
   const conditions: string[] = [];
