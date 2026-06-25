@@ -11,7 +11,7 @@ import { apiVersionMiddleware } from './middlewares/apiVersionMiddleware.js';
 import { requestIdMiddleware } from './middleware/requestId.js';
 import { auditLoggerMiddleware } from './middleware/auditLogger.js';
 import { tieredOrganizationRateLimit } from './middleware/advancedRateLimiting.js';
-import { isFeatureEnabled } from './config/env.js';
+import { syncTenantFromUser } from './middleware/tenantContext.js';
 
 // Feature Routes
 import v1Routes from './routes/v1/index.js';
@@ -75,29 +75,27 @@ app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
 
 // Global audit logging — records every API request with sanitization
-// Can be toggled via AUDIT_LOGGING_ENABLED env var
-if (isFeatureEnabled('AUDIT_LOGGING_ENABLED')) {
-  app.use(
-    auditLoggerMiddleware({
-      logRequestBody: true,
-      logResponseBody: false,
-      sensitiveFields: ['password', 'token', 'secret', 'apiKey', 'privateKey', 'totp_secret'],
-      skipPaths: [/^\/health/, /^\/metrics/, /^\/\.well-known/],
-      logOnlyErrors: false,
-    })
-  );
-}
+app.use(
+  auditLoggerMiddleware({
+    logRequestBody: true,
+    logResponseBody: false,
+    sensitiveFields: ['password', 'token', 'secret', 'apiKey', 'privateKey', 'totp_secret'],
+    skipPaths: [/^\/health/, /^\/metrics/, /^\/\.well-known/],
+    logOnlyErrors: false,
+  })
+);
 
-// Global rate limiting — organization-tier based
-// Can be toggled via ADVANCED_RATE_LIMIT_ENABLED env var
-if (isFeatureEnabled('ADVANCED_RATE_LIMIT_ENABLED')) {
-  app.use(
-    tieredOrganizationRateLimit({
-      enableBypass: true,
-      enableDynamicLimits: true,
-    })
-  );
-}
+// Global rate limiting — organization-tier based, always on
+app.use(
+  tieredOrganizationRateLimit({
+    enableBypass: true,
+    enableDynamicLimits: true,
+  })
+);
+
+// Global tenant context sync — sets req.tenantId from JWT user when available
+// Must run before any authenticated routes
+app.use(syncTenantFromUser);
 
 // Serve stellar.toml for SEP-0001
 app.get('/.well-known/stellar.toml', (req, res) => {
