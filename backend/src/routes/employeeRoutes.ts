@@ -10,7 +10,6 @@ import {
   validateActiveTenant,
   logTenantAccess,
 } from '../middleware/enhancedTenantIsolation.js';
-import { isFeatureEnabled } from '../config/env.js';
 
 async function enforceEmployeeQuota(req: Request, res: Response, next: NextFunction): Promise<void> {
   const orgId = req.tenantId ?? req.user?.organizationId;
@@ -34,9 +33,6 @@ async function enforceEmployeeQuota(req: Request, res: Response, next: NextFunct
 }
 
 function enhancedIsolation(): any[] {
-  if (!isFeatureEnabled('TENANT_ISOLATION_STRICT_MODE')) {
-    return [];
-  }
   return [syncTenantFromUser, strictTenantBoundary, validateActiveTenant, logTenantAccess];
 }
 

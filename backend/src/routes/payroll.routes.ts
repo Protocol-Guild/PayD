@@ -3,13 +3,11 @@ import { payrollQueryService } from '../services/payroll-query.service.js';
 import logger from '../utils/logger.js';
 import { authenticateJWT } from '../middlewares/auth.js';
 import { authorizeRoles, isolateOrganization } from '../middlewares/rbac.js';
-import { syncTenantFromUser } from '../middleware/tenantContext.js';
 import {
   strictTenantBoundary,
   validateActiveTenant,
   logTenantAccess,
 } from '../middleware/enhancedTenantIsolation.js';
-import { isFeatureEnabled } from '../config/env.js';
 
 const router = Router();
 
@@ -23,12 +21,9 @@ function asString(value: unknown): string | undefined {
 router.use(authenticateJWT);
 
 // Enhanced tenant isolation — runs after auth (req.user is available)
-if (isFeatureEnabled('TENANT_ISOLATION_STRICT_MODE')) {
-  router.use(syncTenantFromUser);
-  router.use(strictTenantBoundary);
-  router.use(validateActiveTenant);
-  router.use(logTenantAccess);
-}
+router.use(strictTenantBoundary);
+router.use(validateActiveTenant);
+router.use(logTenantAccess);
 
 router.use(authorizeRoles('EMPLOYER', 'EMPLOYEE'));
 router.use(isolateOrganization);
