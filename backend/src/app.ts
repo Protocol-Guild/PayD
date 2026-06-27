@@ -8,6 +8,10 @@ import config from './config/index.js';
 import logger from './utils/logger.js';
 import passport from './config/passport.js';
 import { apiVersionMiddleware } from './middlewares/apiVersionMiddleware.js';
+import { requestIdMiddleware } from './middleware/requestId.js';
+import { auditLoggerMiddleware } from './middleware/auditLogger.js';
+import { tieredOrganizationRateLimit } from './middleware/advancedRateLimiting.js';
+import { syncTenantFromUser } from './middleware/tenantContext.js';
 
 // Feature Routes
 import v1Routes from './routes/v1/index.js';
@@ -37,13 +41,61 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// Middleware
-app.use(helmet());
+// Middleware — request ID first for correlation across all layers
+app.use(requestIdMiddleware);
+
+// Global security headers via helmet with stricter CSP
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+      },
+    },
+    hsts: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+    },
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  })
+);
 app.use(cors());
-app.use(morgan('combined'));
+
+// Attach request ID to morgan logs for end-to-end traceability
+morgan.token('request-id', (req) => (req as any).requestId || '-');
+app.use(
+  morgan(
+    ':method :url :status :res[content-length] - :response-time ms request-id=:request-id'
+  )
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
+
+// Global audit logging — records every API request with sanitization
+app.use(
+  auditLoggerMiddleware({
+    logRequestBody: true,
+    logResponseBody: false,
+    sensitiveFields: ['password', 'token', 'secret', 'apiKey', 'privateKey', 'totp_secret'],
+    skipPaths: [/^\/health/, /^\/metrics/, /^\/\.well-known/],
+    logOnlyErrors: false,
+  })
+);
+
+// Global rate limiting — organization-tier based, always on
+app.use(
+  tieredOrganizationRateLimit({
+    enableBypass: true,
+    enableDynamicLimits: true,
+  })
+);
+
+// Global tenant context sync — sets req.tenantId from JWT user when available
+// Must run before any authenticated routes
+app.use(syncTenantFromUser);
 
 // Serve stellar.toml for SEP-0001
 app.get('/.well-known/stellar.toml', (req, res) => {
@@ -82,15 +134,17 @@ app.use((req, res) => {
   res.status(404).json({
     error: 'Not Found',
     path: req.path,
+    requestId: (req as any).requestId,
   });
 });
 
 // Error handler
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  logger.error('Unhandled error', err);
+app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  logger.error('Unhandled error', { err, requestId: (req as any).requestId });
   res.status(500).json({
     error: 'Internal Server Error',
     message: config.nodeEnv === 'development' ? err.message : 'An error occurred',
+    requestId: (req as any).requestId,
   });
 });
 

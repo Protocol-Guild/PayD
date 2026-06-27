@@ -1,4 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
+import crypto from 'crypto';
+import os from 'os';
 import { rateLimitService, RateLimitTierName } from '../services/rateLimitService.js';
 import logger from '../utils/logger.js';
 import { pool } from '../config/database.js';
@@ -138,7 +140,7 @@ export function advancedRateLimitMiddleware(options: AdvancedRateLimitOptions = 
  */
 export function adaptiveRateLimitMiddleware(options: AdvancedRateLimitOptions = {}) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    const systemLoad = await getSystemLoad();
+    const systemLoad = getSystemLoad();
 
     let adjustedTier: RateLimitTierName = options.tier || 'api';
 
@@ -378,12 +380,18 @@ async function logRateLimitViolation(violation: {
 }
 
 /**
- * Get system load (placeholder - implement based on your monitoring)
+ * Get system load averaged across all CPUs (0.0–1.0 scale).
+ * Uses OS-reported 1-minute load divided by CPU count for a
+ * normalized metric that works across deployments.
  */
-async function getSystemLoad(): Promise<number> {
-  // TODO: Implement actual system load monitoring
-  // For now, return a safe default
-  return 0.5;
+function getSystemLoad(): number {
+  try {
+    const cpus = os.cpus().length;
+    const loadAvg = os.loadavg()[0]; // 1-minute load average
+    return Math.min(loadAvg / cpus, 1.0);
+  } catch {
+    return 0.5; // safe fallback
+  }
 }
 
 /**
@@ -427,11 +435,7 @@ function extractIpAddress(req: Request): string {
  * Generate a secure random token
  */
 function generateSecureToken(): string {
-  return (
-    Math.random().toString(36).substring(2) +
-    Math.random().toString(36).substring(2) +
-    Date.now().toString(36)
-  );
+  return crypto.randomBytes(32).toString('hex');
 }
 
 /**
