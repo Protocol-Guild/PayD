@@ -20,5 +20,7 @@ router.use(authorizeRoles('EMPLOYER'));
 
 router.post('/issue', AssetController.issueOrgUsd);
 router.post('/clawback', AssetController.clawback);
+router.get('/clawback/logs', AssetController.getClawbackLogs);
 
 export default router;
+
