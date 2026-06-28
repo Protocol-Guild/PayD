@@ -1,6 +1,21 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
+const rawApiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = rawApiBaseUrl.replace(/\/api\/v1\/?$/, '/api').replace(/\/$/, '');
+
+function authHeaders() {
+  const token = localStorage.getItem('payd_auth_token');
+  return token ? { Authorization: `Bearer ${token}` } : undefined;
+}
+
+export interface ApiErrorResponse {
+  error?: {
+    code?: string;
+    message?: string;
+    details?: unknown;
+  };
+  message?: string;
+}
 
 export interface PaymentRecipient {
   walletAddress: string;
@@ -34,6 +49,17 @@ export interface ScheduleRecord {
   createdAt: string;
 }
 
+export interface CreateScheduleResponse {
+  id: number;
+  frequency: string;
+  timeOfDay: string;
+  startDate: string;
+  endDate?: string;
+  nextRunTimestamp: string;
+  status: 'active' | 'completed' | 'cancelled' | 'failed';
+  createdAt: string;
+}
+
 export interface GetSchedulesResponse {
   schedules: ScheduleRecord[];
   pagination: {
@@ -43,8 +69,12 @@ export interface GetSchedulesResponse {
   };
 }
 
-export const createSchedule = async (input: CreateScheduleInput): Promise<ScheduleRecord> => {
-  const { data } = await axios.post<ScheduleRecord>(`${API_BASE_URL}/schedules`, input);
+export const createSchedule = async (
+  input: CreateScheduleInput
+): Promise<CreateScheduleResponse> => {
+  const { data } = await axios.post<CreateScheduleResponse>(`${API_BASE_URL}/schedules`, input, {
+    headers: authHeaders(),
+  });
   return data;
 };
 
@@ -53,10 +83,13 @@ export const getSchedules = async (
 ): Promise<GetSchedulesResponse> => {
   const { data } = await axios.get<GetSchedulesResponse>(`${API_BASE_URL}/schedules`, {
     params,
+    headers: authHeaders(),
   });
   return data;
 };
 
 export const deleteSchedule = async (id: number): Promise<void> => {
-  await axios.delete(`${API_BASE_URL}/schedules/${id}`);
+  await axios.delete(`${API_BASE_URL}/schedules/${id}`, {
+    headers: authHeaders(),
+  });
 };
