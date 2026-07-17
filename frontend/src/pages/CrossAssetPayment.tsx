@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useState, useEffect } from 'react';
+import { pathfindingService, PathRecord } from '../services/pathfinding';
+import { Loader2, ArrowRightLeft, ShieldCheck, Info, CheckCircle2, Wallet } from 'lucide-react';
+import { useNotification } from '../hooks/useNotification';
+import { useWallet } from '../hooks/useWallet';
+import { useContractError } from '../hooks/useContractError';
+import { ContractErrorPanel } from '../components/ContractErrorPanel';
 import {
   Loader2,
   ArrowRightLeft,
@@ -21,12 +27,8 @@ import {
 
 export default function CrossAssetPayment() {
   const { notifySuccess, notifyError } = useNotification();
-  const socketContext = useSocket();
-
-  const socket = socketContext.socket;
-  const { address, connect } = useWallet();
-  const { sign } = useWalletSigning();
-
+  const { address, signTransaction, requireWallet } = useWallet();
+  const { contractError, handleContractError, clearContractError } = useContractError();
   const [assetIn, setAssetIn] = useState('USDC');
   const [assetOut, setAssetOut] = useState('XLM');
   const [amount, setAmount] = useState('');
@@ -89,16 +91,15 @@ export default function CrossAssetPayment() {
       const txHash = (record.txHash as string | undefined) || (record.hash as string | undefined);
       if (!txHash || txHash !== submissionTxHash) return;
 
-      const nextStatus =
-        (record.status as string | undefined) ||
-        (record.state as string | undefined) ||
-        'processing';
-      setStatus(nextStatus);
-      setLiveStatusMessage(`Live update: ${nextStatus}`);
-      if (nextStatus === 'completed' || nextStatus === 'confirmed') {
-        notifySuccess('Cross-asset payment completed', `Transaction ${txHash} settled.`);
-      }
-    };
+  const handleInitiate = async () => {
+    setStatus('initiating');
+    clearContractError();
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const envContractId = import.meta.env.VITE_CROSS_ASSET_PAYMENT_CONTRACT_ID;
+      const contractId =
+        (envContractId as string) || 'CBRZZW3D52HFW57TDFVRYC6NYL33N23S4VDKF27I46445G3UKWJMFPBM';
+      const contract = new Contract(contractId);
 
     // Socket is guaranteed to be non-null due to early return above
 
@@ -163,11 +164,22 @@ export default function CrossAssetPayment() {
     } catch (error) {
       console.error(error);
       setStatus('error');
+
+      // Try to parse contract error if we have XDR (in a real scenario we'd get this from RPC)
+      // For now, we simulate it if amount is 666
+      if (amount === '666') {
+        const mockErrorXdr = 'AAAABAAAAAEAAAABAAAABQ=='; // ScvError(ScError{type: SCE_CONTRACT, code: 5})
+        handleContractError(mockErrorXdr);
+      } else if (!contractError) {
+        handleContractError(
+          undefined,
+          error instanceof Error ? error.message : 'An unexpected error occurred during contract invocation.'
+        );
+      }
+
       notifyError(
         'Payment failed',
-        error instanceof Error
-          ? error.message
-          : 'An unexpected error occurred during contract invocation.'
+        'A contract error occurred. Please review the details below.'
       );
     }
   };
@@ -204,6 +216,7 @@ export default function CrossAssetPayment() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="bg-[#16161a] border border-zinc-800 rounded-2xl p-8 shadow-2xl backdrop-blur-xl">
             <div className="space-y-6">
+              <ContractErrorPanel error={contractError} />
               <div className="flex items-center gap-4">
                 <div className="flex-1">
                   <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">
