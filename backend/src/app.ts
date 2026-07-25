@@ -17,6 +17,7 @@ import { syncTenantFromUser } from './middleware/tenantContext.js';
 import v1Routes from './routes/v1/index.js';
 import authRoutes from './routes/authRoutes.js';
 import webhookRoutes from './routes/webhook.routes.js';
+import cspReportRoutes from './routes/cspReport.routes.js';
 
 // Upstream Routes
 import payrollRoutes from './routes/payroll.routes.js';
@@ -65,6 +66,7 @@ app.use(
       directives: {
         defaultSrc: ["'none'"],
         frameAncestors: ["'none'"],
+        reportUri: ['/api/csp-report'],
       },
     },
     hsts: {
@@ -87,6 +89,12 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
+
+// CSP violation reports — mounted ahead of the audit/rate-limit/tenant
+// middleware below so unauthenticated browser reports (per spec, sent by the
+// browser itself, never a logged-in client) aren't blocked or throttled by
+// tenant- or org-aware middleware that assumes an authenticated caller.
+app.use('/api/csp-report', cspReportRoutes);
 
 // Global audit logging — records every API request with sanitization
 app.use(
