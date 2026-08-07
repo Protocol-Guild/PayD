@@ -2,16 +2,16 @@ import React from 'react';
 import { useWallet } from '../hooks/useWallet';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../hooks/useAuth';
 
 const ConnectAccount: React.FC = () => {
   const { address, connect, disconnect, isConnecting } = useWallet();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const token = localStorage.getItem('payd_auth_token');
+  const { token, logout } = useAuth();
 
   const handleSocialLogout = () => {
-    localStorage.removeItem('payd_auth_token');
-    window.location.reload();
+    logout();
   };
 
   if (address || token) {
