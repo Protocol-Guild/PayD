@@ -19,13 +19,14 @@ export class EmployeeService {
       status,
       base_salary,
       base_currency,
+      sort_order,
     } = data;
 
     const query = `
       INSERT INTO employees (
-        organization_id, first_name, last_name, email, wallet_address, position, department, status, base_salary, base_currency
+        organization_id, first_name, last_name, email, wallet_address, position, department, status, base_salary, base_currency, sort_order
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING *;
     `;
 
@@ -40,6 +41,7 @@ export class EmployeeService {
       status || 'active',
       base_salary || 0,
       base_currency || 'USDC',
+      sort_order ?? 0,
     ];
 
     const result = await executor.query(query, values);
@@ -85,7 +87,7 @@ export class EmployeeService {
       paramIndex++;
     }
 
-    query += ` ORDER BY created_at DESC LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
+    query += ` ORDER BY sort_order ASC, created_at DESC LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
     values.push(limit, offset);
 
     const result = await pool.query(query, values);
