@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { isAxiosError } from 'axios';
 import { AutosaveIndicator } from '../components/AutosaveIndicator';
 import { useAutosave } from '../hooks/useAutosave';
 import { useTransactionSimulation } from '../hooks/useTransactionSimulation';
@@ -14,6 +15,7 @@ import {
   getSchedules,
   createSchedule,
   deleteSchedule,
+  ApiErrorResponse,
   ScheduleRecord,
 } from '../services/scheduleApi';
 import { BulkPaymentStatusTracker } from '../components/BulkPaymentStatusTracker';
@@ -33,6 +35,10 @@ interface SchedulingConfig {
   timeOfDay: string;
   preferences: EmployeePreference[];
 }
+
+type ScheduleRetryAction =
+  | { type: 'create'; config: SchedulingConfig }
+  | { type: 'cancel'; scheduleId: number };
 
 interface PayrollFormState {
   employeeName: string;
@@ -73,6 +79,45 @@ const initialFormState: PayrollFormState = {
   memo: '',
 };
 
+const sortSchedulesByNextRun = (schedules: ScheduleRecord[]) =>
+  [...schedules].sort(
+    (a, b) => new Date(a.nextRunTimestamp).getTime() - new Date(b.nextRunTimestamp).getTime()
+  );
+
+const deriveStartDate = (config: SchedulingConfig): string => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const start = new Date(today);
+
+  if (config.frequency === 'monthly') {
+    const requestedDay = Math.min(Math.max(config.dayOfMonth ?? today.getDate(), 1), 31);
+    const daysInMonth = new Date(start.getFullYear(), start.getMonth() + 1, 0).getDate();
+    start.setDate(Math.min(requestedDay, daysInMonth));
+    if (start < today) {
+      start.setMonth(start.getMonth() + 1);
+      const nextMonthDays = new Date(start.getFullYear(), start.getMonth() + 1, 0).getDate();
+      start.setDate(Math.min(requestedDay, nextMonthDays));
+    }
+  } else {
+    const targetDay = config.dayOfWeek ?? 1;
+    const todayDay = today.getDay();
+    const daysUntilTarget = (targetDay - todayDay + 7) % 7;
+    start.setDate(today.getDate() + daysUntilTarget);
+  }
+
+  return start.toISOString().split('T')[0];
+};
+
+const extractScheduleError = (err: unknown, fallback: string): string => {
+  if (isAxiosError<ApiErrorResponse>(err)) {
+    return err.response?.data?.error?.message || err.response?.data?.message || err.message;
+  }
+  if (err instanceof Error && err.message) {
+    return err.message;
+  }
+  return fallback;
+};
+
 export default function PayrollScheduler() {
   const { t } = useTranslation();
   const { notifySuccess, notifyError } = useNotification();
@@ -89,6 +134,9 @@ export default function PayrollScheduler() {
   const [nextRunDate, setNextRunDate] = useState<Date | null>(null);
   const [dbSchedules, setDbSchedules] = useState<ScheduleRecord[]>([]);
   const [isLoadingSchedules, setIsLoadingSchedules] = useState(false);
+  const [isCreatingSchedule, setIsCreatingSchedule] = useState(false);
+  const [cancellingScheduleId, setCancellingScheduleId] = useState<number | null>(null);
+  const [scheduleRetryAction, setScheduleRetryAction] = useState<ScheduleRetryAction | null>(null);
 
   const [pendingClaims, setPendingClaims] = useState<PendingClaim[]>(() => {
     const saved = localStorage.getItem('pending-claims');
@@ -116,41 +164,36 @@ export default function PayrollScheduler() {
     isSuccess: simulationPassed,
   } = useTransactionSimulation();
 
+  const fetchActiveSchedules = useCallback(async () => {
+    setIsLoadingSchedules(true);
+    try {
+      const { schedules } = await getSchedules({ status: 'active' });
+      setDbSchedules(sortSchedulesByNextRun(schedules));
+    } catch (err) {
+      console.error('Failed to fetch schedules:', err);
+      notifyError('Failed to load schedules', extractScheduleError(err, 'Please try again.'));
+    } finally {
+      setIsLoadingSchedules(false);
+    }
+  }, [notifyError]);
+
   useEffect(() => {
     const saved = loadSavedData();
     if (saved) {
       setFormData(saved);
     }
     void fetchActiveSchedules();
-  }, [loadSavedData]);
-
-  const fetchActiveSchedules = async () => {
-    setIsLoadingSchedules(true);
-    try {
-      const { schedules } = await getSchedules({ status: 'active' });
-      setDbSchedules(schedules);
-      if (schedules.length > 0) {
-        // Set the most imminent one as active for the countdown
-        const imminent = schedules[0];
-        setActiveSchedule({ frequency: imminent.frequency, timeOfDay: imminent.timeOfDay });
-        setNextRunDate(new Date(imminent.nextRunTimestamp));
-      } else {
-        setActiveSchedule(null);
-        setNextRunDate(null);
-      }
-    } catch (err) {
-      console.error('Failed to fetch schedules:', err);
-    } finally {
-      setIsLoadingSchedules(false);
-    }
-  };
+  }, [fetchActiveSchedules, loadSavedData]);
 
   const handleScheduleComplete = async (config: SchedulingConfig) => {
+    setIsCreatingSchedule(true);
+    setScheduleRetryAction(null);
     try {
       const input = {
         frequency: config.frequency,
         timeOfDay: config.timeOfDay,
-        startDate: new Date().toISOString().split('T')[0], // Default to today
+        startDate: deriveStartDate(config),
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
         paymentConfig: {
           recipients: config.preferences.map((p: EmployeePreference) => ({
             walletAddress: p.wallet,
@@ -161,12 +204,22 @@ export default function PayrollScheduler() {
       };
 
       const result = await createSchedule(input);
+      const localSchedule: ScheduleRecord = {
+        ...result,
+        paymentConfig: input.paymentConfig,
+      };
+      setDbSchedules((prev) => sortSchedulesByNextRun([...prev, localSchedule]));
       notifySuccess('Payroll schedule configured!', `Ref ID: ${result.id}`);
       setIsWizardOpen(false);
-      void fetchActiveSchedules();
     } catch (err) {
       console.error('Failed to create schedule:', err);
-      notifyError('Failed to create schedule', 'Please try again later.');
+      setScheduleRetryAction({ type: 'create', config });
+      notifyError(
+        'Failed to create schedule',
+        extractScheduleError(err, 'Please try again later.')
+      );
+    } finally {
+      setIsCreatingSchedule(false);
     }
   };
 
@@ -288,15 +341,34 @@ export default function PayrollScheduler() {
   };
 
   const handleCancelSchedule = async (id: number) => {
+    setScheduleRetryAction(null);
+    setCancellingScheduleId(id);
+    const previousSchedules = dbSchedules;
+    setDbSchedules((current) => current.filter((schedule) => schedule.id !== id));
     try {
       await deleteSchedule(id);
       notifySuccess('Schedule cancelled', 'The automation has been halted.');
-      void fetchActiveSchedules();
     } catch (err) {
       console.error('Failed to cancel schedule:', err);
-      notifyError('Cancellation failed', 'Unable to reach the server.');
+      setDbSchedules(previousSchedules);
+      setScheduleRetryAction({ type: 'cancel', scheduleId: id });
+      notifyError('Cancellation failed', extractScheduleError(err, 'Unable to reach the server.'));
+    } finally {
+      setCancellingScheduleId(null);
     }
   };
+
+  useEffect(() => {
+    if (dbSchedules.length > 0) {
+      const imminent = sortSchedulesByNextRun(dbSchedules)[0];
+      setActiveSchedule({ frequency: imminent.frequency, timeOfDay: imminent.timeOfDay });
+      setNextRunDate(new Date(imminent.nextRunTimestamp));
+      return;
+    }
+
+    setActiveSchedule(null);
+    setNextRunDate(null);
+  }, [dbSchedules]);
 
   const handleRemoveClaim = (id: string) => {
     unsubscribeFromTransaction(id);
@@ -394,6 +466,7 @@ export default function PayrollScheduler() {
             void handleScheduleComplete(config);
           }}
           onCancel={() => setIsWizardOpen(false)}
+          isSubmitting={isCreatingSchedule}
         />
       ) : (
         <div className="w-full grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6 lg:gap-8 mb-6 sm:mb-8 lg:mb-12">
@@ -538,6 +611,37 @@ export default function PayrollScheduler() {
         <Heading as="h2" size="sm" weight="bold" addlClassName="mb-4 text-lg sm:text-xl">
           Scheduled Automations
         </Heading>
+        {scheduleRetryAction && (
+          <Card>
+            <div className="p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <Text as="p" size="sm" weight="regular" addlClassName="text-muted">
+                {scheduleRetryAction.type === 'create'
+                  ? 'Creating the schedule failed.'
+                  : 'Cancelling the schedule failed.'}
+              </Text>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    if (scheduleRetryAction.type === 'create') {
+                      void handleScheduleComplete(scheduleRetryAction.config);
+                      return;
+                    }
+                    void handleCancelSchedule(scheduleRetryAction.scheduleId);
+                  }}
+                  className="px-3 py-2 rounded-lg bg-accent text-bg text-xs font-bold uppercase tracking-wide"
+                >
+                  Retry
+                </button>
+                <button
+                  onClick={() => setScheduleRetryAction(null)}
+                  className="px-3 py-2 rounded-lg border border-hi text-xs font-bold uppercase tracking-wide"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          </Card>
+        )}
         {isLoadingSchedules ? (
           <div className="flex justify-center p-8">
             <span className="animate-spin text-accent">
@@ -618,9 +722,10 @@ export default function PayrollScheduler() {
                     onClick={() => {
                       void handleCancelSchedule(schedule.id);
                     }}
+                    disabled={cancellingScheduleId === schedule.id}
                     className="w-full py-3 bg-danger/10 hover:bg-danger/20 text-danger text-xs font-bold rounded-lg transition-colors touch-manipulation min-h-[44px]"
                   >
-                    Cancel Automation
+                    {cancellingScheduleId === schedule.id ? 'Cancelling...' : 'Cancel Automation'}
                   </button>
                 </div>
               </li>

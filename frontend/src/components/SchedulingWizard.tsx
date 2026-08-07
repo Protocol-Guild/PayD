@@ -20,9 +20,11 @@ interface SchedulingConfig {
 export const SchedulingWizard = ({
   onComplete,
   onCancel,
+  isSubmitting = false,
 }: {
   onComplete: (config: SchedulingConfig) => void;
   onCancel: () => void;
+  isSubmitting?: boolean;
 }) => {
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
@@ -337,6 +339,7 @@ export const SchedulingWizard = ({
         <button
           className={`py-2 px-6 rounded-lg font-bold text-sm tracking-wide transition-colors ${step === 1 ? 'text-muted hover:text-text' : 'bg-surface hover:bg-hi/50 text-text'}`}
           onClick={step === 1 ? onCancel : handleBack}
+          disabled={isSubmitting}
         >
           {step === 1 ? 'Cancel' : 'Back'}
         </button>
@@ -345,6 +348,7 @@ export const SchedulingWizard = ({
           <button
             className="py-2 px-6 rounded-lg bg-accent text-bg font-bold text-sm tracking-wide hover:brightness-110 shadow-lg shadow-accent/20 transition-all"
             onClick={handleNext}
+            disabled={isSubmitting}
           >
             Continue
           </button>
@@ -352,8 +356,9 @@ export const SchedulingWizard = ({
           <button
             className="py-2 px-6 rounded-lg bg-success text-bg font-bold text-sm tracking-wide hover:brightness-110 shadow-lg shadow-success/20 transition-all flex items-center gap-2"
             onClick={() => onComplete(config)}
+            disabled={isSubmitting}
           >
-            Confirm Schedule
+            {isSubmitting ? 'Saving...' : 'Confirm Schedule'}
             <svg
               width="16"
               height="16"

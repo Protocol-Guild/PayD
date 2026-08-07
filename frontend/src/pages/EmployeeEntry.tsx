@@ -10,6 +10,21 @@ import { useNotification } from '../hooks/useNotification';
 
 import api from '../utils/api';
 
+interface EmployeeApiRecord {
+  id: number | string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  position?: string;
+  job_title?: string;
+  wallet_address?: string;
+  status?: string;
+}
+
+interface EmployeeListResponse {
+  data: EmployeeApiRecord[];
+}
+
 interface EmployeeFormState {
   fullName: string;
   walletAddress: string;
@@ -55,26 +70,10 @@ export default function EmployeeEntry() {
   );
   const { t } = useTranslation();
 
-  interface EmployeeApiResponse {
-    id: number;
-    first_name: string;
-    last_name: string;
-    email: string;
-    position?: string;
-    job_title?: string;
-    wallet_address?: string;
-    status: string;
-  }
-
-  interface EmployeesApiResponse {
-    data: EmployeeApiResponse[];
-    pagination?: unknown;
-  }
-
   const fetchEmployees = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await api.get<EmployeesApiResponse>('/employees');
+      const response = await api.get<EmployeeListResponse>('/employees');
       // Backend returns { data: [...], pagination: {...} }
       const mapped: EmployeeItem[] = response.data.data.map((emp) => ({
         id: String(emp.id),
