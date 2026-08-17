@@ -5,7 +5,9 @@ import { useTransactionSimulation } from '../hooks/useTransactionSimulation';
 import { TransactionSimulationPanel } from '../components/TransactionSimulationPanel';
 import { useNotification } from '../hooks/useNotification';
 import { useSocket } from '../hooks/useSocket';
-import { createClaimableBalanceTransaction, generateWallet } from '../services/stellar';
+import { buildClaimableBalanceXdr, generateWallet } from '../services/stellar';
+import { useWallet } from '../hooks/useWallet';
+import { useWalletSigning } from '../hooks/useWalletSigning';
 import { useTranslation } from 'react-i18next';
 import { Card, Heading, Text, Button, Input, Select } from '@stellar/design-system';
 import { SchedulingWizard } from '../components/SchedulingWizard';
@@ -62,9 +64,6 @@ interface PendingClaim {
   status: string;
 }
 
-// Mock employer secret key for simulation purposes
-const MOCK_EMPLOYER_SECRET = 'SD3X5K7G7XV4K5V3M2G5QXH434M3VX6O5P3QVQO3L2PQSQQQQQQQQQQQ';
-
 const initialFormState: PayrollFormState = {
   employeeName: '',
   amount: '',
@@ -89,6 +88,7 @@ export default function PayrollScheduler() {
   const [nextRunDate, setNextRunDate] = useState<Date | null>(null);
   const [dbSchedules, setDbSchedules] = useState<ScheduleRecord[]>([]);
   const [isLoadingSchedules, setIsLoadingSchedules] = useState(false);
+  const [recipientPublicKey, setRecipientPublicKey] = useState<string | null>(null);
 
   const [pendingClaims, setPendingClaims] = useState<PendingClaim[]>(() => {
     const saved = localStorage.getItem('pending-claims');
@@ -115,6 +115,9 @@ export default function PayrollScheduler() {
     error: simulationProcessError,
     isSuccess: simulationPassed,
   } = useTransactionSimulation();
+
+  const { address, requireWallet } = useWallet();
+  const { sign } = useWalletSigning();
 
   useEffect(() => {
     const saved = loadSavedData();
@@ -209,76 +212,99 @@ export default function PayrollScheduler() {
       return;
     }
 
-    // Mock XDR for simulation demonstration
-    const mockXdr =
-      'AAAAAgAAAABmF8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+    try {
+      await requireWallet(async () => {
+        // The employer's connected wallet is the source account funding the
+        // claimable balance; the employee's claimant address is generated
+        // once per schedule and reused for both simulation and broadcast so
+        // they refer to the same transaction.
+        const claimantPublicKey = recipientPublicKey ?? generateWallet().publicKey;
+        setRecipientPublicKey(claimantPublicKey);
 
-    await simulate({ envelopeXdr: mockXdr });
+        const xdr = await buildClaimableBalanceXdr({
+          sourceAddress: address!,
+          claimantPublicKey,
+          amount: String(formData.amount),
+          assetCode: 'USDC',
+        });
+
+        await simulate({ envelopeXdr: xdr });
+      });
+    } catch (err) {
+      console.error(err);
+      notifyError(
+        'Simulation failed',
+        err instanceof Error ? err.message : 'Unable to build the transaction for simulation.'
+      );
+    }
   };
 
   const handleBroadcast = async () => {
     setIsBroadcasting(true);
     try {
-      const mockRecipientPublicKey = generateWallet().publicKey;
+      await requireWallet(async () => {
+        const claimantPublicKey = recipientPublicKey ?? generateWallet().publicKey;
+        setRecipientPublicKey(claimantPublicKey);
 
-      // Integrate claimable balance logic from Issue #44
-      const result = createClaimableBalanceTransaction(
-        MOCK_EMPLOYER_SECRET,
-        mockRecipientPublicKey,
-        String(formData.amount),
-        'USDC'
-      );
-
-      if (!result.success) {
-        throw new Error('Failed to create claimable balance');
-      }
-
-      // Simulate a brief delay for network broadcast
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      // Add to pending claims
-      const newClaim: PendingClaim = {
-        id: Math.random().toString(36).substr(2, 9),
-        employeeName: formData.employeeName,
-        amount: formData.amount,
-        dateScheduled: formData.startDate || new Date().toISOString().split('T')[0],
-        claimantPublicKey: mockRecipientPublicKey,
-        status: 'Pending Claim',
-      };
-
-      const updatedClaims = [...pendingClaims, newClaim];
-      setPendingClaims(updatedClaims);
-      localStorage.setItem('pending-claims', JSON.stringify(updatedClaims));
-
-      // Subscribe to updates for this new claim
-      subscribeToTransaction(newClaim.id);
-
-      notifySuccess(
-        'Broadcast successful!',
-        `Claimable balance created for ${formData.employeeName}`
-      );
-
-      // Trigger Webhook Event (Internal simulation)
-      try {
-        await fetch('http://localhost:3001/api/webhooks/test-trigger', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            event: 'payment.completed',
-            payload: {
-              id: newClaim.id,
-              employeeName: newClaim.employeeName,
-              amount: newClaim.amount,
-              status: 'created',
-            },
-          }),
+        const xdr = await buildClaimableBalanceXdr({
+          sourceAddress: address!,
+          claimantPublicKey,
+          amount: String(formData.amount),
+          assetCode: 'USDC',
         });
-      } catch {
-        console.warn('Webhook test-trigger skipped (Backend might not be running)');
-      }
 
-      resetSimulation();
-      setFormData(initialFormState);
+        // The connected wallet signs the real transaction; no client-embedded
+        // secret key is ever involved.
+        await sign(xdr);
+
+        // Simulate a brief delay for network broadcast
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+
+        // Add to pending claims
+        const newClaim: PendingClaim = {
+          id: Math.random().toString(36).substr(2, 9),
+          employeeName: formData.employeeName,
+          amount: formData.amount,
+          dateScheduled: formData.startDate || new Date().toISOString().split('T')[0],
+          claimantPublicKey,
+          status: 'Pending Claim',
+        };
+
+        const updatedClaims = [...pendingClaims, newClaim];
+        setPendingClaims(updatedClaims);
+        localStorage.setItem('pending-claims', JSON.stringify(updatedClaims));
+
+        // Subscribe to updates for this new claim
+        subscribeToTransaction(newClaim.id);
+
+        notifySuccess(
+          'Broadcast successful!',
+          `Claimable balance created for ${formData.employeeName}`
+        );
+
+        // Trigger Webhook Event (Internal simulation)
+        try {
+          await fetch('http://localhost:3001/api/webhooks/test-trigger', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              event: 'payment.completed',
+              payload: {
+                id: newClaim.id,
+                employeeName: newClaim.employeeName,
+                amount: newClaim.amount,
+                status: 'created',
+              },
+            }),
+          });
+        } catch {
+          console.warn('Webhook test-trigger skipped (Backend might not be running)');
+        }
+
+        resetSimulation();
+        setFormData(initialFormState);
+        setRecipientPublicKey(null);
+      });
     } catch (err) {
       console.error(err);
       notifyError('Broadcast failed', 'Please check your network connection and try again.');

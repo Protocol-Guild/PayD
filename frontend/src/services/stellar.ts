@@ -1,4 +1,12 @@
-import { Keypair, Operation, Asset, Claimant } from '@stellar/stellar-sdk';
+import {
+  BASE_FEE,
+  Horizon,
+  Keypair,
+  Operation,
+  Asset,
+  Claimant,
+  TransactionBuilder,
+} from '@stellar/stellar-sdk';
 
 export interface ClaimableBalanceDetails {
   id: string;
@@ -17,57 +25,68 @@ export const generateWallet = () => {
   };
 };
 
-export const createClaimableBalanceTransaction = (
-  sourceSecretKey: string,
-  claimantPublicKey: string,
-  amount: string,
-  assetCode: string = 'USDC',
-  assetIssuer?: string
-) => {
-  // Mock building the transaction as we don't have the full Stellar infrastructure initialized right now
-  try {
-    // We just parse the secret key to ensure it's valid if possible
-    try {
-      Keypair.fromSecret(sourceSecretKey);
-    } catch {
-      // Fallback for mocked employer secret
-    }
+function normalizeBaseUrl(url: string): string {
+  return url.replace(/\/+$/, '');
+}
 
-    // In a real app, you would load the source account's sequence number from an API like horizon
-    // const account = await server.loadAccount(sourceKeypair.publicKey());
+function getHorizonUrl(): string {
+  const url =
+    (import.meta.env.PUBLIC_STELLAR_HORIZON_URL as string | undefined) || 'http://localhost:8000';
+  return normalizeBaseUrl(url);
+}
 
-    // Instead of actually building a complete hashable tx, let's just return a simulated payload
-    // since we do not have a working horizon server to query sequence numbers.
-    const asset =
-      assetCode === 'XLM'
-        ? Asset.native()
-        : new Asset(assetCode, assetIssuer || Keypair.random().publicKey());
+function getNetworkPassphrase(): string {
+  return (
+    (import.meta.env.PUBLIC_STELLAR_NETWORK_PASSPHRASE as string | undefined) ||
+    'Standalone Network ; February 2017'
+  );
+}
 
-    const operation = Operation.createClaimableBalance({
-      asset: asset,
-      amount: amount,
-      claimants: [
-        new Claimant(
-          claimantPublicKey,
-          Claimant.predicateUnconditional() // Employee can claim whenever they want
-        ),
-      ],
-    });
+export interface BuildClaimableBalanceInput {
+  /** Public key of the employer account funding the payment (the connected wallet). */
+  sourceAddress: string;
+  claimantPublicKey: string;
+  amount: string;
+  assetCode?: string;
+  assetIssuer?: string;
+  horizonUrlOverride?: string;
+}
 
-    console.log('Simulating Claimable Balance Operation:', operation);
+/**
+ * Builds a real, unsigned SEP-0010-independent claimable-balance transaction
+ * XDR for the employer to review (simulate) and sign with their connected
+ * wallet. Loads the employer's live sequence number from Horizon so the XDR
+ * is submittable, not a placeholder.
+ */
+export async function buildClaimableBalanceXdr(input: BuildClaimableBalanceInput): Promise<string> {
+  const horizonUrl = normalizeBaseUrl(input.horizonUrlOverride || getHorizonUrl());
+  const server = new Horizon.Server(horizonUrl, { allowHttp: horizonUrl.startsWith('http://') });
+  const account = await server.loadAccount(input.sourceAddress);
 
-    // Normally we would build this into a transaction, sign it, and submit it to Horizon.
-    return {
-      success: true,
-      simulatedOperation: operation,
-      amount,
-      claimantPublicKey,
-    };
-  } catch (error) {
-    console.error('Error creating claimable balance transaction:', error);
-    return {
-      success: false,
-      error,
-    };
-  }
-};
+  const assetCode = input.assetCode || 'USDC';
+  const asset =
+    assetCode === 'XLM'
+      ? Asset.native()
+      : new Asset(assetCode, input.assetIssuer || input.sourceAddress);
+
+  const transaction = new TransactionBuilder(account, {
+    fee: BASE_FEE,
+    networkPassphrase: getNetworkPassphrase(),
+  })
+    .addOperation(
+      Operation.createClaimableBalance({
+        asset,
+        amount: input.amount,
+        claimants: [
+          new Claimant(
+            input.claimantPublicKey,
+            Claimant.predicateUnconditional() // Employee can claim whenever they want
+          ),
+        ],
+      })
+    )
+    .setTimeout(180)
+    .build();
+
+  return transaction.toXDR();
+}
