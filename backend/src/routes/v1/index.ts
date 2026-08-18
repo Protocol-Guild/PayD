@@ -21,6 +21,7 @@ import freezeRoutes from '../freezeRoutes.js';
 import contractUpgradeRoutes from '../contractUpgradeRoutes.js';
 import forecastRoutes from '../forecastRoutes.js';
 import benefitsRoutes from '../benefitsRoutes.js';
+import organizationRoutes from '../organizationRoutes.js';
 
 const router = Router();
 
@@ -44,5 +45,6 @@ router.use('/rate-limit', apiRateLimit(), rateLimitRoutes);
 router.use('/freeze', apiRateLimit(), freezeRoutes);
 router.use('/contracts', apiRateLimit(), contractUpgradeRoutes);
 router.use('/benefits', dataRateLimit(), benefitsRoutes);
+router.use('/organizations', dataRateLimit(), organizationRoutes);
 
 export default router;
