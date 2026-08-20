@@ -48,7 +48,7 @@ export default function EmployeeEntry() {
     employeeName?: string;
   } | null>(null);
 
-  const { notifySuccess } = useNotification();
+  const { notifySuccess, notifyError, notifyLoading, notifyDismiss } = useNotification();
   const { saving, lastSaved, loadSavedData } = useAutosave<EmployeeFormState>(
     'employee-entry-draft',
     formData
@@ -138,7 +138,9 @@ export default function EmployeeEntry() {
     };
 
     try {
+      const loadingId = notifyLoading('Adding employee…');
       await api.post('/employees', payload);
+      notifyDismiss(loadingId);
 
       notifySuccess(
         `${formData.fullName} added successfully!`,
@@ -159,6 +161,9 @@ export default function EmployeeEntry() {
       void fetchEmployees();
     } catch (error) {
       console.error('Failed to add employee:', error);
+      notifyError('Failed to add employee', 'Please check the form and try again.', () => {
+        void handleSubmit(e);
+      });
     }
   };
 
