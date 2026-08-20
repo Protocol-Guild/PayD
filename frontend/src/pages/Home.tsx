@@ -13,7 +13,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-accent opacity-5 blur-2xl rounded-full" />
       </div>
 
-      <h1 className="text-6xl font-black mb-6 tracking-tighter leading-none">
+      <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black mb-6 tracking-tighter leading-none">
         {t('home.titleLine1Prefix')}{' '}
         <span className="text-accent">{t('home.titleLine1Highlight')}</span>
         <br />
@@ -22,7 +22,7 @@ export default function Home() {
         {t('home.titleLine2Suffix')}
       </h1>
 
-      <p className="text-xl text-muted max-w-2xl mb-12 leading-relaxed font-medium">
+      <p className="text-base sm:text-xl text-muted max-w-2xl mb-10 sm:mb-12 leading-relaxed font-medium">
         {t('home.tagline')}
       </p>
 
@@ -45,7 +45,7 @@ export default function Home() {
         </button>
       </div>
 
-      <div className="mt-24 grid grid-cols-1 md:grid-cols-3 gap-6 text-left max-w-6xl w-full">
+      <div className="mt-16 sm:mt-24 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 text-left max-w-6xl w-full">
         <div className="card glass noise">
           <div className="w-12 h-12 rounded-lg bg-accent/10 flex items-center justify-center mb-6 border border-accent/20">
             <Icon.CreditCard01 size="lg" className="text-accent" />

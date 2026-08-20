@@ -85,8 +85,8 @@ export default function VestingEscrow() {
   };
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-start p-12 max-w-6xl mx-auto w-full">
-      <div className="w-full mb-12 border-b border-hi pb-8">
+    <div className="flex-1 flex flex-col items-center justify-start p-4 sm:p-6 lg:p-12 max-w-6xl mx-auto w-full">
+      <div className="w-full mb-6 sm:mb-8 lg:mb-12 border-b border-hi pb-4 sm:pb-6 lg:pb-8">
         <Heading as="h1" size="lg" weight="bold" addlClassName="mb-2 tracking-tight">
           Vesting <span className="text-accent">Escrow</span>
         </Heading>
@@ -100,8 +100,8 @@ export default function VestingEscrow() {
         </Text>
       </div>
 
-      <div className="w-full grid grid-cols-1 lg:grid-cols-5 gap-8">
-        <div className="lg:col-span-3 space-y-8">
+      <div className="w-full grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6 lg:gap-8">
+        <div className="lg:col-span-3 space-y-4 sm:space-y-6 lg:space-y-8">
           <VestingGrantList grants={grants} onClaim={handleClaim} />
 
           <TransactionSimulationPanel

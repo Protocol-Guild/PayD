@@ -322,21 +322,21 @@ export default function EmployeeEntry() {
   }
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-start p-12 max-w-6xl mx-auto w-full">
-      <div className="w-full mb-12 flex items-end justify-between border-b border-hi pb-8">
+    <div className="flex-1 flex flex-col items-center justify-start p-4 sm:p-6 lg:p-12 max-w-6xl mx-auto w-full">
+      <div className="w-full mb-6 sm:mb-8 lg:mb-12 flex flex-col sm:flex-row sm:items-end sm:justify-between border-b border-hi pb-4 sm:pb-6 lg:pb-8 gap-4">
         <div>
-          <h1 className="text-4xl font-black mb-2 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black mb-2 tracking-tight">
             {t('employees.title', { highlight: '' }).replace('{{highlight}}', '')}
             <span className="text-accent"> {t('employees.titleHighlight')}</span>
           </h1>
-          <p className="text-muted font-mono text-sm tracking-wider uppercase">
+          <p className="text-muted font-mono text-xs sm:text-sm tracking-wider uppercase">
             {t('employees.subtitle')}
           </p>
         </div>
         <button
           id="tour-add-employee"
           onClick={() => setIsAdding(true)}
-          className="px-5 py-2.5 bg-accent text-bg font-bold rounded-lg hover:bg-accent/90 transition-all flex items-center gap-2 text-sm shadow-lg shadow-accent/10"
+          className="px-5 py-2.5 bg-accent text-bg font-bold rounded-lg hover:bg-accent/90 transition-all flex items-center gap-2 text-sm shadow-lg shadow-accent/10 self-start sm:self-auto"
         >
           <Icon.Plus size="sm" />
           {t('employees.addEmployee')}
