@@ -39,7 +39,7 @@ export const EmployerLayout: React.FC = () => {
         {/* Mobile Top Bar */}
         <header className="lg:hidden h-16 px-6 border-b border-(--border) bg-(--bg)/80 backdrop-blur-xl flex items-center justify-between sticky top-0 z-40">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg grid place-items-center font-extrabold text-black text-sm tracking-tight shadow-[0_0_20px_rgba(74,240,184,0.3)] bg-linear-to-br from-(--accent) to-(--accent2)">
+            <div className="w-8 h-8 rounded-lg grid place-items-center font-extrabold text-black text-sm tracking-tight shadow-[var(--accent-glow)] bg-linear-to-br from-(--accent) to-(--accent2)">
               P
             </div>
             <span className="text-xl font-extrabold tracking-tight">

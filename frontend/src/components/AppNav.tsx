@@ -200,8 +200,8 @@ const AppNav: React.FC = () => {
         className={({ isActive }) =>
           `flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-mono tracking-wide border transition ${
             isActive
-              ? 'text-(--accent2) bg-[rgba(124,111,247,0.06)] border-[rgba(124,111,247,0.25)]'
-              : 'text-(--accent2) bg-[rgba(124,111,247,0.06)] border-[rgba(124,111,247,0.25)] hover:bg-[rgba(124,111,247,0.12)]'
+              ? 'text-(--accent2) bg-[var(--accent2-alpha-06)] border-[var(--accent2-alpha-25)]'
+              : 'text-(--accent2) bg-[var(--accent2-alpha-06)] border-[var(--accent2-alpha-25)] hover:bg-[var(--accent2-alpha-12)]'
           }`
         }
         onClick={() => setMobileOpen(false)}
@@ -269,7 +269,7 @@ const AppNav: React.FC = () => {
               {/* Mobile menu header */}
               <div className="flex items-center justify-between p-4 border-b">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg grid place-items-center font-extrabold text-black text-sm tracking-tight shadow-[0_0_20px_rgba(74,240,184,0.3)] bg-linear-to-br from-(--accent) to-(--accent2)">
+                  <div className="w-8 h-8 rounded-lg grid place-items-center font-extrabold text-black text-sm tracking-tight shadow-[var(--accent-glow)] bg-linear-to-br from-(--accent) to-(--accent2)">
                     P
                   </div>
                   <span className="text-lg font-extrabold tracking-tight">

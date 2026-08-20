@@ -1,6 +1,9 @@
 import React from 'react';
 import Joyride, { Step, CallBackProps, STATUS } from 'react-joyride';
 
+const getCssVar = (name: string): string =>
+  getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
 const TOUR_STEPS: Step[] = [
   {
     target: '#tour-welcome',
@@ -59,16 +62,16 @@ export const OnboardingTour: React.FC<{
       callback={handleJoyrideCallback}
       styles={{
         options: {
-          primaryColor: '#4AF0B8',
-          textColor: '#fff',
-          backgroundColor: '#111827',
-          arrowColor: '#111827',
+          primaryColor: getCssVar('--accent'),
+          textColor: getCssVar('--text'),
+          backgroundColor: getCssVar('--surface'),
+          arrowColor: getCssVar('--surface'),
           zIndex: 10000,
         },
         tooltip: {
           borderRadius: '12px',
           padding: '20px',
-          border: '1px solid rgba(255,255,255,0.1)',
+          border: `1px solid ${getCssVar('--border')}`,
           boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
         },
         tooltipContent: {
@@ -77,19 +80,19 @@ export const OnboardingTour: React.FC<{
           lineHeight: '1.5',
         },
         buttonNext: {
-          backgroundColor: '#4AF0B8',
+          backgroundColor: getCssVar('--accent'),
           color: '#000',
           fontWeight: '800',
           borderRadius: '8px',
           padding: '10px 20px',
         },
         buttonBack: {
-          color: '#9CA3AF',
+          color: getCssVar('--muted'),
           fontWeight: '600',
           marginRight: '10px',
         },
         buttonSkip: {
-          color: '#9CA3AF',
+          color: getCssVar('--muted'),
           fontSize: '13px',
         },
         overlay: {

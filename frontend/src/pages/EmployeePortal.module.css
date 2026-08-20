@@ -4,8 +4,8 @@
 .balanceCard {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(135deg, rgba(74, 240, 184, 0.08) 0%, rgba(124, 111, 247, 0.08) 100%);
-  border: 1px solid rgba(74, 240, 184, 0.15);
+  background: linear-gradient(135deg, var(--accent-alpha-08) 0%, var(--accent2-alpha-08) 100%);
+  border: 1px solid var(--accent-alpha-15);
   border-radius: 20px;
   padding: 32px;
 }
@@ -17,7 +17,7 @@
   right: -30%;
   width: 60%;
   height: 200%;
-  background: radial-gradient(ellipse, rgba(74, 240, 184, 0.06) 0%, transparent 70%);
+  background: radial-gradient(ellipse, var(--accent-alpha-06) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -28,7 +28,7 @@
   left: -20%;
   width: 50%;
   height: 200%;
-  background: radial-gradient(ellipse, rgba(124, 111, 247, 0.04) 0%, transparent 70%);
+  background: radial-gradient(ellipse, var(--accent2-alpha-06) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -83,7 +83,7 @@
 }
 
 .currencySelect {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--input-bg);
   border: 1px solid var(--border-hi);
   color: var(--text);
   font-family: var(--font-mono);
@@ -107,7 +107,7 @@
 .currencySelect:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(74, 240, 184, 0.1);
+  box-shadow: 0 0 0 2px var(--accent-alpha-10);
 }
 
 /* ── Stats Row ────────────────────── */
@@ -196,7 +196,7 @@
 }
 
 .filterSelect {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--input-bg);
   border: 1px solid var(--border);
   color: var(--text);
   font-size: 12px;
@@ -216,7 +216,7 @@
 }
 
 .searchInput {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--input-bg);
   border: 1px solid var(--border);
   color: var(--text);
   font-size: 12px;
@@ -234,7 +234,7 @@
 .searchInput:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(74, 240, 184, 0.08);
+  box-shadow: 0 0 0 2px var(--accent-alpha-08);
 }
 
 /* ── Transaction Row ──────────────── */
@@ -243,13 +243,13 @@
   grid-template-columns: 1fr 2fr 1fr 1fr 1fr auto;
   align-items: center;
   padding: 16px 24px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid var(--border);
   transition: background 0.15s ease;
   gap: 12px;
 }
 
 .txRow:hover {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--row-hover);
 }
 
 .txRow:last-child {
@@ -294,17 +294,17 @@
 }
 
 .txMemoTypeSalary {
-  background: rgba(74, 240, 184, 0.1);
+  background: var(--accent-alpha-10);
   color: var(--accent);
 }
 
 .txMemoTypeBonus {
-  background: rgba(124, 111, 247, 0.1);
+  background: var(--accent2-alpha-10);
   color: var(--accent2);
 }
 
 .txMemoTypeReimbursement {
-  background: rgba(255, 123, 114, 0.1);
+  background: var(--danger-alpha-10);
   color: var(--danger);
 }
 
@@ -335,17 +335,17 @@
 }
 
 .statusCompleted {
-  background: rgba(63, 185, 80, 0.12);
+  background: var(--success-alpha-12);
   color: var(--success);
 }
 
 .statusPending {
-  background: rgba(255, 213, 0, 0.12);
-  color: #ffd500;
+  background: var(--warning-alpha-12);
+  color: var(--warning);
 }
 
 .statusFailed {
-  background: rgba(255, 123, 114, 0.12);
+  background: var(--danger-alpha-12);
   color: var(--danger);
 }
 
@@ -361,8 +361,8 @@
 }
 
 .statusDotPending {
-  background: #ffd500;
-  box-shadow: 0 0 6px #ffd500;
+  background: var(--warning);
+  box-shadow: 0 0 6px var(--warning);
 }
 
 .statusDotFailed {
@@ -381,14 +381,14 @@
   text-decoration: none;
   padding: 4px 8px;
   border-radius: 6px;
-  border: 1px solid rgba(74, 240, 184, 0.15);
+  border: 1px solid var(--accent-alpha-15);
   transition: all 0.2s ease;
   white-space: nowrap;
 }
 
 .stellarLink:hover {
-  background: rgba(74, 240, 184, 0.08);
-  border-color: rgba(74, 240, 184, 0.3);
+  background: var(--accent-alpha-08);
+  border-color: var(--accent-alpha-30);
   text-decoration: none;
   transform: translateY(-1px);
 }
@@ -487,7 +487,7 @@
   background: linear-gradient(
     90deg,
     var(--surface-hi) 25%,
-    rgba(255, 255, 255, 0.05) 50%,
+    var(--border) 50%,
     var(--surface-hi) 75%
   );
   background-size: 200% 100%;
@@ -570,8 +570,8 @@
   font-family: var(--font-mono);
   font-size: 12px;
   color: var(--accent);
-  background: rgba(74, 240, 184, 0.06);
-  border: 1px solid rgba(74, 240, 184, 0.15);
+  background: var(--accent-alpha-06);
+  border: 1px solid var(--accent-alpha-15);
   padding: 6px 12px;
   border-radius: 8px;
 }
