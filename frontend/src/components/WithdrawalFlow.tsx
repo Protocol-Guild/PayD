@@ -399,7 +399,7 @@ const WithdrawalFlow: React.FC<WithdrawalFlowProps> = ({
 
           {/* Error Banner */}
           {state.error && state.step !== 'failed' && (
-            <div className="mb-4 p-3 rounded-lg bg-[rgba(255,123,114,0.1)] border border-[rgba(255,123,114,0.2)]">
+            <div className="mb-4 p-3 rounded-lg bg-[var(--danger-alpha-10)] border border-[var(--danger-alpha-20)]">
               <div className="flex items-center gap-2 text-[var(--danger)] text-sm">
                 <AlertCircle className="w-4 h-4" />
                 {state.error}

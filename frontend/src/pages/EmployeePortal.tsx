@@ -266,8 +266,8 @@ const EmployeePortal: React.FC = () => {
           <div
             className={styles.statIcon}
             style={{
-              background: 'rgba(74, 240, 184, 0.1)',
-              border: '1px solid rgba(74, 240, 184, 0.2)',
+              background: 'var(--accent-alpha-10)',
+              border: '1px solid var(--accent-alpha-20)',
             }}
           >
             <Wallet className="w-4 h-4 text-[var(--accent)]" />
@@ -280,8 +280,8 @@ const EmployeePortal: React.FC = () => {
           <div
             className={styles.statIcon}
             style={{
-              background: 'rgba(255, 123, 114, 0.1)',
-              border: '1px solid rgba(255, 123, 114, 0.2)',
+              background: 'var(--danger-alpha-10)',
+              border: '1px solid var(--danger-alpha-20)',
             }}
           >
             <ArrowDownRight className="w-4 h-4 text-[var(--danger)]" />
@@ -300,8 +300,8 @@ const EmployeePortal: React.FC = () => {
           <div
             className={styles.statIcon}
             style={{
-              background: 'rgba(124, 111, 247, 0.1)',
-              border: '1px solid rgba(124, 111, 247, 0.2)',
+              background: 'var(--accent2-alpha-10)',
+              border: '1px solid var(--accent2-alpha-20)',
             }}
           >
             <TrendingUp className="w-4 h-4 text-[var(--accent2)]" />
@@ -314,11 +314,11 @@ const EmployeePortal: React.FC = () => {
           <div
             className={styles.statIcon}
             style={{
-              background: 'rgba(255, 213, 0, 0.1)',
-              border: '1px solid rgba(255, 213, 0, 0.2)',
+              background: 'var(--warning-alpha-10)',
+              border: '1px solid var(--warning-alpha-20)',
             }}
           >
-            <Clock className="w-4 h-4 text-[#ffd500]" />
+            <Clock className="w-4 h-4 text-[var(--warning)]" />
           </div>
           <div className={styles.statValue}>{pendingCount}</div>
           <div className={styles.statLabel}>Pending</div>
@@ -328,8 +328,8 @@ const EmployeePortal: React.FC = () => {
           <div
             className={styles.statIcon}
             style={{
-              background: 'rgba(63, 185, 80, 0.1)',
-              border: '1px solid rgba(63, 185, 80, 0.2)',
+              background: 'var(--success-alpha-10)',
+              border: '1px solid var(--success-alpha-20)',
             }}
           >
             <CheckCircle2 className="w-4 h-4 text-[var(--success)]" />
@@ -348,7 +348,7 @@ const EmployeePortal: React.FC = () => {
 
       {/* ── Error Banner ─────────────── */}
       {error && (
-        <div className="flex items-center gap-3 p-4 rounded-xl bg-[rgba(255,123,114,0.08)] border border-[rgba(255,123,114,0.2)]">
+        <div className="flex items-center gap-3 p-4 rounded-xl bg-[var(--danger-alpha-08)] border border-[var(--danger-alpha-20)]">
           <AlertCircle className="w-5 h-5 text-[var(--danger)]" />
           <span className="text-sm text-[var(--danger)]">{error}</span>
         </div>
