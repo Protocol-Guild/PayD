@@ -7,6 +7,7 @@ import { useAutosave } from '../hooks/useAutosave';
 import { generateWallet } from '../services/stellar';
 import { useTranslation } from 'react-i18next';
 import { useNotification } from '../hooks/useNotification';
+import { TableSkeleton } from '../components/TableSkeleton';
 
 import api from '../utils/api';
 
@@ -349,9 +350,7 @@ export default function EmployeeEntry() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center p-12">
-          <div className="w-12 h-12 border-4 border-accent border-t-transparent rounded-full animate-spin"></div>
-        </div>
+        <TableSkeleton rows={5} columns={6} columnWidths={[0.2, 0.15, 0.25, 0.1, 0.1, 0.1]} />
       ) : (
         <EmployeeList
           employees={employees}

@@ -6,6 +6,7 @@ import {
   type TimelineItem,
 } from '../services/transactionHistory.js';
 import { CertificateDownloadButton } from '../components/CertificateDownloadButton.js';
+import { TableSkeleton } from '../components/TableSkeleton';
 
 const DEFAULT_FILTERS: HistoryFilters = {
   search: '',
@@ -24,23 +25,6 @@ function getStatusClass(status: string): string {
     return 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20';
   }
   return 'bg-red-500/10 text-red-400 border border-red-500/20';
-}
-
-function TimelineSkeleton() {
-  return (
-    <div className="space-y-3">
-      {[0, 1, 2, 3, 4, 5].map((val) => (
-        <div
-          key={`skeleton-${val}`}
-          className="animate-pulse rounded-xl border border-zinc-800 p-4"
-        >
-          <div className="h-3 w-40 bg-zinc-800 rounded mb-2" />
-          <div className="h-3 w-64 bg-zinc-800 rounded mb-2" />
-          <div className="h-3 w-28 bg-zinc-800 rounded" />
-        </div>
-      ))}
-    </div>
-  );
 }
 
 export default function TransactionHistory() {
@@ -204,7 +188,7 @@ export default function TransactionHistory() {
 
       <div className="bg-[#16161a] border border-zinc-800 rounded-xl p-3 sm:p-5 flex-1">
         {error ? <p className="text-xs sm:text-sm text-red-400 mb-4 p-2">{error}</p> : null}
-        {isLoading ? <TimelineSkeleton /> : null}
+        {isLoading ? <TableSkeleton rows={6} columns={4} columnWidths={[0.25, 0.35, 0.2, 0.2]} /> : null}
 
         {!isLoading && items.length === 0 ? (
           <div className="text-zinc-500 text-center py-12 sm:py-16">
