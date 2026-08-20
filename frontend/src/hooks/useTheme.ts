@@ -1,4 +1,4 @@
-import { createContext, use } from 'react';
+import { useThemeStore } from '../stores/themeStore';
 
 export type Theme = 'light' | 'dark';
 
@@ -7,10 +7,16 @@ export interface ThemeContextType {
   toggleTheme: () => void;
 }
 
-export const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
-
+/**
+ * useTheme hook — reads theme state from the zustand store.
+ *
+ * Components that call this hook will re-render when the theme changes.
+ * Theme persistence is handled by the zustand persist middleware.
+ */
 export const useTheme = () => {
-  const context = use(ThemeContext);
-  if (!context) throw new Error('useTheme must be used within ThemeProvider');
-  return context;
+  const theme = useThemeStore((s) => s.theme as Theme);
+  const toggleTheme = useThemeStore((s) => s.toggleTheme);
+  const setTheme = useThemeStore((s) => s.setTheme);
+
+  return { theme, toggleTheme, setTheme };
 };

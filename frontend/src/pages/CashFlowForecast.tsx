@@ -132,7 +132,7 @@ export default function CashFlowForecast() {
     const { direction } = forecast.trendAnalysis;
     if (direction === 'increasing') return <TrendingUp className="w-5 h-5 text-emerald-400" />;
     if (direction === 'decreasing') return <TrendingDown className="w-5 h-5 text-red-400" />;
-    return <Minus className="w-5 h-5 text-zinc-400" />;
+    return <Minus className="w-5 h-5 text-[var(--muted)]" />;
   };
 
   const getAlertIcon = (severity: BudgetAlert['severity']) => {
@@ -146,7 +146,7 @@ export default function CashFlowForecast() {
       <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Cash Flow Forecast</h1>
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-[var(--muted)]">
             Analyze historical payroll data and project future cash flow requirements
           </p>
         </div>
@@ -156,14 +156,14 @@ export default function CashFlowForecast() {
             placeholder="Distribution Account"
             value={params.distributionAccount}
             onChange={(e) => setParams({ ...params, distributionAccount: e.target.value })}
-            className="px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
+            className="px-4 py-2 bg-zinc-900 border border-[var(--border-hi)] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
           />
           <input
             type="text"
             placeholder="Asset Issuer"
             value={params.assetIssuer}
             onChange={(e) => setParams({ ...params, assetIssuer: e.target.value })}
-            className="px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
+            className="px-4 py-2 bg-zinc-900 border border-[var(--border-hi)] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
           />
           <input
             type="number"
@@ -172,7 +172,7 @@ export default function CashFlowForecast() {
             onChange={(e) =>
               setParams({ ...params, forecastDays: parseInt(e.target.value, 10) || 90 })
             }
-            className="px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-24 min-h-[44px]"
+            className="px-4 py-2 bg-zinc-900 border border-[var(--border-hi)] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-24 min-h-[44px]"
           />
           <button
             onClick={() => {
@@ -192,7 +192,7 @@ export default function CashFlowForecast() {
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="animate-pulse bg-zinc-900 border border-zinc-800 rounded-xl p-6 h-64"
+              className="animate-pulse bg-zinc-900 border border-[var(--border-hi)] rounded-xl p-6 h-64"
             />
           ))}
         </div>
@@ -200,10 +200,10 @@ export default function CashFlowForecast() {
         <>
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-gradient-to-br from-zinc-900 to-black border border-zinc-800 rounded-xl p-6">
+            <div className="bg-gradient-to-br from-zinc-900 to-black border border-[var(--border-hi)] rounded-xl p-6">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-zinc-400">Current Balance</span>
-                <DollarSign className="w-5 h-5 text-zinc-500" />
+                <span className="text-sm text-[var(--muted)]">Current Balance</span>
+                <DollarSign className="w-5 h-5 text-[var(--muted)]" />
               </div>
               <p className="text-2xl font-bold text-white">
                 {parseFloat(forecast.currentBalance).toLocaleString('en-US', {
@@ -211,13 +211,13 @@ export default function CashFlowForecast() {
                   maximumFractionDigits: 2,
                 })}
               </p>
-              <p className="text-xs text-zinc-500 mt-1">ORGUSD</p>
+              <p className="text-xs text-[var(--muted)] mt-1">ORGUSD</p>
             </div>
 
-            <div className="bg-gradient-to-br from-zinc-900 to-black border border-zinc-800 rounded-xl p-6">
+            <div className="bg-gradient-to-br from-zinc-900 to-black border border-[var(--border-hi)] rounded-xl p-6">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-zinc-400">Projected Outflow</span>
-                <Calendar className="w-5 h-5 text-zinc-500" />
+                <span className="text-sm text-[var(--muted)]">Projected Outflow</span>
+                <Calendar className="w-5 h-5 text-[var(--muted)]" />
               </div>
               <p className="text-2xl font-bold text-white">
                 {forecast.totalProjectedOutflow.toLocaleString('en-US', {
@@ -225,15 +225,15 @@ export default function CashFlowForecast() {
                   maximumFractionDigits: 2,
                 })}
               </p>
-              <p className="text-xs text-zinc-500 mt-1">
+              <p className="text-xs text-[var(--muted)] mt-1">
                 {forecast.projections.length} scheduled payments
               </p>
             </div>
 
-            <div className="bg-gradient-to-br from-zinc-900 to-black border border-zinc-800 rounded-xl p-6">
+            <div className="bg-gradient-to-br from-zinc-900 to-black border border-[var(--border-hi)] rounded-xl p-6">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-zinc-400">Projected Balance</span>
-                <TrendingDown className="w-5 h-5 text-zinc-500" />
+                <span className="text-sm text-[var(--muted)]">Projected Balance</span>
+                <TrendingDown className="w-5 h-5 text-[var(--muted)]" />
               </div>
               <p
                 className={`text-2xl font-bold ${
@@ -245,18 +245,18 @@ export default function CashFlowForecast() {
                   maximumFractionDigits: 2,
                 })}
               </p>
-              <p className="text-xs text-zinc-500 mt-1">After all projections</p>
+              <p className="text-xs text-[var(--muted)] mt-1">After all projections</p>
             </div>
 
-            <div className="bg-gradient-to-br from-zinc-900 to-black border border-zinc-800 rounded-xl p-6">
+            <div className="bg-gradient-to-br from-zinc-900 to-black border border-[var(--border-hi)] rounded-xl p-6">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-zinc-400">Trend</span>
+                <span className="text-sm text-[var(--muted)]">Trend</span>
                 {getTrendIcon()}
               </div>
               <p className="text-2xl font-bold text-white capitalize">
                 {forecast.trendAnalysis.direction}
               </p>
-              <p className="text-xs text-zinc-500 mt-1">
+              <p className="text-xs text-[var(--muted)] mt-1">
                 {forecast.trendAnalysis.changePercent > 0 ? '+' : ''}
                 {forecast.trendAnalysis.changePercent.toFixed(1)}% vs historical
               </p>
@@ -265,7 +265,7 @@ export default function CashFlowForecast() {
 
           {/* Budget Alerts */}
           {alerts.length > 0 && (
-            <div className="bg-gradient-to-br from-zinc-900 to-black border border-zinc-800 rounded-xl p-6">
+            <div className="bg-gradient-to-br from-zinc-900 to-black border border-[var(--border-hi)] rounded-xl p-6">
               <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-yellow-400" />
                 Budget Alerts ({alerts.length})
@@ -297,7 +297,7 @@ export default function CashFlowForecast() {
                           >
                             {alert.severity}
                           </span>
-                          <span className="text-xs text-zinc-400">
+                          <span className="text-xs text-[var(--muted)]">
                             {new Date(alert.projectedDate).toLocaleDateString()}
                           </span>
                         </div>
@@ -318,7 +318,7 @@ export default function CashFlowForecast() {
           {/* Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Cash Flow Projection Chart */}
-            <div className="bg-gradient-to-br from-zinc-900 to-black border border-zinc-800 rounded-xl p-6">
+            <div className="bg-gradient-to-br from-zinc-900 to-black border border-[var(--border-hi)] rounded-xl p-6">
               <h3 className="text-lg font-bold text-white mb-4">Cash Flow Projection</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <AreaChart data={balanceProjectionData}>
@@ -333,7 +333,7 @@ export default function CashFlowForecast() {
                   <YAxis stroke="#9ca3af" fontSize={12} />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: '#18181b',
+                      backgroundColor: 'var(--surface)',
                       border: '1px solid #27272a',
                       borderRadius: '8px',
                     }}
@@ -350,7 +350,7 @@ export default function CashFlowForecast() {
             </div>
 
             {/* Historical vs Projected Chart */}
-            <div className="bg-gradient-to-br from-zinc-900 to-black border border-zinc-800 rounded-xl p-6">
+            <div className="bg-gradient-to-br from-zinc-900 to-black border border-[var(--border-hi)] rounded-xl p-6">
               <h3 className="text-lg font-bold text-white mb-4">Historical vs Projected</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={chartData}>
@@ -359,7 +359,7 @@ export default function CashFlowForecast() {
                   <YAxis stroke="#9ca3af" fontSize={12} />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: '#18181b',
+                      backgroundColor: 'var(--surface)',
                       border: '1px solid #27272a',
                       borderRadius: '8px',
                     }}
@@ -373,11 +373,11 @@ export default function CashFlowForecast() {
           </div>
 
           {/* Historical Averages */}
-          <div className="bg-gradient-to-br from-zinc-900 to-black border border-zinc-800 rounded-xl p-6">
+          <div className="bg-gradient-to-br from-zinc-900 to-black border border-[var(--border-hi)] rounded-xl p-6">
             <h3 className="text-lg font-bold text-white mb-4">Historical Averages</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
-                <p className="text-sm text-zinc-400 mb-1">Weekly Average</p>
+              <div className="p-4 bg-zinc-900/50 rounded-lg border border-[var(--border-hi)]">
+                <p className="text-sm text-[var(--muted)] mb-1">Weekly Average</p>
                 <p className="text-2xl font-bold text-white">
                   {forecast.historicalAverage.weekly.toLocaleString('en-US', {
                     minimumFractionDigits: 2,
@@ -385,8 +385,8 @@ export default function CashFlowForecast() {
                   })}
                 </p>
               </div>
-              <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
-                <p className="text-sm text-zinc-400 mb-1">Biweekly Average</p>
+              <div className="p-4 bg-zinc-900/50 rounded-lg border border-[var(--border-hi)]">
+                <p className="text-sm text-[var(--muted)] mb-1">Biweekly Average</p>
                 <p className="text-2xl font-bold text-white">
                   {forecast.historicalAverage.biweekly.toLocaleString('en-US', {
                     minimumFractionDigits: 2,
@@ -394,8 +394,8 @@ export default function CashFlowForecast() {
                   })}
                 </p>
               </div>
-              <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
-                <p className="text-sm text-zinc-400 mb-1">Monthly Average</p>
+              <div className="p-4 bg-zinc-900/50 rounded-lg border border-[var(--border-hi)]">
+                <p className="text-sm text-[var(--muted)] mb-1">Monthly Average</p>
                 <p className="text-2xl font-bold text-white">
                   {forecast.historicalAverage.monthly.toLocaleString('en-US', {
                     minimumFractionDigits: 2,
@@ -407,8 +407,8 @@ export default function CashFlowForecast() {
           </div>
         </>
       ) : (
-        <div className="bg-gradient-to-br from-zinc-900 to-black border border-zinc-800 rounded-xl p-12 text-center">
-          <p className="text-zinc-400">
+        <div className="bg-gradient-to-br from-zinc-900 to-black border border-[var(--border-hi)] rounded-xl p-12 text-center">
+          <p className="text-[var(--muted)]">
             Enter distribution account and asset issuer to load forecast
           </p>
         </div>
