@@ -146,7 +146,7 @@ function App() {
         <Route
           path="/settings"
           element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
+            <ErrorBoundary fallback={<ErrorFallback onReset={() => window.location.reload()} />}>
               <Settings />
             </ErrorBoundary>
           }
@@ -154,7 +154,7 @@ function App() {
         <Route
           path="/help"
           element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
+            <ErrorBoundary fallback={<ErrorFallback onReset={() => window.location.reload()} />}>
               <HelpCenter />
             </ErrorBoundary>
           }
@@ -162,7 +162,7 @@ function App() {
         <Route
           path="/cross-asset-payment"
           element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
+            <ErrorBoundary fallback={<ErrorFallback onReset={() => window.location.reload()} />}>
               <CrossAssetPayment />
             </ErrorBoundary>
           }
@@ -170,7 +170,7 @@ function App() {
         <Route
           path="/transactions"
           element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
+            <ErrorBoundary fallback={<ErrorFallback onReset={() => window.location.reload()} />}>
               <TransactionHistory />
             </ErrorBoundary>
           }
@@ -178,7 +178,7 @@ function App() {
         <Route
           path="/forecast"
           element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
+            <ErrorBoundary fallback={<ErrorFallback onReset={() => window.location.reload()} />}>
               <Forecasting />
             </ErrorBoundary>
           }
@@ -186,7 +186,7 @@ function App() {
         <Route
           path="/vesting"
           element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
+            <ErrorBoundary fallback={<ErrorFallback onReset={() => window.location.reload()} />}>
               <VestingEscrow />
             </ErrorBoundary>
           }
@@ -194,7 +194,7 @@ function App() {
         <Route
           path="/revenue-split"
           element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
+            <ErrorBoundary fallback={<ErrorFallback onReset={() => window.location.reload()} />}>
               <RevenueSplitDashboard />
             </ErrorBoundary>
           }
@@ -202,14 +202,40 @@ function App() {
         <Route
           path="/tax-compliance"
           element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
+            <ErrorBoundary fallback={<ErrorFallback onReset={() => window.location.reload()} />}>
               <TaxComplianceWizard />
             </ErrorBoundary>
           }
         />
       </Route>
-      <Route path="/login" element={<Login />} />
-      <Route path="/auth-callback" element={<AuthCallback />} />
+      <Route
+        path="/login"
+        element={
+          <ErrorBoundary
+            fallback={
+              <ErrorFallback
+                onReset={() => window.location.reload()}
+              />
+            }
+          >
+            <Login />
+          </ErrorBoundary>
+        }
+      />
+      <Route
+        path="/auth-callback"
+        element={
+          <ErrorBoundary
+            fallback={
+              <ErrorFallback
+                onReset={() => window.location.reload()}
+              />
+            }
+          >
+            <AuthCallback />
+          </ErrorBoundary>
+        }
+      />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
