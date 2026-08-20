@@ -75,7 +75,7 @@ const initialFormState: PayrollFormState = {
 
 export default function PayrollScheduler() {
   const { t } = useTranslation();
-  const { notifySuccess, notifyError } = useNotification();
+  const { notifySuccess, notifyError, notifyLoading, notifyDismiss } = useNotification();
   const socketContext = useSocket();
 
   const { socket, subscribeToTransaction, unsubscribeFromTransaction } = socketContext;
@@ -218,6 +218,7 @@ export default function PayrollScheduler() {
 
   const handleBroadcast = async () => {
     setIsBroadcasting(true);
+    const loadingId = notifyLoading('Broadcasting payment…');
     try {
       const mockRecipientPublicKey = generateWallet().publicKey;
 
@@ -253,6 +254,8 @@ export default function PayrollScheduler() {
       // Subscribe to updates for this new claim
       subscribeToTransaction(newClaim.id);
 
+      notifyDismiss(loadingId);
+
       notifySuccess(
         'Broadcast successful!',
         `Claimable balance created for ${formData.employeeName}`
@@ -281,7 +284,10 @@ export default function PayrollScheduler() {
       setFormData(initialFormState);
     } catch (err) {
       console.error(err);
-      notifyError('Broadcast failed', 'Please check your network connection and try again.');
+      notifyDismiss(loadingId);
+      notifyError('Broadcast failed', 'Please check your network connection and try again.', () => {
+        void handleBroadcast();
+      });
     } finally {
       setIsBroadcasting(false);
     }
