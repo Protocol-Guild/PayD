@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { AUTH_TOKEN_KEY, AUTH_REDIRECT_KEY } from '../components/ProtectedRoute';
 
 const AuthCallback: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -8,11 +9,16 @@ const AuthCallback: React.FC = () => {
   useEffect(() => {
     const token = searchParams.get('token');
     if (token) {
-      localStorage.setItem('payd_auth_token', token);
-      // Optional: decode token to get user info or trigger a refresh in a context provider
-      void navigate('/');
+      localStorage.setItem(AUTH_TOKEN_KEY, token);
+
+      // Restore the redirect path saved by Login page, default to '/'
+      const redirect = localStorage.getItem(AUTH_REDIRECT_KEY) || '/';
+      localStorage.removeItem(AUTH_REDIRECT_KEY);
+
+      // Use replace to avoid the callback page lingering in browser history
+      void navigate(redirect, { replace: true });
     } else {
-      void navigate('/login?error=no_token');
+      void navigate('/login?error=no_token', { replace: true });
     }
   }, [searchParams, navigate]);
 

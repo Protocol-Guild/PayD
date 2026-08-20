@@ -1,7 +1,19 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { AUTH_REDIRECT_KEY } from '../components/ProtectedRoute';
 
 const Login: React.FC = () => {
   const backendUrl = (import.meta.env.VITE_BACKEND_URL as string) || 'http://localhost:4000';
+  const [searchParams] = useSearchParams();
+
+  // Save the redirect path so AuthCallback can navigate back after login
+  useEffect(() => {
+    const redirect = searchParams.get('redirect');
+    if (redirect) {
+      // URLSearchParams.get already decodes; store the raw path as-is
+      localStorage.setItem(AUTH_REDIRECT_KEY, redirect);
+    }
+  }, [searchParams]);
 
   const handleLogin = (provider: 'google' | 'github') => {
     window.location.href = `${backendUrl}/auth/${provider}`;

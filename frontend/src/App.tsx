@@ -5,6 +5,7 @@ import Debugger from './pages/Debugger';
 import PayrollScheduler from './pages/PayrollScheduler';
 import EmployeeEntry from './pages/EmployeeEntry';
 import EmployerLayout from './components/EmployerLayout';
+import ProtectedRoute from './components/ProtectedRoute';
 import HelpCenter from './pages/HelpCenter';
 import ErrorBoundary from './components/ErrorBoundary';
 import ErrorFallback from './components/ErrorFallback';
@@ -36,7 +37,8 @@ function App() {
 
   return (
     <Routes>
-      <Route element={<EmployerLayout />}>
+      <Route element={<ProtectedRoute />}>
+        <Route element={<EmployerLayout />}>
         <Route
           path="/"
           element={
@@ -207,6 +209,7 @@ function App() {
             </ErrorBoundary>
           }
         />
+      </Route>
       </Route>
       <Route path="/login" element={<Login />} />
       <Route path="/auth-callback" element={<AuthCallback />} />
