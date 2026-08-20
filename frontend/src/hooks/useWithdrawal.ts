@@ -103,13 +103,13 @@ export function useWithdrawal(
   const setAmount = useCallback(
     (amount: string) => {
       const numAmount = parseFloat(amount) || 0;
-      const rate = state.selectedAnchor?.supportedCurrencies.includes(selectedCurrency)
-        ? exchangeRate
-        : exchangeRate;
+      const isSupported = state.selectedAnchor?.supportedCurrencies.includes(selectedCurrency) ?? false;
+      const rate = isSupported ? exchangeRate : 0;
       setState((prev) => ({
         ...prev,
         amount,
         estimatedReceive: numAmount * rate,
+        error: isSupported ? null : 'Selected anchor does not support this currency',
       }));
     },
     [exchangeRate, selectedCurrency, state.selectedAnchor]
