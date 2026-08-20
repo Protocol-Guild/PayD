@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   StellarWalletsKit,
   WalletNetwork,
@@ -32,8 +32,15 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [walletExtensionAvailable, setWalletExtensionAvailable] = useState(true);
 
   const kitRef = useRef<StellarWalletsKit | null>(null);
+  const addressRef = useRef<string | null>(null);
   const { t } = useTranslation();
   const { notify, notifySuccess, notifyError } = useNotification();
+
+  // Keep a ref in sync with the latest address so async callbacks (e.g.
+  // requireWallet) never read a stale value captured from an earlier render.
+  useEffect(() => {
+    addressRef.current = address;
+  }, [address]);
 
   // `vite.config.ts` sets `envPrefix: 'PUBLIC_'`, so `VITE_`-prefixed vars are
   // not exposed; read `PUBLIC_STELLAR_NETWORK` like the rest of the app does.
@@ -87,7 +94,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     void attemptSilentReconnect();
   }, [notifySuccess, network]);
 
-  const connect = async () => {
+  const connect = useCallback(async () => {
     const kit = kitRef.current;
     if (!kit) return;
 
@@ -99,6 +106,10 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           void (async () => {
             try {
               const { address } = await kit.getAddress();
+              // Update both the state (for re-render) and the ref
+              // (immediately, so requireWallet right after connect()
+              // sees the fresh value without waiting for a re-render).
+              addressRef.current = address;
               setAddress(address);
               setWalletName(option.id);
               localStorage.setItem(LAST_WALLET_STORAGE_KEY, option.id);
@@ -123,7 +134,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       );
       setIsConnecting(false);
     }
-  };
+  }, [t, notifySuccess, notifyError]);
 
   const disconnect = () => {
     setAddress(null);
@@ -132,20 +143,25 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     notify('Wallet disconnected');
   };
 
-  const requireWallet = async <T,>(callback: () => Promise<T>): Promise<T> => {
-    if (address) {
+  const requireWallet = useCallback(
+    async <T,>(callback: () => Promise<T>): Promise<T> => {
+      if (addressRef.current) {
+        return callback();
+      }
+
+      await connect();
+
+      // Check again after modal interaction — reads from the ref which is
+      // kept in sync with React state by the effect above, so it always
+      // reflects the latest value after the modal's onWalletSelected fires.
+      if (!addressRef.current) {
+        throw new Error('Wallet connection required to perform this action');
+      }
+
       return callback();
-    }
-
-    await connect();
-
-    // Check again after modal interaction
-    if (!address) {
-      throw new Error('Wallet connection required to perform this action');
-    }
-
-    return callback();
-  };
+    },
+    [connect]
+  );
 
   const signTransaction = async (xdr: string) => {
     const kit = kitRef.current;
