@@ -283,7 +283,9 @@
 }
 
 .txMemoType {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 9px;
   text-transform: uppercase;
   letter-spacing: 0.1em;
