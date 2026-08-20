@@ -102,10 +102,10 @@ export default function WebhookSettings() {
   };
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-start p-12 max-w-3xl mx-auto w-full">
-      <div className="w-full mb-12 flex items-end justify-between border-b border-hi pb-8">
+    <div className="flex-1 flex flex-col items-center justify-start p-4 sm:p-6 lg:p-12 max-w-3xl mx-auto w-full">
+      <div className="w-full mb-6 sm:mb-8 lg:mb-12 flex flex-col sm:flex-row sm:items-end sm:justify-between border-b border-hi pb-4 sm:pb-6 lg:pb-8 gap-4">
         <div>
-          <h1 className="text-4xl font-black mb-2 tracking-tight">{t('webhooks.title')}</h1>
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black mb-2 tracking-tight">{t('webhooks.title')}</h1>
           <p className="text-sm text-muted mt-2">{t('webhooks.subtitle')}</p>
         </div>
       </div>
@@ -114,7 +114,7 @@ export default function WebhookSettings() {
         onSubmit={(event) => {
           void handleCreate(event);
         }}
-        className="w-full card glass noise p-8 mb-8"
+        className="w-full card glass noise p-4 sm:p-6 lg:p-8 mb-8"
       >
         <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
           <Plus className="w-5 h-5" />
@@ -192,7 +192,7 @@ export default function WebhookSettings() {
         </div>
       </form>
 
-      <div className="w-full card glass noise p-8">
+      <div className="w-full card glass noise p-4 sm:p-6 lg:p-8">
         <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
           <Webhook className="w-5 h-5" />
           {t('webhooks.listTitle')}
@@ -219,10 +219,10 @@ export default function WebhookSettings() {
             {subscriptions.map((subscription) => (
               <li
                 key={subscription.id}
-                className="flex items-center justify-between gap-4 bg-black/20 border border-hi rounded-xl p-4"
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 bg-black/20 border border-hi rounded-xl p-4"
               >
                 <div className="min-w-0">
-                  <p className="font-mono text-sm truncate">{subscription.url}</p>
+                  <p className="font-mono text-sm break-all sm:truncate">{subscription.url}</p>
                   <div className="flex flex-wrap gap-1 mt-2">
                     {subscription.events.map((eventName) => (
                       <span
