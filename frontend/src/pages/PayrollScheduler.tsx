@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { Card, Heading, Text, Button, Input, Select } from '@stellar/design-system';
 import { SchedulingWizard } from '../components/SchedulingWizard';
 import { CountdownTimer } from '../components/CountdownTimer';
+import { TableSkeleton } from '../components/TableSkeleton';
 import {
   getSchedules,
   createSchedule,
@@ -75,7 +76,7 @@ const initialFormState: PayrollFormState = {
 
 export default function PayrollScheduler() {
   const { t } = useTranslation();
-  const { notifySuccess, notifyError } = useNotification();
+  const { notifySuccess, notifyError, notifyLoading, notifyDismiss } = useNotification();
   const socketContext = useSocket();
 
   const { socket, subscribeToTransaction, unsubscribeFromTransaction } = socketContext;
@@ -218,6 +219,7 @@ export default function PayrollScheduler() {
 
   const handleBroadcast = async () => {
     setIsBroadcasting(true);
+    const loadingId = notifyLoading('Broadcasting payment…');
     try {
       const mockRecipientPublicKey = generateWallet().publicKey;
 
@@ -253,6 +255,8 @@ export default function PayrollScheduler() {
       // Subscribe to updates for this new claim
       subscribeToTransaction(newClaim.id);
 
+      notifyDismiss(loadingId);
+
       notifySuccess(
         'Broadcast successful!',
         `Claimable balance created for ${formData.employeeName}`
@@ -281,7 +285,10 @@ export default function PayrollScheduler() {
       setFormData(initialFormState);
     } catch (err) {
       console.error(err);
-      notifyError('Broadcast failed', 'Please check your network connection and try again.');
+      notifyDismiss(loadingId);
+      notifyError('Broadcast failed', 'Please check your network connection and try again.', () => {
+        void handleBroadcast();
+      });
     } finally {
       setIsBroadcasting(false);
     }
@@ -539,21 +546,7 @@ export default function PayrollScheduler() {
           Scheduled Automations
         </Heading>
         {isLoadingSchedules ? (
-          <div className="flex justify-center p-8">
-            <span className="animate-spin text-accent">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <path d="M22 12a10 10 0 0 1-10 10" />
-              </svg>
-            </span>
-          </div>
+          <TableSkeleton variant="card" rows={2} columns={2} />
         ) : dbSchedules.length === 0 ? (
           <Card>
             <Text

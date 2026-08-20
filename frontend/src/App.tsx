@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
+import { Toaster } from 'sonner';
 import Home from './pages/Home';
 import Debugger from './pages/Debugger';
 import PayrollScheduler from './pages/PayrollScheduler';
@@ -35,8 +36,20 @@ function App() {
   }, []);
 
   return (
-    <Routes>
-      <Route element={<EmployerLayout />}>
+    <>
+      <Toaster
+        position="top-right"
+        richColors
+        toastOptions={{
+          style: {
+            background: 'var(--surface, #151718)',
+            border: '1px solid var(--border, #2f3437)',
+            color: 'var(--text, #ececed)',
+          },
+        }}
+      />
+      <Routes>
+        <Route element={<EmployerLayout />}>
         <Route
           path="/"
           element={
@@ -211,7 +224,8 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/auth-callback" element={<AuthCallback />} />
       <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+      </Routes>
+    </>
   );
 }
 

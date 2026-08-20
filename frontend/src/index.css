@@ -227,6 +227,24 @@ a[class*='w-6'] {
   }
 }
 
+/* ── Skeleton loading placeholder ──── */
+.skeleton-placeholder {
+  background: linear-gradient(
+    90deg,
+    var(--surface-hi, #1e2124) 25%,
+    rgba(255, 255, 255, 0.06) 50%,
+    var(--surface-hi, #1e2124) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 /* Form input mobile improvements */
 @media (max-width: 768px) {
   input,
