@@ -39,18 +39,36 @@ export async function claimKey(
   try {
     // Step 1: Try to insert a fresh in_progress row (skip expired rows
     // via the WHERE clause so they fall through to the conflict path).
-    const insertResult = await query(
-      `INSERT INTO idempotency_keys (organization_id, idempotency_key, status, expires_at)
-       SELECT $1, $2, 'in_progress', $3
-       WHERE NOT EXISTS (
-         SELECT 1 FROM idempotency_keys
-         WHERE organization_id = $1 AND idempotency_key = $2 AND expires_at > NOW()
-       )`,
-      [organizationId, idempotencyKey, expiresAt]
-    );
+    //
+    // The WHERE NOT EXISTS check is not by itself a claim: two concurrent
+    // transactions can both see no existing row and both attempt the INSERT.
+    // The UNIQUE (organization_id, idempotency_key) constraint is what makes
+    // this atomic: exactly one of them commits, the loser gets error 23505,
+    // which we translate into IdempotencyConflictError (409 at the middleware).
+    try {
+      const insertResult = await query(
+        `INSERT INTO idempotency_keys (organization_id, idempotency_key, status, expires_at)
+         SELECT $1, $2, 'in_progress', $3
+         WHERE NOT EXISTS (
+           SELECT 1 FROM idempotency_keys
+           WHERE organization_id = $1 AND idempotency_key = $2 AND expires_at > NOW()
+         )`,
+        [organizationId, idempotencyKey, expiresAt]
+      );
 
-    if ((insertResult.rowCount ?? 0) > 0) {
-      return null;
+      if ((insertResult.rowCount ?? 0) > 0) {
+        return null;
+      }
+    } catch (err: unknown) {
+      const code = (err as { code?: string })?.code;
+      if (code === '23505') {
+        // Lost the insert race: another request claimed the key between our
+        // NOT EXISTS evaluation and our INSERT. This is the concurrent-duplicate
+        // case: do NOT fall through to Steps 2/3 (the key is unexpired and
+        // in_progress), surface it as a conflict immediately.
+        throw new IdempotencyConflictError(organizationId, idempotencyKey);
+      }
+      throw err;
     }
 
     // Step 2: Key already exists (or was just expired). Try to claim an
@@ -141,7 +159,7 @@ export async function completeKey(
   await query(
     `UPDATE idempotency_keys
      SET status = 'completed', response_status = $3, response_body = $4
-     WHERE organization_id = $1 AND idempotency_key = $2`,
+     WHERE organization_id = $1 AND idempotency_key = $2 AND expires_at > NOW()`,
     [organizationId, idempotencyKey, responseStatus, JSON.stringify(responseBody)]
   );
 }
@@ -158,7 +176,7 @@ export async function failKey(
   await query(
     `UPDATE idempotency_keys
      SET status = 'failed', response_status = $3, response_body = $4
-     WHERE organization_id = $1 AND idempotency_key = $2`,
+     WHERE organization_id = $1 AND idempotency_key = $2 AND expires_at > NOW()`,
     [organizationId, idempotencyKey, responseStatus, JSON.stringify(responseBody)]
   );
 }
