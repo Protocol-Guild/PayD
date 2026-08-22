@@ -17,6 +17,7 @@ import {
   ScheduleRecord,
 } from '../services/scheduleApi';
 import { BulkPaymentStatusTracker } from '../components/BulkPaymentStatusTracker';
+import { payrollFormSchema, type PayrollFormData } from '../schemas';
 
 interface EmployeePreference {
   id: string;
@@ -73,6 +74,10 @@ const initialFormState: PayrollFormState = {
   memo: '',
 };
 
+type PayrollFieldErrors = Partial<Record<keyof PayrollFormData, string>>;
+const EMPTY_PAYROLL_ERRORS: PayrollFieldErrors = {};
+type PayrollTouched = Partial<Record<keyof PayrollFormData, boolean>>;
+
 export default function PayrollScheduler() {
   const { t } = useTranslation();
   const { notifySuccess, notifyError } = useNotification();
@@ -80,6 +85,8 @@ export default function PayrollScheduler() {
 
   const { socket, subscribeToTransaction, unsubscribeFromTransaction } = socketContext;
   const [formData, setFormData] = useState<PayrollFormState>(initialFormState);
+  const [fieldErrors, setFieldErrors] = useState<PayrollFieldErrors>(EMPTY_PAYROLL_ERRORS);
+  const [touched, setTouched] = useState<PayrollTouched>({});
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [activeSchedule, setActiveSchedule] = useState<{
@@ -178,6 +185,51 @@ export default function PayrollScheduler() {
     if (simulationResult) resetSimulation();
   };
 
+  const validateField = (name: keyof PayrollFormData, value: string) => {
+    const result = payrollFormSchema.safeParse({ ...formData, [name]: value });
+    if (!result.success) {
+      const fieldIssue = result.error.issues.find((i) => i.path[0] === name);
+      setFieldErrors((prev) => ({ ...prev, [name]: fieldIssue?.message ?? '' }));
+    } else {
+      setFieldErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+  };
+
+  const handleBlur = (
+    e: React.FocusEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setTouched((prev) => ({ ...prev, [name]: true }));
+    validateField(name as keyof PayrollFormData, value);
+  };
+
+  const isFormValid = () => {
+    // Pure check used only for disabling the submit button — no side effects.
+    return payrollFormSchema.safeParse(formData).success;
+  };
+
+  const validateFormState = (): boolean => {
+    const result = payrollFormSchema.safeParse(formData);
+    if (!result.success) {
+      const errors: PayrollFieldErrors = {};
+      for (const issue of result.error.issues) {
+        const field = issue.path[0] as keyof PayrollFormData;
+        if (!errors[field]) {
+          errors[field] = issue.message;
+        }
+      }
+      setFieldErrors(errors);
+      const allTouched: PayrollTouched = {};
+      for (const key of Object.keys(initialFormState) as (keyof PayrollFormData)[]) {
+        allTouched[key] = true;
+      }
+      setTouched(allTouched);
+      return false;
+    }
+    setFieldErrors(EMPTY_PAYROLL_ERRORS);
+    return true;
+  };
+
   useEffect(() => {
     if (!socket) return;
 
@@ -204,6 +256,9 @@ export default function PayrollScheduler() {
   }, [socket, notifySuccess]);
 
   const handleInitialize = async () => {
+    if (!validateFormState()) {
+      return;
+    }
     if (!formData.employeeName || !formData.amount) {
       notifyError('Missing required fields', 'Please provide employee name and amount.');
       return;
@@ -413,8 +468,12 @@ export default function PayrollScheduler() {
                   name="employeeName"
                   value={formData.employeeName}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   placeholder="e.g. Satoshi Nakamoto"
                 />
+                {touched.employeeName && fieldErrors.employeeName && (
+                  <span className="text-xs text-red-500 block">{fieldErrors.employeeName}</span>
+                )}
               </div>
 
               <div>
@@ -425,8 +484,12 @@ export default function PayrollScheduler() {
                   name="amount"
                   value={formData.amount}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   placeholder="0.00"
                 />
+                {touched.amount && fieldErrors.amount && (
+                  <span className="text-xs text-red-500 block">{fieldErrors.amount}</span>
+                )}
               </div>
 
               <div>
@@ -437,12 +500,16 @@ export default function PayrollScheduler() {
                   name="frequency"
                   value={formData.frequency}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                 >
                   {}
                   <option value="weekly">{t('payroll.frequencyWeekly', 'Weekly')}</option>
                   {}
                   <option value="monthly">{t('payroll.frequencyMonthly', 'Monthly')}</option>
                 </Select>
+                {touched.frequency && fieldErrors.frequency && (
+                  <span className="text-xs text-red-500 block">{fieldErrors.frequency}</span>
+                )}
               </div>
 
               <div className="md:col-span-2">
@@ -454,14 +521,18 @@ export default function PayrollScheduler() {
                   type="date"
                   value={formData.startDate}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                 />
+                {touched.startDate && fieldErrors.startDate && (
+                  <span className="text-xs text-red-500 block">{fieldErrors.startDate}</span>
+                )}
               </div>
 
               <div className="md:col-span-2 pt-4">
                 {!simulationPassed ? (
                   <Button
                     type="submit"
-                    disabled={isSimulating}
+                    disabled={isSimulating || !isFormValid()}
                     variant="primary"
                     size="md"
                     isFullWidth
