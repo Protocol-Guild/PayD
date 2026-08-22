@@ -1,8 +1,15 @@
 import axios, { AxiosError } from 'axios';
 import { toast } from 'sonner';
 
+/** Shared API base URL — single source of truth for all API calls. */
+export const API_BASE_URL =
+  (import.meta.env.VITE_API_URL as string | undefined) || 'http://localhost:4000/api';
+
+/** API root URL (strips /api and /api/v1 suffix for endpoints outside the API prefix). */
+export const API_ROOT_URL = API_BASE_URL.replace(/\/api\/v1\/?$/, '').replace(/\/api\/?$/, '');
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:4000/api',
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
