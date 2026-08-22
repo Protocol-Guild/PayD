@@ -1,6 +1,5 @@
+import { API_BASE_URL } from '../utils/api';
 import { contractService } from './contracts';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 export interface HistoryFilters {
   search: string;
@@ -93,7 +92,7 @@ export async function fetchHistoryPage(options: {
     search: filters.search || undefined,
   });
 
-  const auditResponse = await fetch(`${API_BASE_URL}/api/v1/audit?${query}`);
+  const auditResponse = await fetch(`${API_BASE_URL}/v1/audit?${query}`);
   if (!auditResponse.ok) {
     throw new Error(`Failed to fetch audit records (${auditResponse.status})`);
   }
@@ -113,7 +112,7 @@ export async function fetchHistoryPage(options: {
     contractIds.map(async (contractId) => {
       try {
         const eventResponse = await fetch(
-          `${API_BASE_URL}/api/events/${contractId}?page=1&limit=10`
+          `${API_BASE_URL}/events/${contractId}?page=1&limit=10`
         );
         if (!eventResponse.ok) return;
         const payload = (await eventResponse.json()) as {

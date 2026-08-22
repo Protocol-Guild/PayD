@@ -1,13 +1,7 @@
-import axios from 'axios';
+import api from '../utils/api';
+import { API_ROOT_URL } from '../utils/api';
 
-const RAW_API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api/v1';
-const API_ROOT = RAW_API_URL.replace(/\/api\/v1\/?$/, '').replace(/\/api\/?$/, '');
-const WEBHOOKS_URL = `${API_ROOT}/webhooks`;
-
-function authHeaders() {
-  const token = localStorage.getItem('payd_auth_token');
-  return token ? { Authorization: `Bearer ${token}` } : undefined;
-}
+const WEBHOOKS_URL = API_ROOT_URL + '/webhooks';
 
 export interface WebhookSubscription {
   id: string;
@@ -23,23 +17,17 @@ export interface CreateWebhookSubscriptionInput {
 }
 
 export async function fetchWebhookSubscriptions(): Promise<WebhookSubscription[]> {
-  const { data } = await axios.get<WebhookSubscription[]>(`${WEBHOOKS_URL}/subscriptions`, {
-    headers: authHeaders(),
-  });
+  const { data } = await api.get<WebhookSubscription[]>(`${WEBHOOKS_URL}/subscriptions`);
   return data;
 }
 
 export async function createWebhookSubscription(
   input: CreateWebhookSubscriptionInput
 ): Promise<WebhookSubscription> {
-  const { data } = await axios.post<WebhookSubscription>(`${WEBHOOKS_URL}/subscribe`, input, {
-    headers: authHeaders(),
-  });
+  const { data } = await api.post<WebhookSubscription>(`${WEBHOOKS_URL}/subscribe`, input);
   return data;
 }
 
 export async function deleteWebhookSubscription(id: string): Promise<void> {
-  await axios.delete(`${WEBHOOKS_URL}/subscriptions/${id}`, {
-    headers: authHeaders(),
-  });
+  await api.delete(`${WEBHOOKS_URL}/subscriptions/${id}`);
 }

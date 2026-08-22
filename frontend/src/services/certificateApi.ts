@@ -1,7 +1,5 @@
-import axios, { type AxiosError } from 'axios';
-
-const API_BASE_URL =
-  (import.meta.env.VITE_API_BASE_URL as string | undefined) || 'http://localhost:3001';
+import { isAxiosError, type AxiosError } from 'axios';
+import api from '../utils/api';
 
 export interface CertificateGenerationParams {
   employeeId: number;
@@ -50,14 +48,14 @@ export interface CertificateVerificationResult {
  */
 export const generateCertificate = async (params: CertificateGenerationParams): Promise<Blob> => {
   try {
-    const response = await axios.get<Blob>(`${API_BASE_URL}/api/certificates/generate`, {
+    const response = await api.get<Blob>('/certificates/generate', {
       params,
       responseType: 'blob',
     });
 
     return response.data;
   } catch (error) {
-    if (axios.isAxiosError(error)) {
+    if (isAxiosError(error)) {
       const axiosError = error as AxiosError<{ message?: string }>;
       const errorMessage =
         (axiosError.response?.data as { message?: string } | undefined)?.message ||
@@ -94,8 +92,8 @@ export const verifyCertificate = async (
   params: CertificateVerificationParams
 ): Promise<CertificateVerificationResult> => {
   try {
-    const response = await axios.get<CertificateVerificationResult>(
-      `${API_BASE_URL}/api/certificates/verify`,
+    const response = await api.get<CertificateVerificationResult>(
+      '/certificates/verify',
       {
         params,
       }
@@ -103,7 +101,7 @@ export const verifyCertificate = async (
 
     return response.data;
   } catch (error) {
-    if (axios.isAxiosError(error)) {
+    if (isAxiosError(error)) {
       const axiosError = error as AxiosError<{ message?: string }>;
       if (axiosError.response?.status === 404) {
         return {
@@ -136,8 +134,8 @@ export const getTransactionInfo = async (
   transactionHash: string
 ): Promise<{ employeeId: number; organizationId: number } | null> => {
   try {
-    const response = await axios.get<TransactionInfoResponse>(
-      `${API_BASE_URL}/api/certificates/transaction-info`,
+    const response = await api.get<TransactionInfoResponse>(
+      '/certificates/transaction-info',
       {
         params: { transactionHash },
       }
@@ -145,7 +143,7 @@ export const getTransactionInfo = async (
 
     return response.data.data || null;
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.status === 404) {
+    if (isAxiosError(error) && error.response?.status === 404) {
       return null;
     }
     throw error;
