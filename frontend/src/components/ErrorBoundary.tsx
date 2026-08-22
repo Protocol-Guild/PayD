@@ -1,16 +1,24 @@
 import React from 'react';
-import * as Sentry from '@sentry/react';
+
+type ErrorBoundaryFallbackArgs = {
+  onReset: () => void;
+};
 
 type ErrorBoundaryProps = {
-  fallback: React.ReactNode;
+  fallback: React.ReactNode | ((args: ErrorBoundaryFallbackArgs) => React.ReactNode);
   children: React.ReactNode;
+  /** Called after the boundary has been reset internally. */
+  onReset?: () => void;
 };
 
 type ErrorBoundaryState = {
   hasError: boolean;
 };
 
-export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+export default class ErrorBoundary extends React.Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
   state: ErrorBoundaryState = {
     hasError: false,
   };
@@ -20,16 +28,33 @@ export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, E
   }
 
   componentDidCatch(error: unknown, errorInfo: React.ErrorInfo) {
-    Sentry.captureException(error, {
-      extra: {
-        componentStack: errorInfo.componentStack,
-      },
-    });
+    // Attempt to lazily import Sentry only when an error boundary is needed.
+    try {
+      // dynamic import ensures Sentry is not eagerly loaded
+      import('@sentry/react').then((Sentry) => {
+        Sentry.captureException(error, {
+          extra: { componentStack: errorInfo.componentStack },
+        });
+      });
+    } catch {
+      // Sentry unavailable — silently skip
+    }
   }
+
+  /** Reset the boundary so children are re-rendered. */
+  resetErrorBoundary = () => {
+    this.setState({ hasError: false }, () => {
+      this.props.onReset?.();
+    });
+  };
 
   render() {
     if (this.state.hasError) {
-      return this.props.fallback;
+      const { fallback } = this.props;
+      if (typeof fallback === 'function') {
+        return fallback({ onReset: this.resetErrorBoundary });
+      }
+      return fallback;
     }
 
     return this.props.children;
