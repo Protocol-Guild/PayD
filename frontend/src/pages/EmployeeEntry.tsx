@@ -7,6 +7,7 @@ import { useAutosave } from '../hooks/useAutosave';
 import { generateWallet } from '../services/stellar';
 import { useTranslation } from 'react-i18next';
 import { useNotification } from '../hooks/useNotification';
+import { employeeFormSchema, type EmployeeFormData } from '../schemas';
 
 import api from '../utils/api';
 
@@ -36,9 +37,14 @@ const initialFormState: EmployeeFormState = {
   email: '',
 };
 
+type FieldErrors = Partial<Record<keyof EmployeeFormData, string>>;
+const EMPTY_ERRORS: FieldErrors = {};
+
 export default function EmployeeEntry() {
   const [isAdding, setIsAdding] = useState(false);
   const [formData, setFormData] = useState<EmployeeFormState>(initialFormState);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>(EMPTY_ERRORS);
+  const [touched, setTouched] = useState<Partial<Record<keyof EmployeeFormData, boolean>>>({});
   const [employees, setEmployees] = useState<EmployeeItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState<{
@@ -108,12 +114,63 @@ export default function EmployeeEntry() {
     setFormData((prev: EmployeeFormState) => ({ ...prev, [name]: value }));
   };
 
+  const validateField = (name: keyof EmployeeFormData, value: string) => {
+    const result = employeeFormSchema.safeParse({ ...formData, [name]: value });
+    if (!result.success) {
+      const fieldIssue = result.error.issues.find((i) => i.path[0] === name);
+      setFieldErrors((prev) => ({ ...prev, [name]: fieldIssue?.message ?? '' }));
+    } else {
+      setFieldErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+  };
+
+  const handleBlur = (
+    e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    setTouched((prev) => ({ ...prev, [name]: true }));
+    validateField(name as keyof EmployeeFormData, value);
+  };
+
+  const isFormValid = () => {
+    // Pure check used only for disabling the submit button — no side effects.
+    return employeeFormSchema.safeParse(formData).success;
+  };
+
+  const validateFormState = (): boolean => {
+    const result = employeeFormSchema.safeParse(formData);
+    if (!result.success) {
+      const errors: FieldErrors = {};
+      for (const issue of result.error.issues) {
+        const field = issue.path[0] as keyof EmployeeFormData;
+        if (!errors[field]) {
+          errors[field] = issue.message;
+        }
+      }
+      setFieldErrors(errors);
+      // Mark all fields as touched
+      const allTouched: Partial<Record<keyof EmployeeFormData, boolean>> = {};
+      for (const key of Object.keys(initialFormState) as (keyof EmployeeFormData)[]) {
+        allTouched[key] = true;
+      }
+      setTouched(allTouched);
+      return false;
+    }
+    setFieldErrors(EMPTY_ERRORS);
+    return true;
+  };
+
   const handleSelectChange = (name: string, value: string) => {
     setFormData((prev: EmployeeFormState) => ({ ...prev, [name]: value }));
+    setTouched((prev) => ({ ...prev, [name]: true }));
+    validateField(name as keyof EmployeeFormData, value);
   };
 
   const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
+    if (!validateFormState()) {
+      return;
+    }
     let generatedWallet: { publicKey: string; secretKey: string } | undefined;
     if (!formData.walletAddress) {
       generatedWallet = generateWallet();
@@ -262,9 +319,13 @@ export default function EmployeeEntry() {
               name="fullName"
               value={formData.fullName}
               onChange={handleChange}
+              onBlur={handleBlur}
               placeholder="Jane Smith"
               required
             />
+            {touched.fullName && fieldErrors.fullName && (
+              <span className="text-xs text-red-500 -mt-3 block">{fieldErrors.fullName}</span>
+            )}
             <Input
               id="email"
               fieldSize="md"
@@ -273,9 +334,13 @@ export default function EmployeeEntry() {
               type="email"
               value={formData.email}
               onChange={handleChange}
+              onBlur={handleBlur}
               placeholder="jane.smith@example.com"
               required
             />
+            {touched.email && fieldErrors.email && (
+              <span className="text-xs text-red-500 -mt-3 block">{fieldErrors.email}</span>
+            )}
             <Input
               id="walletAddress"
               fieldSize="md"
@@ -284,8 +349,12 @@ export default function EmployeeEntry() {
               name="walletAddress"
               value={formData.walletAddress}
               onChange={handleChange}
+              onBlur={handleBlur}
               placeholder="Leave blank to generate a wallet"
             />
+            {touched.walletAddress && fieldErrors.walletAddress && (
+              <span className="text-xs text-red-500 -mt-3 block">{fieldErrors.walletAddress}</span>
+            )}
             <Select
               id="role"
               fieldSize="md"
@@ -299,6 +368,9 @@ export default function EmployeeEntry() {
               <option value="full-time">Full Time</option>
               <option value="part-time">Part Time</option>
             </Select>
+            {touched.role && fieldErrors.role && (
+              <span className="text-xs text-red-500 -mt-3 block">{fieldErrors.role}</span>
+            )}
             <Select
               id="currency"
               fieldSize="md"
@@ -312,7 +384,10 @@ export default function EmployeeEntry() {
               <option value="XLM">XLM</option>
               <option value="EURC">EURC</option>
             </Select>
-            <Button type="submit" variant="primary" size="md">
+            {touched.currency && fieldErrors.currency && (
+              <span className="text-xs text-red-500 -mt-3 block">{fieldErrors.currency}</span>
+            )}
+            <Button type="submit" variant="primary" size="md" disabled={!isFormValid()}>
               Add Employee
             </Button>
           </form>
