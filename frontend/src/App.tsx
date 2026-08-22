@@ -1,30 +1,109 @@
+import { Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
-import Home from './pages/Home';
-import Debugger from './pages/Debugger';
-import PayrollScheduler from './pages/PayrollScheduler';
-import EmployeeEntry from './pages/EmployeeEntry';
-import EmployerLayout from './components/EmployerLayout';
-import HelpCenter from './pages/HelpCenter';
-import ErrorBoundary from './components/ErrorBoundary';
-import ErrorFallback from './components/ErrorFallback';
-import Settings from './pages/Settings';
-import WebhookSettings from './pages/WebhookSettings';
-import CustomReportBuilder from './pages/CustomReportBuilder';
-import CrossAssetPayment from './pages/CrossAssetPayment';
-import TransactionHistory from './pages/TransactionHistory';
-import AdminPanel from './pages/AdminPanel';
-import VestingEscrow from './pages/VestingEscrow';
-import RevenueSplitDashboard from './pages/RevenueSplitDashboard';
-import Forecasting from './pages/Forecasting';
-import TaxComplianceWizard from './pages/TaxComplianceWizard';
-
-import EmployeePortal from './pages/EmployeePortal';
-import Login from './pages/Login';
-import AuthCallback from './pages/AuthCallback';
 import { useTranslation } from 'react-i18next';
 import { contractService } from './services/contracts';
 
+import { lazyWithRetry } from './utils/lazyWithRetry';
+// EmployerLayout renders an <Outlet /> for nested routes; keeping it eagerly
+// imported guarantees the layout shell is always resolvable before any lazy
+// child page suspends (a suspending layout would bubble past child Suspense
+// boundaries to the root with no fallback).
+import EmployerLayout from './components/EmployerLayout';
+import ErrorBoundary from './components/ErrorBoundary';
+import ErrorFallback from './components/ErrorFallback';
+import RouteLoader from './components/RouteLoader';
+
+/* ------------------------------------------------------------------ */
+/*  Lazy-loaded page components — code split per route                */
+/* ------------------------------------------------------------------ */
+const Home = lazyWithRetry(() => import('./pages/Home'), 'Home');
+const Debugger = lazyWithRetry(() => import('./pages/Debugger'), 'Debugger');
+const PayrollScheduler = lazyWithRetry(
+  () => import('./pages/PayrollScheduler'),
+  'PayrollScheduler',
+);
+const EmployeeEntry = lazyWithRetry(
+  () => import('./pages/EmployeeEntry'),
+  'EmployeeEntry',
+);
+const HelpCenter = lazyWithRetry(() => import('./pages/HelpCenter'), 'HelpCenter');
+const Settings = lazyWithRetry(() => import('./pages/Settings'), 'Settings');
+const WebhookSettings = lazyWithRetry(
+  () => import('./pages/WebhookSettings'),
+  'WebhookSettings',
+);
+const CustomReportBuilder = lazyWithRetry(
+  () => import('./pages/CustomReportBuilder'),
+  'CustomReportBuilder',
+);
+const CrossAssetPayment = lazyWithRetry(
+  () => import('./pages/CrossAssetPayment'),
+  'CrossAssetPayment',
+);
+const TransactionHistory = lazyWithRetry(
+  () => import('./pages/TransactionHistory'),
+  'TransactionHistory',
+);
+const AdminPanel = lazyWithRetry(() => import('./pages/AdminPanel'), 'AdminPanel');
+const VestingEscrow = lazyWithRetry(
+  () => import('./pages/VestingEscrow'),
+  'VestingEscrow',
+);
+const RevenueSplitDashboard = lazyWithRetry(
+  () => import('./pages/RevenueSplitDashboard'),
+  'RevenueSplitDashboard',
+);
+const Forecasting = lazyWithRetry(
+  () => import('./pages/Forecasting'),
+  'Forecasting',
+);
+const TaxComplianceWizard = lazyWithRetry(
+  () => import('./pages/TaxComplianceWizard'),
+  'TaxComplianceWizard',
+);
+const EmployeePortal = lazyWithRetry(
+  () => import('./pages/EmployeePortal'),
+  'EmployeePortal',
+);
+const Login = lazyWithRetry(() => import('./pages/Login'), 'Login');
+const AuthCallback = lazyWithRetry(
+  () => import('./pages/AuthCallback'),
+  'AuthCallback',
+);
+
+/* ------------------------------------------------------------------ */
+/*  LazyRoute — Suspense + ErrorBoundary wrapper for a lazy page      */
+/* ------------------------------------------------------------------ */
+function LazyRoute({
+  component: Component,
+  errorTitle,
+  errorDescription,
+}: {
+  component: React.ComponentType;
+  errorTitle?: string;
+  errorDescription?: string;
+}) {
+  return (
+    <ErrorBoundary
+      fallback={({ onReset }) => (
+        <ErrorFallback
+          title={errorTitle}
+          description={errorDescription}
+          onReset={onReset}
+        />
+      )}
+    >
+      <Suspense fallback={<RouteLoader />}>
+        <Component />
+      </Suspense>
+    </ErrorBoundary>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  App                                                                */
+/* ------------------------------------------------------------------ */
 function App() {
   const { t } = useTranslation();
 
@@ -41,184 +120,95 @@ function App() {
         <Route
           path="/"
           element={
-            <ErrorBoundary
-              fallback={
-                <ErrorFallback
-                  title={t('errorFallback.homeTitle')}
-                  description={t('errorFallback.homeDescription')}
-                />
-              }
-            >
-              <Home />
-            </ErrorBoundary>
+            <LazyRoute
+              component={Home}
+              errorTitle={t('errorFallback.homeTitle')}
+              errorDescription={t('errorFallback.homeDescription')}
+            />
           }
         />
         <Route
           path="/payroll"
           element={
-            <ErrorBoundary
-              fallback={
-                <ErrorFallback
-                  title={t('errorFallback.payrollTitle')}
-                  description={t('errorFallback.payrollDescription')}
-                />
-              }
-            >
-              <PayrollScheduler />
-            </ErrorBoundary>
+            <LazyRoute
+              component={PayrollScheduler}
+              errorTitle={t('errorFallback.payrollTitle')}
+              errorDescription={t('errorFallback.payrollDescription')}
+            />
           }
         />
         <Route
           path="/employee"
           element={
-            <ErrorBoundary
-              fallback={
-                <ErrorFallback
-                  title={t('errorFallback.employeesTitle')}
-                  description={t('errorFallback.employeesDescription')}
-                />
-              }
-            >
-              <EmployeeEntry />
-            </ErrorBoundary>
+            <LazyRoute
+              component={EmployeeEntry}
+              errorTitle={t('errorFallback.employeesTitle')}
+              errorDescription={t('errorFallback.employeesDescription')}
+            />
           }
         />
         <Route
           path="/portal"
           element={
-            <ErrorBoundary
-              fallback={
-                <ErrorFallback
-                  title="Employee Portal Error"
-                  description="Something went wrong loading your portal."
-                />
-              }
-            >
-              <EmployeePortal />
-            </ErrorBoundary>
+            <LazyRoute
+              component={EmployeePortal}
+              errorTitle="Employee Portal Error"
+              errorDescription="Something went wrong loading your portal."
+            />
           }
         />
         <Route
           path="/reports"
-          element={
-            <ErrorBoundary fallback={<ErrorFallback />}>
-              <CustomReportBuilder />
-            </ErrorBoundary>
-          }
+          element={<LazyRoute component={CustomReportBuilder} />}
         />
         <Route
           path="/debug"
           element={
-            <ErrorBoundary
-              fallback={
-                <ErrorFallback
-                  title={t('errorFallback.debuggerTitle')}
-                  description={t('errorFallback.debuggerDescription')}
-                />
-              }
-            >
-              <Debugger />
-            </ErrorBoundary>
+            <LazyRoute
+              component={Debugger}
+              errorTitle={t('errorFallback.debuggerTitle')}
+              errorDescription={t('errorFallback.debuggerDescription')}
+            />
           }
         />
         <Route
           path="/debug/:contractName"
           element={
-            <ErrorBoundary
-              fallback={
-                <ErrorFallback
-                  title={t('errorFallback.debuggerTitle')}
-                  description={t('errorFallback.debuggerDescription')}
-                />
-              }
-            >
-              <Debugger />
-            </ErrorBoundary>
+            <LazyRoute
+              component={Debugger}
+              errorTitle={t('errorFallback.debuggerTitle')}
+              errorDescription={t('errorFallback.debuggerDescription')}
+            />
           }
         />
-        <Route
-          path="/admin"
-          element={
-            <ErrorBoundary fallback={<ErrorFallback />}>
-              <AdminPanel />
-            </ErrorBoundary>
-          }
-        />
-        <Route
-          path="/settings"
-          element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
-              <Settings />
-            </ErrorBoundary>
-          }
-        />
+        <Route path="/admin" element={<LazyRoute component={AdminPanel} />} />
+        <Route path="/settings" element={<LazyRoute component={Settings} />} />
         <Route
           path="/settings/webhooks"
-          element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
-              <WebhookSettings />
-            </ErrorBoundary>
-          }
+          element={<LazyRoute component={WebhookSettings} />}
         />
-        <Route
-          path="/help"
-          element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
-              <HelpCenter />
-            </ErrorBoundary>
-          }
-        />
+        <Route path="/help" element={<LazyRoute component={HelpCenter} />} />
         <Route
           path="/cross-asset-payment"
-          element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
-              <CrossAssetPayment />
-            </ErrorBoundary>
-          }
+          element={<LazyRoute component={CrossAssetPayment} />}
         />
         <Route
           path="/transactions"
-          element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
-              <TransactionHistory />
-            </ErrorBoundary>
-          }
+          element={<LazyRoute component={TransactionHistory} />}
         />
-        <Route
-          path="/forecast"
-          element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
-              <Forecasting />
-            </ErrorBoundary>
-          }
-        />
-        <Route
-          path="/vesting"
-          element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
-              <VestingEscrow />
-            </ErrorBoundary>
-          }
-        />
+        <Route path="/forecast" element={<LazyRoute component={Forecasting} />} />
+        <Route path="/vesting" element={<LazyRoute component={VestingEscrow} />} />
         <Route
           path="/revenue-split"
-          element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
-              <RevenueSplitDashboard />
-            </ErrorBoundary>
-          }
+          element={<LazyRoute component={RevenueSplitDashboard} />}
         />
         <Route
           path="/tax-compliance"
-          element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
-              <TaxComplianceWizard />
-            </ErrorBoundary>
-          }
+          element={<LazyRoute component={TaxComplianceWizard} />}
         />
       </Route>
-      <Route path="/login" element={<Login />} />
-      <Route path="/auth-callback" element={<AuthCallback />} />
+      <Route path="/login" element={<LazyRoute component={Login} />} />
+      <Route path="/auth-callback" element={<LazyRoute component={AuthCallback} />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
