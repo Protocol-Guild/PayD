@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import { useEffect } from 'react';
 import Home from './pages/Home';
 import Debugger from './pages/Debugger';
@@ -22,6 +22,7 @@ import TaxComplianceWizard from './pages/TaxComplianceWizard';
 import EmployeePortal from './pages/EmployeePortal';
 import Login from './pages/Login';
 import AuthCallback from './pages/AuthCallback';
+import NotFound from './pages/NotFound';
 import { useTranslation } from 'react-i18next';
 import { contractService } from './services/contracts';
 
@@ -219,7 +220,7 @@ function App() {
       </Route>
       <Route path="/login" element={<Login />} />
       <Route path="/auth-callback" element={<AuthCallback />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }

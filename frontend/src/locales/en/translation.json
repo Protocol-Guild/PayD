@@ -124,6 +124,12 @@
     "debuggerTitle": "Debugger view crashed",
     "debuggerDescription": "Reset the debugger or navigate back to the main dashboard."
   },
+  "notFound": {
+    "title": "Page Not Found",
+    "description": "The page you're looking for doesn't exist or has been moved.",
+    "goHome": "Go Home",
+    "helpCenter": "Help Center"
+  },
   "connectAccount": {
     "authenticated": "Authenticated",
     "connect": "Connect",
