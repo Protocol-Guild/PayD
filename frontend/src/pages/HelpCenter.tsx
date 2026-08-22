@@ -137,6 +137,27 @@ export default function HelpCenter() {
             </div>
           ))}
         </div>
+
+        {/* Restart Onboarding Tour */}
+        <div className="mt-12 p-6 rounded-2xl border border-white/10 bg-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-bold mb-1 text-(--accent)">
+              Get a Guided Tour
+            </h2>
+            <p className="text-sm text-(--muted)">
+              Replay the interactive onboarding tour to learn how to connect a wallet, add your employees, and set up your first payroll.
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              localStorage.removeItem('payd_onboarding_complete');
+              window.dispatchEvent(new Event('payd:restart-tour'));
+            }}
+            className="px-6 py-3 bg-(--accent) text-black font-bold rounded-xl hover:brightness-110 transition text-sm whitespace-nowrap"
+          >
+            Restart Tour
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -19,12 +19,13 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   path: string;
+  tourId?: string;
 }
 
 const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
-  { icon: Wallet, label: 'Payroll', path: '/payroll' },
-  { icon: Users, label: 'Employees', path: '/employee' },
+  { icon: Wallet, label: 'Payroll', path: '/payroll', tourId: 'tour-payroll' },
+  { icon: Users, label: 'Employees', path: '/employee', tourId: 'tour-employees' },
   { icon: TrendingUp, label: 'Forecast', path: '/forecast' },
   { icon: FileText, label: 'Reports', path: '/reports' },
   { icon: Receipt, label: 'Tax Compliance', path: '/tax-compliance' },
@@ -58,6 +59,7 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
           <NavLink
             key={item.path}
             to={item.path}
+            id={item.tourId && !onClose ? item.tourId : undefined}
             onClick={onClose}
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
