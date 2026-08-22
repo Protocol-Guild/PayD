@@ -1,62 +1,97 @@
-import React from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import Joyride, { Step, CallBackProps, STATUS } from 'react-joyride';
+
+const ONBOARDING_KEY = 'payd_onboarding_complete';
 
 const TOUR_STEPS: Step[] = [
   {
     target: '#tour-welcome',
-    content: "Welcome to PayD! Let's take a quick tour to get you started.",
+    content: 'Welcome to PayD! This quick tour will show you how to manage your workforce and payroll — all in just a few clicks.',
     placement: 'bottom',
     disableBeacon: true,
   },
   {
     target: '#tour-connect',
-    content: 'First, connect your Stellar wallet to securely manage your organization.',
+    content: 'Connect your Stellar wallet to securely manage your organization and process payments.',
     placement: 'bottom',
   },
   {
     target: '#tour-employees',
-    content: 'Navigate here to set up your organization and manage your workforce.',
-    placement: 'bottom',
+    content: 'Manage your team here. Navigate to the Employees page to add and manage your workforce.',
+    placement: 'right',
   },
   {
     target: '#tour-add-employee',
-    content: 'Add your employees here to include them in the payroll.',
+    content: 'Click here to add your first employee. Fill in their details and save them to the payroll roster.',
     placement: 'right',
   },
   {
     target: '#tour-payroll',
-    content: 'Once your team is set up, head over to the Payroll Scheduler.',
-    placement: 'bottom',
+    content: 'Set up automated payroll streams here. Configure recurring payments for your team in real-time.',
+    placement: 'right',
   },
   {
     target: '#tour-init-payroll',
-    content:
-      'Set up automated streams and fund your distribution account to pay your team in real-time.',
-    placement: 'top',
+    content: 'Open the scheduling wizard to configure recurring payments, set frequency, and fund your distribution account.',
+    placement: 'bottom',
   },
 ];
 
 export const OnboardingTour: React.FC<{
   run: boolean;
+  navigateTo?: (path: string) => void;
   onComplete: () => void;
-}> = ({ run, onComplete }) => {
-  const handleJoyrideCallback = (data: CallBackProps) => {
-    const { status } = data;
-    const finishedStatuses: string[] = [STATUS.FINISHED, STATUS.SKIPPED];
+}> = ({ run, navigateTo, onComplete }) => {
+  const [stepIndex, setStepIndex] = useState(0);
+  const [internalRun, setInternalRun] = useState(false);
 
-    if (finishedStatuses.includes(status)) {
-      onComplete();
+  useEffect(() => {
+    if (run) {
+      setStepIndex(0);
+      setInternalRun(true);
+    } else {
+      setInternalRun(false);
     }
-  };
+  }, [run]);
+
+  const handleJoyrideCallback = useCallback(
+    (data: CallBackProps) => {
+      const { index, type, status } = data;
+
+      const finishedStatuses: string[] = [STATUS.FINISHED, STATUS.SKIPPED];
+      if (finishedStatuses.includes(status)) {
+        localStorage.setItem(ONBOARDING_KEY, 'true');
+        setInternalRun(false);
+        onComplete();
+        return;
+      }
+
+      // Auto-navigate to correct page when transitioning between steps
+      if (type === 'step:after') {
+        if (index === 2 && navigateTo) {
+          // After step 3 (Employees), navigate to employee page for step 4 (Add Employee)
+          navigateTo('/employee');
+        }
+        if (index === 4 && navigateTo) {
+          // After step 5 (Payroll sidebar), navigate to payroll page for step 6 (Init Payroll)
+          navigateTo('/payroll');
+        }
+        setStepIndex(index + 1);
+      }
+    },
+    [navigateTo, onComplete]
+  );
 
   return (
     <Joyride
       steps={TOUR_STEPS}
-      run={run}
+      run={internalRun}
+      stepIndex={stepIndex}
       continuous
       showProgress
       showSkipButton
       callback={handleJoyrideCallback}
+      disableScrolling
       styles={{
         options: {
           primaryColor: '#4AF0B8',
@@ -100,3 +135,5 @@ export const OnboardingTour: React.FC<{
     />
   );
 };
+
+export { ONBOARDING_KEY };

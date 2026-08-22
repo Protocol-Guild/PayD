@@ -1,5 +1,5 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import Home from './pages/Home';
 import Debugger from './pages/Debugger';
 import PayrollScheduler from './pages/PayrollScheduler';
@@ -24,9 +24,12 @@ import Login from './pages/Login';
 import AuthCallback from './pages/AuthCallback';
 import { useTranslation } from 'react-i18next';
 import { contractService } from './services/contracts';
+import { OnboardingTour, ONBOARDING_KEY } from './components/OnboardingTour';
 
 function App() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [showTour, setShowTour] = useState(false);
 
   // Initialize contract service on app startup
   useEffect(() => {
@@ -35,8 +38,25 @@ function App() {
     });
   }, []);
 
+  // Auto-start onboarding tour on first authenticated visit
+  useEffect(() => {
+    const tourCompleted = localStorage.getItem(ONBOARDING_KEY) === 'true';
+    const hasAuth = localStorage.getItem('payd_auth_token') !== null;
+    if (!tourCompleted && hasAuth) {
+      setShowTour(true);
+    }
+  }, []);
+
+  // Listen for "restart tour" requests from e.g. Help Center
+  useEffect(() => {
+    const handleRestartTour = () => setShowTour(true);
+    window.addEventListener('payd:restart-tour', handleRestartTour);
+    return () => window.removeEventListener('payd:restart-tour', handleRestartTour);
+  }, []);
+
   return (
-    <Routes>
+    <>
+      <Routes>
       <Route element={<EmployerLayout />}>
         <Route
           path="/"
@@ -221,6 +241,12 @@ function App() {
       <Route path="/auth-callback" element={<AuthCallback />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+      <OnboardingTour
+        run={showTour}
+        navigateTo={navigate}
+        onComplete={() => setShowTour(false)}
+      />
+    </>
   );
 }
 

@@ -331,6 +331,7 @@ export default function PayrollScheduler() {
         <div className="flex flex-row sm:flex-col items-center sm:items-end gap-3 sm:gap-2">
           <AutosaveIndicator saving={saving} lastSaved={lastSaved} />
           <button
+            id="tour-init-payroll"
             onClick={() => setIsWizardOpen(true)}
             className="p-2.5 rounded-lg hover:bg-white/5 transition-colors touch-manipulation"
             style={{ minHeight: '44px', minWidth: '44px' }}
