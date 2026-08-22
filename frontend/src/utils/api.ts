@@ -1,4 +1,6 @@
 import axios from 'axios';
+import type { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import { toast } from 'sonner';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:4000/api',
@@ -7,9 +9,12 @@ const api = axios.create({
   },
 });
 
+// Guard against duplicate 401 redirects
+let isRedirecting = false;
+
 // Add a request interceptor to include the auth token
 api.interceptors.request.use(
-  (config) => {
+  (config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem('payd_auth_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -18,6 +23,23 @@ api.interceptors.request.use(
   },
   (error) => {
     return Promise.reject(error instanceof Error ? error : new Error(String(error)));
+  }
+);
+
+// Add a response interceptor to handle 401 errors globally
+api.interceptors.response.use(
+  (response) => response,
+  (error: AxiosError) => {
+    if (error.response?.status === 401 && !isRedirecting) {
+      isRedirecting = true;
+      localStorage.removeItem('payd_auth_token');
+      toast.error('Session expired, please log in again');
+      // Short delay to let the toast render before redirecting
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 500);
+    }
+    return Promise.reject(error);
   }
 );
 
