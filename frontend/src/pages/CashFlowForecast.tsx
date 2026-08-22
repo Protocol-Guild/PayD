@@ -51,7 +51,6 @@ export default function CashFlowForecast() {
 
   const loadForecast = useCallback(async () => {
     if (!params.distributionAccount || !params.assetIssuer) {
-      notifyError('Please provide distribution account and asset issuer');
       return;
     }
 
