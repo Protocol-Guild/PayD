@@ -1,5 +1,5 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { useEffect, type ReactNode } from 'react';
 import Home from './pages/Home';
 import Debugger from './pages/Debugger';
 import PayrollScheduler from './pages/PayrollScheduler';
@@ -25,6 +25,20 @@ import AuthCallback from './pages/AuthCallback';
 import { useTranslation } from 'react-i18next';
 import { contractService } from './services/contracts';
 
+/**
+ * Wraps a route element in an ErrorBoundary that auto-resets when the user
+ * navigates to a different route path. This ensures a crash on one route
+ * doesn't permanently break navigation to another route.
+ */
+function RouteBoundary({ children, fallback }: { children: ReactNode; fallback?: ReactNode }) {
+  const location = useLocation();
+  return (
+    <ErrorBoundary key={location.pathname} fallback={fallback ?? <ErrorFallback />}>
+      {children}
+    </ErrorBoundary>
+  );
+}
+
 function App() {
   const { t } = useTranslation();
 
@@ -41,7 +55,7 @@ function App() {
         <Route
           path="/"
           element={
-            <ErrorBoundary
+            <RouteBoundary
               fallback={
                 <ErrorFallback
                   title={t('errorFallback.homeTitle')}
@@ -50,13 +64,13 @@ function App() {
               }
             >
               <Home />
-            </ErrorBoundary>
+            </RouteBoundary>
           }
         />
         <Route
           path="/payroll"
           element={
-            <ErrorBoundary
+            <RouteBoundary
               fallback={
                 <ErrorFallback
                   title={t('errorFallback.payrollTitle')}
@@ -65,13 +79,13 @@ function App() {
               }
             >
               <PayrollScheduler />
-            </ErrorBoundary>
+            </RouteBoundary>
           }
         />
         <Route
           path="/employee"
           element={
-            <ErrorBoundary
+            <RouteBoundary
               fallback={
                 <ErrorFallback
                   title={t('errorFallback.employeesTitle')}
@@ -80,36 +94,31 @@ function App() {
               }
             >
               <EmployeeEntry />
-            </ErrorBoundary>
+            </RouteBoundary>
           }
         />
         <Route
           path="/portal"
           element={
-            <ErrorBoundary
-              fallback={
-                <ErrorFallback
-                  title="Employee Portal Error"
-                  description="Something went wrong loading your portal."
-                />
-              }
+            <RouteBoundary
+              fallback={<ErrorFallback title="Employee Portal Error" description="Something went wrong loading your portal." />}
             >
               <EmployeePortal />
-            </ErrorBoundary>
+            </RouteBoundary>
           }
         />
         <Route
           path="/reports"
           element={
-            <ErrorBoundary fallback={<ErrorFallback />}>
+            <RouteBoundary>
               <CustomReportBuilder />
-            </ErrorBoundary>
+            </RouteBoundary>
           }
         />
         <Route
           path="/debug"
           element={
-            <ErrorBoundary
+            <RouteBoundary
               fallback={
                 <ErrorFallback
                   title={t('errorFallback.debuggerTitle')}
@@ -118,13 +127,13 @@ function App() {
               }
             >
               <Debugger />
-            </ErrorBoundary>
+            </RouteBoundary>
           }
         />
         <Route
           path="/debug/:contractName"
           element={
-            <ErrorBoundary
+            <RouteBoundary
               fallback={
                 <ErrorFallback
                   title={t('errorFallback.debuggerTitle')}
@@ -133,92 +142,106 @@ function App() {
               }
             >
               <Debugger />
-            </ErrorBoundary>
+            </RouteBoundary>
           }
         />
         <Route
           path="/admin"
           element={
-            <ErrorBoundary fallback={<ErrorFallback />}>
+            <RouteBoundary>
               <AdminPanel />
-            </ErrorBoundary>
+            </RouteBoundary>
           }
         />
         <Route
           path="/settings"
           element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
+            <RouteBoundary>
               <Settings />
-            </ErrorBoundary>
+            </RouteBoundary>
           }
         />
         <Route
           path="/settings/webhooks"
           element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
+            <RouteBoundary>
               <WebhookSettings />
-            </ErrorBoundary>
+            </RouteBoundary>
           }
         />
         <Route
           path="/help"
           element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
+            <RouteBoundary>
               <HelpCenter />
-            </ErrorBoundary>
+            </RouteBoundary>
           }
         />
         <Route
           path="/cross-asset-payment"
           element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
+            <RouteBoundary>
               <CrossAssetPayment />
-            </ErrorBoundary>
+            </RouteBoundary>
           }
         />
         <Route
           path="/transactions"
           element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
+            <RouteBoundary>
               <TransactionHistory />
-            </ErrorBoundary>
+            </RouteBoundary>
           }
         />
         <Route
           path="/forecast"
           element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
+            <RouteBoundary>
               <Forecasting />
-            </ErrorBoundary>
+            </RouteBoundary>
           }
         />
         <Route
           path="/vesting"
           element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
+            <RouteBoundary>
               <VestingEscrow />
-            </ErrorBoundary>
+            </RouteBoundary>
           }
         />
         <Route
           path="/revenue-split"
           element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
+            <RouteBoundary>
               <RevenueSplitDashboard />
-            </ErrorBoundary>
+            </RouteBoundary>
           }
         />
         <Route
           path="/tax-compliance"
           element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
+            <RouteBoundary>
               <TaxComplianceWizard />
-            </ErrorBoundary>
+            </RouteBoundary>
           }
         />
       </Route>
-      <Route path="/login" element={<Login />} />
-      <Route path="/auth-callback" element={<AuthCallback />} />
+      <Route
+        path="/login"
+        element={
+          <RouteBoundary>
+            <Login />
+          </RouteBoundary>
+        }
+      />
+      <Route
+        path="/auth-callback"
+        element={
+          <RouteBoundary>
+            <AuthCallback />
+          </RouteBoundary>
+        }
+      />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

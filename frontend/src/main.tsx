@@ -35,7 +35,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <SocketProvider>
             <WalletProvider>
               <BrowserRouter>
-                <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
+                <ErrorBoundary fallback={<ErrorFallback />}>
                   <App />
                 </ErrorBoundary>
               </BrowserRouter>
