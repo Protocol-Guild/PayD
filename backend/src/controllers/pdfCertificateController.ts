@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { PDFCertificateService } from '../services/pdfCertificateService.js';
 import logger from '../utils/logger.js';
 import { z } from 'zod';
+import { sendInternalError } from '../utils/internalError.js';
 
 const generateCertificateSchema = z.object({
   employeeId: z.number().int().positive(),
@@ -83,10 +84,7 @@ export class PDFCertificateController {
       res.send(pdfBuffer);
     } catch (error) {
       logger.error('Failed to generate PDF certificate', error);
-      res.status(500).json({
-        error: 'Failed to generate certificate',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
+sendInternalError(res, req, error, 'Failed to generate certificate');
     }
   }
 
@@ -133,10 +131,7 @@ export class PDFCertificateController {
       });
     } catch (error) {
       logger.error('Failed to verify certificate', error);
-      res.status(500).json({
-        error: 'Failed to verify certificate',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
+sendInternalError(res, req, error, 'Failed to verify certificate');
     }
   }
 
@@ -170,10 +165,7 @@ export class PDFCertificateController {
       });
     } catch (error) {
       logger.error('Failed to get transaction info', error);
-      res.status(500).json({
-        error: 'Failed to get transaction info',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
+sendInternalError(res, req, error, 'Failed to get transaction info');
     }
   }
 }

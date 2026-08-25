@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { TaxService } from '../services/taxService.js';
+import { sendInternalError } from '../utils/internalError.js';
 
 const taxService = new TaxService();
 
@@ -36,9 +37,8 @@ export class TaxController {
       });
 
       res.status(201).json(rule);
-    } catch (error: any) {
-      console.error('Create tax rule error:', error);
-      res.status(500).json({ error: error.message });
+    } catch (error) {
+      sendInternalError(res, req, error, 'Failed to create tax rule');
     }
   }
 
@@ -57,9 +57,8 @@ export class TaxController {
       const rules = await taxService.getRules(Number(organizationId), includeInactive === 'true');
 
       res.json({ data: rules, count: rules.length });
-    } catch (error: any) {
-      console.error('Get tax rules error:', error);
-      res.status(500).json({ error: error.message });
+    } catch (error) {
+      sendInternalError(res, req, error, 'Failed to retrieve tax rules');
     }
   }
 
@@ -91,9 +90,8 @@ export class TaxController {
       }
 
       res.json(rule);
-    } catch (error: any) {
-      console.error('Update tax rule error:', error);
-      res.status(500).json({ error: error.message });
+    } catch (error) {
+      sendInternalError(res, req, error, 'Failed to update tax rule');
     }
   }
 
@@ -116,9 +114,8 @@ export class TaxController {
       }
 
       res.json({ message: 'Tax rule deactivated successfully' });
-    } catch (error: any) {
-      console.error('Delete tax rule error:', error);
-      res.status(500).json({ error: error.message });
+    } catch (error) {
+      sendInternalError(res, req, error, 'Failed to delete tax rule');
     }
   }
 
@@ -147,9 +144,8 @@ export class TaxController {
         currency
       );
       res.json(result);
-    } catch (error: any) {
-      console.error('Calculate deductions error:', error);
-      res.status(500).json({ error: error.message });
+    } catch (error) {
+      sendInternalError(res, req, error, 'Failed to calculate deductions');
     }
   }
 
@@ -174,9 +170,8 @@ export class TaxController {
       );
 
       res.json(report);
-    } catch (error: any) {
-      console.error('Generate tax report error:', error);
-      res.status(500).json({ error: error.message });
+    } catch (error) {
+      sendInternalError(res, req, error, 'Failed to generate tax report');
     }
   }
 }

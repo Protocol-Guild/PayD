@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { Keypair } from '@stellar/stellar-sdk';
 import { MultiSigService } from '../services/multiSigService.js';
 import logger from '../utils/logger.js';
+import { sendInternalError } from '../utils/internalError.js';
 
 export class MultiSigController {
   /**
@@ -28,9 +29,8 @@ export class MultiSigController {
       );
 
       res.status(200).json({ success: true, data: result });
-    } catch (error: any) {
-      logger.error('Multi-sig configuration failed', { error: error.message });
-      res.status(500).json({ success: false, error: error.message });
+    } catch (error) {
+      sendInternalError(res, req, error, 'Multi-sig configuration failed');
     }
   }
 
@@ -43,9 +43,8 @@ export class MultiSigController {
       const { publicKey } = req.params;
       const status = await MultiSigService.getMultiSigStatus(publicKey as string);
       res.status(200).json({ success: true, data: status });
-    } catch (error: any) {
-      logger.error('Failed to get multi-sig status', { error: error.message });
-      res.status(500).json({ success: false, error: error.message });
+    } catch (error) {
+      sendInternalError(res, req, error, 'Failed to get multi-sig status');
     }
   }
 
@@ -69,9 +68,8 @@ export class MultiSigController {
       const result = await MultiSigService.addIssuerSigner(issuerKeypair, signerPublicKey, weight);
 
       res.status(200).json({ success: true, data: result });
-    } catch (error: any) {
-      logger.error('Failed to add signer', { error: error.message });
-      res.status(500).json({ success: false, error: error.message });
+    } catch (error) {
+      sendInternalError(res, req, error, 'Failed to add signer');
     }
   }
 
@@ -96,9 +94,8 @@ export class MultiSigController {
       const result = await MultiSigService.removeIssuerSigner(issuerKeypair, publicKey as string);
 
       res.status(200).json({ success: true, data: result });
-    } catch (error: any) {
-      logger.error('Failed to remove signer', { error: error.message });
-      res.status(500).json({ success: false, error: error.message });
+    } catch (error) {
+      sendInternalError(res, req, error, 'Failed to remove signer');
     }
   }
 
@@ -122,9 +119,8 @@ export class MultiSigController {
       const result = await MultiSigService.updateThresholds(issuerKeypair, thresholds);
 
       res.status(200).json({ success: true, data: result });
-    } catch (error: any) {
-      logger.error('Failed to update thresholds', { error: error.message });
-      res.status(500).json({ success: false, error: error.message });
+    } catch (error) {
+      sendInternalError(res, req, error, 'Failed to update thresholds');
     }
   }
 }

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { AnchorService } from '../services/anchorService.js';
 import { Keypair, Asset } from '@stellar/stellar-sdk';
 import { StellarService } from '../services/stellarService.js';
+import { sendInternalError } from '../utils/internalError.js';
 
 export class PaymentController {
   /**
@@ -14,8 +15,8 @@ export class PaymentController {
     try {
       const info = await AnchorService.getSEP31Info(domain as string);
       res.json(info);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error) {
+      sendInternalError(res, req, error);
     }
   }
 
@@ -39,9 +40,8 @@ export class PaymentController {
       const result = await AnchorService.initiatePayment(domain as string, token, paymentData);
 
       res.json(result);
-    } catch (error: any) {
-      console.error('SEP-31 Initiation Error:', error);
-      res.status(500).json({ error: error.message });
+    } catch (error) {
+      sendInternalError(res, req, error, 'Failed to initiate SEP-31 payment');
     }
   }
 
@@ -64,8 +64,8 @@ export class PaymentController {
 
       const status = await AnchorService.getTransaction(domain as string, token, id as string);
       res.json(status);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error) {
+      sendInternalError(res, req, error);
     }
   }
 
@@ -79,8 +79,8 @@ export class PaymentController {
     try {
       const info = await AnchorService.getSEP24Info(domain as string);
       res.json(info);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error) {
+      sendInternalError(res, req, error);
     }
   }
 
@@ -104,9 +104,8 @@ export class PaymentController {
       const result = await AnchorService.initiateSEP24Withdrawal(domain as string, token, withdrawalData);
 
       res.json(result);
-    } catch (error: any) {
-      console.error('SEP-24 Withdrawal Initiation Error:', error);
-      res.status(500).json({ error: error.message });
+    } catch (error) {
+      sendInternalError(res, req, error, 'Failed to initiate SEP-24 withdrawal');
     }
   }
 
@@ -127,8 +126,8 @@ export class PaymentController {
 
       const status = await AnchorService.getSEP24Transaction(domain as string, token, id as string);
       res.json(status);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error) {
+      sendInternalError(res, req, error);
     }
   }
 
@@ -180,9 +179,8 @@ export class PaymentController {
         paths: pathsResponse.records
       });
 
-    } catch (error: any) {
-      console.error('Pathfinding Error:', error);
-      res.status(500).json({ error: error.message || 'Error fetching conversion paths' });
+    } catch (error) {
+      sendInternalError(res, req, error, 'Error fetching conversion paths');
     }
   }
 }

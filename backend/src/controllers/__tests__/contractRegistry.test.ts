@@ -67,8 +67,11 @@ describe('Contract Registry API Integration', () => {
                const response = await request(app).get('/api/contracts');
 
                expect(response.status).toBe(500);
-               expect(response.body.error).toBe('Internal Server Error');
-               expect(response.body.message).toBe('Registry load failed');
+               // Regression guard for #495: the response must not echo
+               // error.message ("Registry load failed") back to the client.
+               expect(response.body.error).toBe('Failed to load contract registry');
+               expect(response.body).not.toHaveProperty('message');
+               expect(JSON.stringify(response.body)).not.toContain('Registry load failed');
                expect(logger.error).toHaveBeenCalled();
           });
 

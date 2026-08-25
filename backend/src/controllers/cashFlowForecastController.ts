@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { CashFlowForecastService } from '../services/cashFlowForecastService.js';
 import logger from '../utils/logger.js';
+import { sendInternalError } from '../utils/internalError.js';
 import { default as pool } from '../config/database.js';
 
 const forecastQuerySchema = z.object({
@@ -61,10 +62,7 @@ export class CashFlowForecastController {
       });
     } catch (error) {
       logger.error('Failed to generate cash flow forecast', error);
-      res.status(500).json({
-        error: 'Failed to generate cash flow forecast',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
+sendInternalError(res, req, error, 'Failed to generate cash flow forecast');
     }
   }
 
@@ -110,10 +108,7 @@ export class CashFlowForecastController {
       });
     } catch (error) {
       logger.error('Failed to get historical payroll data', error);
-      res.status(500).json({
-        error: 'Failed to get historical payroll data',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
+sendInternalError(res, req, error, 'Failed to get historical payroll data');
     }
   }
 
@@ -154,10 +149,7 @@ export class CashFlowForecastController {
       });
     } catch (error) {
       logger.error('Failed to get payroll projections', error);
-      res.status(500).json({
-        error: 'Failed to get payroll projections',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
+sendInternalError(res, req, error, 'Failed to get payroll projections');
     }
   }
 
@@ -217,10 +209,7 @@ export class CashFlowForecastController {
       });
     } catch (error) {
       logger.error('Failed to get budget alerts', error);
-      res.status(500).json({
-        error: 'Failed to get budget alerts',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
+sendInternalError(res, req, error, 'Failed to get budget alerts');
     }
   }
 }
