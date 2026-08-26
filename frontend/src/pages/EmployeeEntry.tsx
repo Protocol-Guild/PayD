@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import * as React from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Icon, Button, Card, Input, Select, Alert } from '@stellar/design-system';
 import { EmployeeList } from '../components/EmployeeList';
 import { AutosaveIndicator } from '../components/AutosaveIndicator';
@@ -36,6 +37,17 @@ const initialFormState: EmployeeFormState = {
   email: '',
 };
 
+interface BackendEmployee {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  position?: string;
+  job_title?: string;
+  wallet_address: string;
+  status: string;
+}
+
 export default function EmployeeEntry() {
   const [isAdding, setIsAdding] = useState(false);
   const [formData, setFormData] = useState<EmployeeFormState>(initialFormState);
@@ -55,28 +67,12 @@ export default function EmployeeEntry() {
   );
   const { t } = useTranslation();
 
-  interface EmployeeApiResponse {
-    id: number;
-    first_name: string;
-    last_name: string;
-    email: string;
-    position?: string;
-    job_title?: string;
-    wallet_address?: string;
-    status: string;
-  }
-
-  interface EmployeesApiResponse {
-    data: EmployeeApiResponse[];
-    pagination?: unknown;
-  }
-
   const fetchEmployees = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await api.get<EmployeesApiResponse>('/employees');
-      // Backend returns { data: [...], pagination: {...} }
-      const mapped: EmployeeItem[] = response.data.data.map((emp) => ({
+      const response = await api.get<{ data: BackendEmployee[] }>('/employees');
+      const employeeRows = Array.isArray(response.data?.data) ? response.data.data : [];
+      const mapped: EmployeeItem[] = employeeRows.map((emp: BackendEmployee) => ({
         id: String(emp.id),
         name: `${emp.first_name} ${emp.last_name}`,
         email: emp.email,

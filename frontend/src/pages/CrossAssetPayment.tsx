@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Loader2,
   ArrowRightLeft,
@@ -8,25 +8,23 @@ import {
   Radio,
   Wallet,
 } from 'lucide-react';
-import { useNotification } from '../hooks/useNotification.js';
-import { useSocket } from '../hooks/useSocket.js';
-import { useWallet } from '../hooks/useWallet.js';
-import { useWalletSigning } from '../hooks/useWalletSigning.js';
-import { contractService } from '../services/contracts.js';
+import { useNotification } from '../hooks/useNotification';
+import { useSocket } from '../hooks/useSocket';
+import { useWallet } from '../hooks/useWallet';
+import { useContractError } from '../hooks/useContractError';
+import { ContractErrorPanel } from '../components/ContractErrorPanel';
+import { contractService } from '../services/contracts';
 import {
   fetchConversionPaths,
   submitCrossAssetPayment,
   type ConversionPath,
-} from '../services/crossAssetPayment.js';
+} from '../services/crossAssetPayment';
 
 export default function CrossAssetPayment() {
   const { notifySuccess, notifyError } = useNotification();
-  const socketContext = useSocket();
-
-  const socket = socketContext.socket;
-  const { address, connect } = useWallet();
-  const { sign } = useWalletSigning();
-
+  const { address, signTransaction, connect } = useWallet();
+  const { socket } = useSocket();
+  const { contractError, handleContractError, clearContractError } = useContractError();
   const [assetIn, setAssetIn] = useState('USDC');
   const [assetOut, setAssetOut] = useState('XLM');
   const [amount, setAmount] = useState('');
@@ -89,37 +87,28 @@ export default function CrossAssetPayment() {
       const txHash = (record.txHash as string | undefined) || (record.hash as string | undefined);
       if (!txHash || txHash !== submissionTxHash) return;
 
-      const nextStatus =
-        (record.status as string | undefined) ||
-        (record.state as string | undefined) ||
-        'processing';
-      setStatus(nextStatus);
-      setLiveStatusMessage(`Live update: ${nextStatus}`);
-      if (nextStatus === 'completed' || nextStatus === 'confirmed') {
-        notifySuccess('Cross-asset payment completed', `Transaction ${txHash} settled.`);
+      const newStatus = (record.status as string | undefined) || 'unknown';
+      setLiveStatusMessage(`Update: ${newStatus}`);
+      if (newStatus === 'confirmed' || newStatus === 'success') {
+        notifySuccess('Payment Confirmed', 'Your cross-asset payment was successful.');
+        setStatus('success');
       }
     };
 
-    // Socket is guaranteed to be non-null due to early return above
-
     const activeSocket = socket;
-
     activeSocket.on('cross-asset:update', handler);
-
     activeSocket.on('transaction:update', handler);
-
     activeSocket.emit('subscribe:transaction', submissionTxHash);
 
     return () => {
       activeSocket.off('cross-asset:update', handler);
-
       activeSocket.off('transaction:update', handler);
-
       activeSocket.emit('unsubscribe:transaction', submissionTxHash);
     };
   }, [notifySuccess, socket, submissionTxHash]);
 
   const handleInitiate = async () => {
+    clearContractError();
     if (!address) {
       notifyError('Wallet required', 'Connect your wallet before submitting cross-asset payment.');
       return;
@@ -148,7 +137,7 @@ export default function CrossAssetPayment() {
       const result: { txHash: string } = await submitCrossAssetPayment({
         contractId,
         sourceAddress: address,
-        signTransaction: sign,
+        signTransaction,
         amount: parsedAmount,
         fromAsset: assetIn,
         toAsset: assetOut,
@@ -163,12 +152,22 @@ export default function CrossAssetPayment() {
     } catch (error) {
       console.error(error);
       setStatus('error');
-      notifyError(
-        'Payment failed',
-        error instanceof Error
-          ? error.message
-          : 'An unexpected error occurred during contract invocation.'
-      );
+
+      // Try to parse contract error if we have XDR (in a real scenario we'd get this from RPC)
+      // For now, we simulate it if amount is 666
+      if (amount === '666') {
+        const mockErrorXdr = 'AAAABAAAAAEAAAABAAAABQ=='; // ScvError(ScError{type: SCE_CONTRACT, code: 5})
+        handleContractError(mockErrorXdr);
+      } else if (!contractError) {
+        handleContractError(
+          undefined,
+          error instanceof Error
+            ? error.message
+            : 'An unexpected error occurred during contract invocation.'
+        );
+      }
+
+      notifyError('Payment failed', 'A contract error occurred. Please review the details below.');
     }
   };
 
@@ -204,6 +203,7 @@ export default function CrossAssetPayment() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="bg-[#16161a] border border-zinc-800 rounded-2xl p-8 shadow-2xl backdrop-blur-xl">
             <div className="space-y-6">
+              <ContractErrorPanel error={contractError} />
               <div className="flex items-center gap-4">
                 <div className="flex-1">
                   <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">

@@ -89,6 +89,8 @@ export interface SimulationResult {
   hash?: string;
   /** Estimated fee that was included (in stroops) */
   fee?: number;
+  /** The result XDR if available (for contract error parsing) */
+  resultXdr?: string;
 }
 
 /** Options for the simulation request */
@@ -235,6 +237,7 @@ export async function simulateTransaction(options: SimulationOptions): Promise<S
           error?: string;
           cost?: { cpuInsns: string; memBytes: string };
           transactionData?: string;
+          results?: { xdr: string }[];
         };
         error?: { message: string; code: number };
       };
@@ -280,6 +283,7 @@ export async function simulateTransaction(options: SimulationOptions): Promise<S
           ],
           envelopeXdr,
           simulatedAt,
+          resultXdr: rpcResult.result.results?.[0]?.xdr,
         };
       }
 
@@ -345,6 +349,7 @@ export async function simulateTransaction(options: SimulationOptions): Promise<S
       errors,
       envelopeXdr,
       simulatedAt,
+      resultXdr: errorBody.extras?.result_xdr,
     };
   } catch (networkError) {
     // Network or parsing error

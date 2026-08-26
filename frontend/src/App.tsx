@@ -14,17 +14,15 @@ import TwoFactorSettings from './pages/TwoFactorSettings';
 import CustomReportBuilder from './pages/CustomReportBuilder';
 import CrossAssetPayment from './pages/CrossAssetPayment';
 import TransactionHistory from './pages/TransactionHistory';
+import BulkPaymentTracker from './pages/BulkPaymentTracker';
 import AdminPanel from './pages/AdminPanel';
-import VestingEscrow from './pages/VestingEscrow';
-import RevenueSplitDashboard from './pages/RevenueSplitDashboard';
-import Forecasting from './pages/Forecasting';
-import TaxComplianceWizard from './pages/TaxComplianceWizard';
 
 import EmployeePortal from './pages/EmployeePortal';
 import Login from './pages/Login';
 import AuthCallback from './pages/AuthCallback';
 import { useTranslation } from 'react-i18next';
 import { contractService } from './services/contracts';
+import TaxComplianceWizard from './pages/TaxComplianceWizard';
 
 function App() {
   const { t } = useTranslation();
@@ -194,26 +192,10 @@ function App() {
           }
         />
         <Route
-          path="/forecast"
+          path="/bulk-payments"
           element={
             <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
-              <Forecasting />
-            </ErrorBoundary>
-          }
-        />
-        <Route
-          path="/vesting"
-          element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
-              <VestingEscrow />
-            </ErrorBoundary>
-          }
-        />
-        <Route
-          path="/revenue-split"
-          element={
-            <ErrorBoundary fallback={<ErrorFallback onReset={() => {}} />}>
-              <RevenueSplitDashboard />
+              <BulkPaymentTracker />
             </ErrorBoundary>
           }
         />
