@@ -16,10 +16,11 @@ import { authenticator } from '@otplib/preset-default';
 jest.setTimeout(30_000);
 
 const mockQuery = jest.fn<any>();
+const mockConnect = jest.fn<any>();
 
 jest.unstable_mockModule('../../config/database.js', () => ({
   query: mockQuery,
-  pool: { query: mockQuery },
+  pool: { query: mockQuery, connect: mockConnect },
   default: { query: mockQuery },
 }));
 
@@ -125,6 +126,48 @@ async function enrol(): Promise<{ secret: string; encrypted: string }> {
 describe('Auth 2FA endpoints', () => {
   beforeEach(() => {
     mockQuery.mockReset();
+    mockConnect.mockReset();
+  });
+
+  describe('POST /api/auth/register', () => {
+    it('consumes a valid invitation and issues an organization-bound session', async () => {
+      const transactionQuery = jest
+        .fn<any>()
+        .mockResolvedValueOnce({ rows: [] }) // BEGIN
+        .mockResolvedValueOnce({ rows: [{ id: 9, organization_id: 1 }] })
+        .mockResolvedValueOnce({ rows: [userRow({ role: 'EMPLOYEE' })] })
+        .mockResolvedValueOnce({ rows: [] }) // consume invitation
+        .mockResolvedValueOnce({ rows: [] }); // COMMIT
+      const release = jest.fn();
+      mockConnect.mockResolvedValue({ query: transactionQuery, release });
+
+      const response = await request(app)
+        .post('/api/auth/register')
+        .send({ walletAddress: 'GNEWEMPLOYEE', invitationToken: 'valid-invitation' });
+
+      expect(response.status).toBe(201);
+      const claims = jwt.verify(response.body.accessToken, config.JWT_SECRET) as any;
+      expect(claims.organizationId).toBe(1);
+      expect(claims.role).toBe('EMPLOYEE');
+      expect(transactionQuery.mock.calls.some((call: any[]) => /used_at = CURRENT_TIMESTAMP/.test(call[0]))).toBe(true);
+      expect(release).toHaveBeenCalled();
+    });
+
+    it('rejects invalid, expired, or previously consumed invitations', async () => {
+      const transactionQuery = jest
+        .fn<any>()
+        .mockResolvedValueOnce({ rows: [] }) // BEGIN
+        .mockResolvedValueOnce({ rows: [] }) // invitation lookup
+        .mockResolvedValueOnce({ rows: [] }); // ROLLBACK
+      mockConnect.mockResolvedValue({ query: transactionQuery, release: jest.fn() });
+
+      const response = await request(app)
+        .post('/api/auth/register')
+        .send({ walletAddress: 'GNEWEMPLOYEE', invitationToken: 'used-invitation' });
+
+      expect(response.status).toBe(403);
+      expect(transactionQuery.mock.calls.some((call: any[]) => /INSERT INTO users/.test(call[0]))).toBe(false);
+    });
   });
 
   describe('POST /api/auth/2fa/setup', () => {
@@ -263,6 +306,18 @@ describe('Auth 2FA endpoints', () => {
       const response = await request(app).post('/api/auth/login').send({});
 
       expect(response.status).toBe(400);
+    });
+
+    it('rejects an unknown wallet without creating an account', async () => {
+      route([SELECT_LOGIN_USER, () => ({ rows: [], rowCount: 0 })]);
+
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send({ walletAddress: 'GUNINVITED' });
+
+      expect(response.status).toBe(403);
+      expect(response.body.error).toMatch(/invitation/i);
+      expect(issuedSql().some((sql) => /INSERT INTO users/i.test(sql))).toBe(false);
     });
   });
 
