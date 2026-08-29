@@ -8,7 +8,15 @@ import { TWO_FACTOR_ROLES } from '../services/twoFactorService.js';
 const router = Router();
 
 router.post('/login', AuthController.login);
+router.post('/register', AuthController.register);
 router.post('/refresh', AuthController.refresh);
+
+router.post(
+  '/invitations',
+  authenticateJWT,
+  authorizeRoles('EMPLOYER'),
+  AuthController.createInvitation
+);
 
 // ── Two-factor authentication ──────────────────────────────────────────────
 //

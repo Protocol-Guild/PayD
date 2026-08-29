@@ -1,7 +1,8 @@
 import express from 'express';
+import { createHash, randomBytes } from 'crypto';
 import jwt from 'jsonwebtoken';
 import { config } from '../config/env.js';
-import { query } from '../config/database.js';
+import { pool, query } from '../config/database.js';
 import {
   generateRefreshToken,
   generateToken,
@@ -48,6 +49,89 @@ async function issueSession(user: {
 }
 
 export class AuthController {
+  /**
+   * POST /api/auth/invitations
+   * Creates a single-use employee invitation for the caller's organization.
+   */
+  static async createInvitation(req: express.Request, res: express.Response) {
+    const { email, expiresInDays = 7 } = req.body ?? {};
+    if (email !== undefined && (typeof email !== 'string' || email.length > 255)) {
+      return res.status(400).json({ error: 'Invalid email' });
+    }
+    if (!Number.isInteger(expiresInDays) || expiresInDays < 1 || expiresInDays > 30) {
+      return res.status(400).json({ error: 'expiresInDays must be an integer between 1 and 30' });
+    }
+
+    try {
+      const employer = await query(
+        'SELECT organization_id, role FROM users WHERE id = $1',
+        [req.user!.id]
+      );
+      const user = employer.rows[0];
+      if (!user?.organization_id || user.role !== 'EMPLOYER') {
+        return res.status(403).json({ error: 'Only organization employers can create invitations' });
+      }
+
+      const token = randomBytes(32).toString('base64url');
+      const tokenHash = createHash('sha256').update(token).digest('hex');
+      const expiresAt = new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000);
+      const invitation = await query(
+        `INSERT INTO invitations (organization_id, email, token_hash, expires_at, created_by)
+         VALUES ($1, $2, $3, $4, $5) RETURNING id, organization_id, email, expires_at`,
+        [user.organization_id, email ?? null, tokenHash, expiresAt, req.user!.id]
+      );
+
+      // The raw token is only returned at creation time and is never stored.
+      return res.status(201).json({ ...invitation.rows[0], token });
+    } catch (error) {
+      console.error('Invitation creation failed:', error);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+
+  /** POST /api/auth/register */
+  static async register(req: express.Request, res: express.Response) {
+    const { walletAddress, invitationToken } = req.body ?? {};
+    if (typeof walletAddress !== 'string' || !walletAddress || typeof invitationToken !== 'string' || !invitationToken) {
+      return res.status(400).json({ error: 'walletAddress and invitationToken are required' });
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const tokenHash = createHash('sha256').update(invitationToken).digest('hex');
+      const invitation = await client.query(
+        `SELECT id, organization_id FROM invitations
+         WHERE token_hash = $1 AND used_at IS NULL AND expires_at > CURRENT_TIMESTAMP FOR UPDATE`,
+        [tokenHash]
+      );
+      if (invitation.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(403).json({ error: 'Invalid, expired, or already used invitation' });
+      }
+
+      const user = await client.query(
+        `INSERT INTO users (wallet_address, organization_id, role)
+         VALUES ($1, $2, 'EMPLOYEE')
+         RETURNING id, wallet_address, email, organization_id, role`,
+        [walletAddress, invitation.rows[0].organization_id]
+      );
+      await client.query('UPDATE invitations SET used_at = CURRENT_TIMESTAMP WHERE id = $1', [invitation.rows[0].id]);
+      await client.query('COMMIT');
+
+      return res.status(201).json(await issueSession(user.rows[0]));
+    } catch (error: any) {
+      await client.query('ROLLBACK');
+      if (error?.code === '23505') {
+        return res.status(409).json({ error: 'Wallet address is already registered' });
+      }
+      console.error('Invitation registration failed:', error);
+      return res.status(500).json({ error: 'Internal server error' });
+    } finally {
+      client.release();
+    }
+  }
+
   /**
    * POST /api/auth/2fa/setup
    * Starts enrolment for the authenticated admin: mints a secret, stores it as
@@ -190,13 +274,8 @@ export class AuthController {
       );
 
       if (result.rows.length === 0) {
-        // For demo purposes, auto-register as EMPLOYEE if not found
-        // In production, this would be a separate registration flow
-        const insertResult = await query(
-          'INSERT INTO users (wallet_address, role) VALUES ($1, $2) RETURNING *',
-          [walletAddress, 'EMPLOYEE']
-        );
-        return res.json({ accessToken: generateToken(insertResult.rows[0]) });
+        // Account creation must happen through the organization invitation flow.
+        return res.status(403).json({ error: 'An organization invitation is required to register' });
       }
 
       const user = result.rows[0];
