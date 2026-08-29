@@ -1,7 +1,6 @@
 import { Icon } from '@stellar/design-system';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import InsightCards from '../components/InsightCards';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -46,11 +45,7 @@ export default function Home() {
         </button>
       </div>
 
-      <div className="mt-16 max-w-6xl w-full text-left">
-        <InsightCards />
-      </div>
-
-      <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6 text-left max-w-6xl w-full">
+      <div className="mt-24 grid grid-cols-1 md:grid-cols-3 gap-6 text-left max-w-6xl w-full">
         <div className="card glass noise">
           <div className="w-12 h-12 rounded-lg bg-accent/10 flex items-center justify-center mb-6 border border-accent/20">
             <Icon.CreditCard01 size="lg" className="text-accent" />

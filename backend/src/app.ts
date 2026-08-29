@@ -47,9 +47,6 @@ import { detectSqlInjection } from './middleware/tenantSecurityMonitor.js';
 import auditAnalyticsRoutes from './routes/auditAnalyticsRoutes.js';
 import smartRateLimitRoutes from './routes/smartRateLimitRoutes.js';
 import tenantSecurityRoutes from './routes/tenantSecurityRoutes.js';
-
-// Insight Cards
-import insightCardsRoutes from './routes/insightCardsRoutes.js';
 import { enhancedAuditMiddleware } from './middleware/enhancedAuditAnalytics.js';
 import { smartRateLimitMiddleware } from './middleware/smartRateLimiter.js';
 import { tenantSecurityGuardMiddleware } from './middleware/tenantSecurityGuard.js';
@@ -178,7 +175,6 @@ app.use('/api/usage', tenantUsageRoutes);
 app.use('/api/audit-analytics', auditAnalyticsRoutes);
 app.use('/api/smart-rate-limit', smartRateLimitRoutes);
 app.use('/api/tenant-security', tenantSecurityRoutes);
-app.use('/api/v1/insight-cards', insightCardsRoutes);
 
 // 404 handler
 app.use((req, res) => {
