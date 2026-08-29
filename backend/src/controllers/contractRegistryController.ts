@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { ContractRegistryService } from '../services/contractRegistryService.js';
 import logger from '../utils/logger.js';
+import { sendInternalError } from '../utils/internalError.js';
 
 export class ContractRegistryController {
      /**
@@ -53,14 +54,7 @@ export class ContractRegistryController {
           } catch (error) {
                logger.error('Error retrieving contract registry', error);
 
-               res.status(500).json({
-                    error: 'Internal Server Error',
-                    message:
-                         error instanceof Error
-                              ? error.message
-                              : 'Failed to load contract registry',
-                    timestamp: new Date().toISOString(),
-               });
+               sendInternalError(res, req, error, 'Failed to load contract registry');
           }
      }
 }

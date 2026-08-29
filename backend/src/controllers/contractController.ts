@@ -7,6 +7,7 @@ import { Request, Response } from 'express';
 import { ContractConfigService } from '../services/contractConfigService.js';
 import { validateContractEntry, ContractEntry } from '../utils/contractValidator.js';
 import logger from '../utils/logger.js';
+import { sendInternalError } from '../utils/internalError.js';
 
 export class ContractController {
   private static configService = new ContractConfigService();
@@ -59,13 +60,7 @@ export class ContractController {
     } catch (error) {
       logger.error('Error in getContracts', error);
       
-      const errorResponse = {
-        error: 'Internal Server Error',
-        message: error instanceof Error ? error.message : 'Failed to retrieve contract registry',
-        timestamp: new Date().toISOString()
-      };
-
-      res.status(500).json(errorResponse);
+      sendInternalError(res, req, error, 'Failed to retrieve contracts');
     }
   }
 }

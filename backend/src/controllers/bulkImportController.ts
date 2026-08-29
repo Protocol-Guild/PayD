@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { csvPayrollImportService } from '../services/csvPayrollImportService.js';
 import logger from '../utils/logger.js';
+import { sendInternalError } from '../utils/internalError.js';
 
 export class BulkImportController {
   async import(req: Request, res: Response) {
@@ -36,12 +37,8 @@ export class BulkImportController {
         },
         errors: result.errors,
       });
-    } catch (error: any) {
-      logger.error('Bulk Import Controller Error:', error);
-      res.status(500).json({
-        error: 'Internal Server Error',
-        message: error.message,
-      });
+    } catch (error) {
+      sendInternalError(res, req, error);
     }
   }
 }
