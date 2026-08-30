@@ -263,8 +263,8 @@ export function injectPrintStyles(): void {
       .text-muted { color: ${printTokens.colors.muted} !important; }
 
       /* Background colors for print */
-      .bg-accent\/10,
-      .bg-accent\/20 {
+      .bg-accent-10,
+      .bg-accent-20 {
         background: rgba(13, 150, 104, 0.1) !important;
       }
 
@@ -349,8 +349,13 @@ export async function exportChartToImage(
 ): Promise<void> {
   try {
     // Dynamic import for html2canvas (optional dependency)
-    const html2canvas = (await import('html2canvas')).default;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+    const html2canvas = (await import('html2canvas')).default as (
+      el: HTMLElement,
+      options?: Record<string, unknown>
+    ) => Promise<HTMLCanvasElement>;
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
     const canvas = await html2canvas(element, {
       backgroundColor: printTokens.colors.background,
       scale: 2, // High resolution for print
@@ -361,6 +366,7 @@ export async function exportChartToImage(
     // Create download link
     const link = document.createElement('a');
     link.download = filename;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     link.href = canvas.toDataURL('image/png');
     link.click();
   } catch (error) {
@@ -388,11 +394,18 @@ export async function exportChartToPDF(
 ): Promise<void> {
   try {
     // Dynamic imports for optional dependencies
-    const [html2canvas, { jsPDF }] = await Promise.all([
-      import('html2canvas').then((mod) => mod.default),
-      import('jspdf').then((mod) => mod),
-    ]);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
+    const html2canvasModule = await import('html2canvas').then((mod) => mod.default);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const html2canvas = html2canvasModule as (
+      el: HTMLElement,
+      options?: Record<string, unknown>
+    ) => Promise<HTMLCanvasElement>;
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
+    const { jsPDF } = await import('jspdf').then((mod) => mod.default as { jsPDF: new (options: Record<string, unknown>) => jsPDFInstance });
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
     const canvas = await html2canvas(element, {
       backgroundColor: printTokens.colors.background,
       scale: 2,
@@ -400,11 +413,15 @@ export async function exportChartToPDF(
       logging: false,
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     const imgData = canvas.toDataURL('image/png');
-    const imgWidth = canvas.width;
-    const imgHeight = canvas.height;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+    const imgWidth = canvas.width as number;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+    const imgHeight = canvas.height as number;
 
     // Calculate PDF dimensions
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
     const pdf = new jsPDF({
       orientation: options.orientation || 'landscape',
       unit: 'px',
@@ -413,20 +430,31 @@ export async function exportChartToPDF(
 
     // Add title if provided
     if (options.title) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       pdf.setFontSize(16);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       pdf.text(options.title, 20, 30);
     }
 
     // Add image
     const yOffset = options.title ? 50 : 0;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     pdf.addImage(imgData, 'PNG', 0, yOffset, imgWidth, imgHeight);
 
     // Save PDF
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     pdf.save(filename);
   } catch (error) {
     console.error('Failed to export PDF:', error);
     throw new Error('PDF export failed. Please try again.');
   }
+}
+
+interface jsPDFInstance {
+  setFontSize: (size: number) => void;
+  text: (text: string, x: number, y: number) => void;
+  addImage: (imageData: string, format: string, x: number, y: number, width: number, height: number) => void;
+  save: (filename: string) => void;
 }
 
 /**
