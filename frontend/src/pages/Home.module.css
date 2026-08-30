@@ -1,0 +1,328 @@
+/* ===== Home.module.css ===== */
+
+/*
+ * Design Tokens for Dashboard/Home Page
+ *
+ * These tokens define the spacing, typography, and responsive breakpoints
+ * used throughout the dashboard. They extend the global CSS custom
+ * properties defined in index.css.
+ *
+ * Token Naming Convention:
+ *   --home-{category}-{size}
+ *
+ * Categories:
+ *   spacing: gap, padding, margin values
+ *   font: font sizes for different contexts
+ *   grid: grid column configurations
+ *   breakpoint: media query breakpoints
+ *
+ * Usage:
+ *   Use these tokens for consistent styling across the dashboard.
+ *   For components that need to be reusable across the app,
+ *   use the global tokens from index.css instead.
+ */
+
+/* ── Home Design Tokens ───────────── */
+:root {
+  /* Spacing Scale */
+  --home-spacing-xs: 4px;
+  --home-spacing-sm: 8px;
+  --home-spacing-md: 16px;
+  --home-spacing-lg: 24px;
+  --home-spacing-xl: 32px;
+  --home-spacing-2xl: 48px;
+  --home-spacing-3xl: 64px;
+  --home-spacing-4xl: 96px;
+
+  /* Font Sizes */
+  --home-font-xs: 10px;
+  --home-font-sm: 12px;
+  --home-font-base: 14px;
+  --home-font-md: 16px;
+  --home-font-lg: 18px;
+  --home-font-xl: 22px;
+  --home-font-2xl: 28px;
+  --home-font-3xl: 36px;
+  --home-font-hero: 60px;
+
+  /* Border Radius */
+  --home-radius-sm: 6px;
+  --home-radius-md: 10px;
+  --home-radius-lg: 14px;
+  --home-radius-xl: 16px;
+  --home-radius-2xl: 20px;
+  --home-radius-full: 9999px;
+
+  /* Breakpoints (for reference, used in @media queries) */
+  --home-breakpoint-sm: 640px;
+  --home-breakpoint-md: 768px;
+  --home-breakpoint-lg: 1024px;
+  --home-breakpoint-xl: 1280px;
+}
+
+/* ── Page Container ────────────────── */
+.page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+  text-align: center;
+  padding: var(--home-spacing-xl) var(--home-spacing-lg);
+}
+
+@media (max-width: 768px) {
+  .page {
+    padding: var(--home-spacing-lg) var(--home-spacing-md);
+    min-height: auto;
+  }
+}
+
+/* ── Hero Section ──────────────────── */
+.heroIcon {
+  margin-bottom: var(--home-spacing-xl);
+  padding: var(--home-spacing-xl);
+  position: relative;
+}
+
+@media (max-width: 768px) {
+  .heroIcon {
+    margin-bottom: var(--home-spacing-lg);
+    padding: var(--home-spacing-lg);
+  }
+}
+
+.heroGlow {
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  opacity: 0.05;
+  filter: blur(40px);
+  border-radius: var(--home-radius-full);
+  pointer-events: none;
+}
+
+/* ── Typography ────────────────────── */
+.heroTitle {
+  font-family: var(--font-head);
+  font-size: var(--home-font-hero);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  margin-bottom: var(--home-spacing-md);
+}
+
+@media (max-width: 768px) {
+  .heroTitle {
+    font-size: var(--home-font-3xl);
+    letter-spacing: -0.03em;
+  }
+}
+
+@media (max-width: 480px) {
+  .heroTitle {
+    font-size: var(--home-font-2xl);
+  }
+}
+
+.heroAccent {
+  color: var(--accent);
+}
+
+.heroAccent2 {
+  color: var(--accent2);
+}
+
+.heroTagline {
+  font-size: var(--home-font-xl);
+  color: var(--muted);
+  max-width: 42rem;
+  margin-bottom: var(--home-spacing-2xl);
+  line-height: 1.6;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .heroTagline {
+    font-size: var(--home-font-lg);
+    margin-bottom: var(--home-spacing-xl);
+  }
+}
+
+/* ── CTA Buttons ───────────────────── */
+.ctaGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--home-spacing-md);
+}
+
+@media (min-width: 640px) {
+  .ctaGroup {
+    flex-direction: row;
+    gap: var(--home-spacing-lg);
+  }
+}
+
+.ctaPrimary {
+  padding: var(--home-spacing-lg) var(--home-spacing-xl);
+  background: var(--accent);
+  color: var(--bg);
+  font-weight: 700;
+  border-radius: var(--home-radius-lg);
+  transition: transform 0.2s ease;
+  box-shadow: 0 10px 40px rgba(74, 240, 184, 0.2);
+}
+
+.ctaPrimary:hover {
+  transform: scale(1.05);
+}
+
+@media (max-width: 768px) {
+  .ctaPrimary {
+    padding: var(--home-spacing-md) var(--home-spacing-lg);
+    width: 100%;
+  }
+}
+
+.ctaSecondary {
+  padding: var(--home-spacing-lg) var(--home-spacing-xl);
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border-hi);
+  color: var(--text);
+  font-weight: 700;
+  border-radius: var(--home-radius-lg);
+  transition: all 0.2s ease;
+}
+
+.ctaSecondary:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+@media (max-width: 768px) {
+  .ctaSecondary {
+    padding: var(--home-spacing-md) var(--home-spacing-lg);
+    width: 100%;
+  }
+}
+
+/* ── Feature Cards Grid ────────────── */
+.featureGrid {
+  margin-top: var(--home-spacing-4xl);
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: var(--home-spacing-lg);
+  text-align: left;
+  max-width: 72rem;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .featureGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .featureGrid {
+    gap: var(--home-spacing-xl);
+  }
+}
+
+/* ── Feature Card ──────────────────── */
+.featureCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--home-radius-xl);
+  padding: var(--home-spacing-lg);
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease;
+}
+
+@media (max-width: 768px) {
+  .featureCard {
+    padding: var(--home-spacing-md);
+    border-radius: var(--home-radius-lg);
+  }
+}
+
+.featureCard:hover {
+  border-color: var(--border-hi);
+  transform: translateY(-2px);
+}
+
+.featureIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--home-radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--home-spacing-lg);
+  border: 1px solid transparent;
+}
+
+.featureIconAccent {
+  background: rgba(74, 240, 184, 0.1);
+  border-color: rgba(74, 240, 184, 0.2);
+}
+
+.featureIconAccent2 {
+  background: rgba(124, 111, 247, 0.1);
+  border-color: rgba(124, 111, 247, 0.2);
+}
+
+.featureIconDanger {
+  background: rgba(255, 123, 114, 0.1);
+  border-color: rgba(255, 123, 114, 0.2);
+}
+
+@media (max-width: 768px) {
+  .featureIcon {
+    width: 40px;
+    height: 40px;
+    margin-bottom: var(--home-spacing-md);
+  }
+}
+
+.featureTitle {
+  font-size: var(--home-font-xl);
+  font-weight: 700;
+  margin-bottom: var(--home-spacing-sm);
+}
+
+@media (max-width: 768px) {
+  .featureTitle {
+    font-size: var(--home-font-lg);
+  }
+}
+
+.featureDescription {
+  color: var(--muted);
+  font-size: var(--home-font-sm);
+  line-height: 1.6;
+}
+
+@media (max-width: 768px) {
+  .featureDescription {
+    font-size: var(--home-font-base);
+  }
+}
+
+/* ── Reduced Motion ────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .ctaPrimary,
+  .ctaSecondary,
+  .featureCard {
+    transition: none;
+  }
+
+  .ctaPrimary:hover {
+    transform: none;
+  }
+
+  .featureCard:hover {
+    transform: none;
+  }
+}

@@ -1,13 +1,76 @@
 /* ===== EmployeePortal.module.css ===== */
 
+/*
+ * Design Tokens for Employee Portal
+ *
+ * These tokens define the spacing, typography, and responsive breakpoints
+ * used throughout the employee portal. They extend the global CSS custom
+ * properties defined in index.css.
+ *
+ * Token Naming Convention:
+ *   --portal-{category}-{size}
+ *
+ * Categories:
+ *   spacing: gap, padding, margin values
+ *   font: font sizes for different contexts
+ *   grid: grid column configurations
+ *   breakpoint: media query breakpoints
+ *
+ * Usage:
+ *   Use these tokens for consistent styling across the portal.
+ *   For components that need to be reusable across the app,
+ *   use the global tokens from index.css instead.
+ */
+
+/* ── Portal Design Tokens ───────── */
+:root {
+  /* Spacing Scale */
+  --portal-spacing-xs: 4px;
+  --portal-spacing-sm: 8px;
+  --portal-spacing-md: 16px;
+  --portal-spacing-lg: 24px;
+  --portal-spacing-xl: 32px;
+  --portal-spacing-2xl: 48px;
+
+  /* Font Sizes */
+  --portal-font-xs: 10px;
+  --portal-font-sm: 12px;
+  --portal-font-base: 14px;
+  --portal-font-md: 16px;
+  --portal-font-lg: 18px;
+  --portal-font-xl: 22px;
+  --portal-font-2xl: 28px;
+  --portal-font-hero: 42px;
+
+  /* Border Radius */
+  --portal-radius-sm: 6px;
+  --portal-radius-md: 10px;
+  --portal-radius-lg: 14px;
+  --portal-radius-xl: 16px;
+  --portal-radius-2xl: 20px;
+
+  /* Breakpoints (for reference, used in @media queries) */
+  --portal-breakpoint-sm: 640px;
+  --portal-breakpoint-md: 768px;
+  --portal-breakpoint-lg: 900px;
+  --portal-breakpoint-xl: 1200px;
+}
+
 /* ── Hero Balance Card ──────────────── */
 .balanceCard {
   position: relative;
   overflow: hidden;
   background: linear-gradient(135deg, rgba(74, 240, 184, 0.08) 0%, rgba(124, 111, 247, 0.08) 100%);
   border: 1px solid rgba(74, 240, 184, 0.15);
-  border-radius: 20px;
-  padding: 32px;
+  border-radius: var(--portal-radius-2xl);
+  padding: var(--portal-spacing-xl);
+}
+
+@media (max-width: 768px) {
+  .balanceCard {
+    padding: var(--portal-spacing-lg);
+    border-radius: var(--portal-spacing-lg);
+  }
 }
 
 .balanceCard::before {
@@ -114,23 +177,37 @@
 .statsRow {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  gap: var(--portal-spacing-md);
 }
 
 @media (max-width: 768px) {
   .statsRow {
     grid-template-columns: repeat(2, 1fr);
+    gap: var(--portal-spacing-sm);
+  }
+}
+
+@media (max-width: 480px) {
+  .statsRow {
+    grid-template-columns: 1fr;
   }
 }
 
 .statCard {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 20px;
+  border-radius: var(--portal-radius-lg);
+  padding: var(--portal-spacing-lg);
   transition:
     border-color 0.2s ease,
     transform 0.2s ease;
+}
+
+@media (max-width: 768px) {
+  .statCard {
+    padding: var(--portal-spacing-md);
+    border-radius: var(--portal-radius-md);
+  }
 }
 
 .statCard:hover {
@@ -168,31 +245,59 @@
 .txSection {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--portal-radius-xl);
   overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .txSection {
+    border-radius: var(--portal-radius-lg);
+  }
 }
 
 .txHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 24px;
+  padding: var(--portal-spacing-lg) var(--portal-spacing-lg);
   border-bottom: 1px solid var(--border);
   flex-wrap: wrap;
-  gap: 12px;
+  gap: var(--portal-spacing-sm);
+}
+
+@media (max-width: 768px) {
+  .txHeader {
+    padding: var(--portal-spacing-md);
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
 .txTitle {
   font-family: var(--font-head);
-  font-size: 18px;
+  font-size: var(--portal-font-lg);
   font-weight: 700;
 }
 
 .txFilters {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--portal-spacing-sm);
   flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .txFilters {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: var(--portal-spacing-xs);
+  }
+
+  .txFilters::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .filterSelect {
@@ -242,10 +347,10 @@
   display: grid;
   grid-template-columns: 1fr 2fr 1fr 1fr 1fr auto;
   align-items: center;
-  padding: 16px 24px;
+  padding: var(--portal-spacing-md) var(--portal-spacing-lg);
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   transition: background 0.15s ease;
-  gap: 12px;
+  gap: var(--portal-spacing-sm);
 }
 
 .txRow:hover {
@@ -259,8 +364,16 @@
 @media (max-width: 900px) {
   .txRow {
     grid-template-columns: 1fr 1fr auto;
-    gap: 8px;
-    padding: 14px 16px;
+    gap: var(--portal-spacing-sm);
+    padding: var(--portal-spacing-md) var(--portal-spacing-md);
+  }
+}
+
+@media (max-width: 480px) {
+  .txRow {
+    grid-template-columns: 1fr auto;
+    gap: var(--portal-spacing-xs);
+    padding: var(--portal-spacing-sm) var(--portal-spacing-md);
   }
 }
 
@@ -374,13 +487,13 @@
 .stellarLink {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 11px;
+  gap: var(--portal-spacing-xs);
+  font-size: var(--portal-font-sm);
   font-family: var(--font-mono);
   color: var(--accent);
   text-decoration: none;
-  padding: 4px 8px;
-  border-radius: 6px;
+  padding: var(--portal-spacing-xs) var(--portal-spacing-sm);
+  border-radius: var(--portal-radius-sm);
   border: 1px solid rgba(74, 240, 184, 0.15);
   transition: all 0.2s ease;
   white-space: nowrap;
@@ -402,7 +515,7 @@
 /* ── Tx Hash Display ──────────────── */
 .txHash {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--portal-font-xs);
   color: var(--muted);
   margin-top: 2px;
 }
@@ -412,9 +525,16 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 4px;
-  padding: 16px 24px;
+  gap: var(--portal-spacing-xs);
+  padding: var(--portal-spacing-md) var(--portal-spacing-lg);
   border-top: 1px solid var(--border);
+}
+
+@media (max-width: 768px) {
+  .pagination {
+    padding: var(--portal-spacing-sm) var(--portal-spacing-md);
+    flex-wrap: wrap;
+  }
 }
 
 .pageBtn {
@@ -492,7 +612,14 @@
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
-  border-radius: 8px;
+  border-radius: var(--portal-radius-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    background: var(--surface-hi);
+  }
 }
 
 @keyframes shimmer {
@@ -506,8 +633,8 @@
 
 .skeletonRow {
   height: 56px;
-  margin: 4px 24px;
-  border-radius: 8px;
+  margin: var(--portal-spacing-xs) var(--portal-spacing-lg);
+  border-radius: var(--portal-radius-sm);
 }
 
 /* ── Empty State ──────────────────── */
@@ -516,27 +643,33 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 24px;
+  padding: var(--portal-spacing-2xl) var(--portal-spacing-lg);
   color: var(--muted);
   text-align: center;
+}
+
+@media (max-width: 768px) {
+  .emptyState {
+    padding: var(--portal-spacing-xl) var(--portal-spacing-md);
+  }
 }
 
 .emptyIcon {
   width: 48px;
   height: 48px;
-  margin-bottom: 16px;
+  margin-bottom: var(--portal-spacing-md);
   opacity: 0.3;
 }
 
 .emptyTitle {
-  font-size: 16px;
+  font-size: var(--portal-font-md);
   font-weight: 600;
-  margin-bottom: 4px;
+  margin-bottom: var(--portal-spacing-xs);
   color: var(--text);
 }
 
 .emptyDesc {
-  font-size: 13px;
+  font-size: var(--portal-font-base);
   color: var(--muted);
 }
 
@@ -546,34 +679,54 @@
   justify-content: space-between;
   align-items: flex-start;
   flex-wrap: wrap;
-  gap: 16px;
-  margin-bottom: 24px;
+  gap: var(--portal-spacing-md);
+  margin-bottom: var(--portal-spacing-lg);
+}
+
+@media (max-width: 768px) {
+  .pageHeader {
+    flex-direction: column;
+    gap: var(--portal-spacing-sm);
+  }
 }
 
 .pageTitle {
   font-family: var(--font-head);
-  font-size: 28px;
+  font-size: var(--portal-font-2xl);
   font-weight: 800;
   letter-spacing: -0.02em;
 }
 
+@media (max-width: 768px) {
+  .pageTitle {
+    font-size: var(--portal-font-xl);
+  }
+}
+
 .pageSubtitle {
-  font-size: 14px;
+  font-size: var(--portal-font-base);
   color: var(--muted);
-  margin-top: 4px;
+  margin-top: var(--portal-spacing-xs);
 }
 
 .walletBadge {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--portal-spacing-sm);
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--portal-font-sm);
   color: var(--accent);
   background: rgba(74, 240, 184, 0.06);
   border: 1px solid rgba(74, 240, 184, 0.15);
-  padding: 6px 12px;
-  border-radius: 8px;
+  padding: var(--portal-spacing-sm) var(--portal-spacing-md);
+  border-radius: var(--portal-radius-md);
+}
+
+@media (max-width: 768px) {
+  .walletBadge {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 .walletDot {
