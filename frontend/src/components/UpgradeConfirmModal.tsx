@@ -29,6 +29,7 @@ import {
   Copy,
   RefreshCw,
 } from 'lucide-react';
+import AnimatedModal from './AnimatedModal';
 import {
   type ContractRecord,
   type UpgradeSimulationResult,
@@ -389,43 +390,36 @@ export default function UpgradeConfirmModal({
     });
   }
 
-  // ── Backdrop click only closes in non-executing, non-simulating states ───
-
-  function handleBackdropClick() {
-    if (['executing', 'simulating'].includes(modal.step)) return;
-    void handleCancel();
-  }
-
   // ── Render ───────────────────────────────────────────────────────────────
 
+  const isProcessing = ['executing', 'simulating'].includes(modal.step);
+
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-      onClick={handleBackdropClick}
+    <AnimatedModal
+      isOpen={true}
+      onClose={() => void handleCancel()}
+      isProcessing={isProcessing}
+      disableBackdropClose={isProcessing}
     >
-      <div
-        className="relative w-full max-w-2xl bg-surface border border-hi rounded-2xl shadow-2xl overflow-hidden max-h-[95vh] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Modal header */}
-        <div className="flex items-center justify-between px-4 md:px-6 pt-4 md:pt-6 pb-3 md:pb-4 border-b border-hi flex-shrink-0">
-          <div className="min-w-0 flex-1">
-            <h2 className="text-base md:text-lg font-black tracking-tight truncate">
-              Upgrade Contract
-            </h2>
-            <p className="text-xs text-muted font-mono mt-0.5 truncate">{contract.name}</p>
-          </div>
-          {!['executing', 'simulating'].includes(modal.step) && (
-            <button
-              onClick={() => void handleCancel()}
-              className="p-2 md:p-1.5 rounded-lg hover:bg-white/5 text-muted hover:text-text transition-colors touch-manipulation"
-              style={{ minHeight: '44px', minWidth: '44px' }}
-              aria-label="Close"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          )}
+      {/* Modal header */}
+      <div className="flex items-center justify-between px-4 md:px-6 pt-4 md:pt-6 pb-3 md:pb-4 border-b border-hi flex-shrink-0">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-base md:text-lg font-black tracking-tight truncate">
+            Upgrade Contract
+          </h2>
+          <p className="text-xs text-muted font-mono mt-0.5 truncate">{contract.name}</p>
         </div>
+        {!isProcessing && (
+          <button
+            onClick={() => void handleCancel()}
+            className="p-2 md:p-1.5 rounded-lg hover:bg-white/5 text-muted hover:text-text transition-colors touch-manipulation"
+            style={{ minHeight: '44px', minWidth: '44px' }}
+            aria-label="Close"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
+      </div>
 
         {/* Step breadcrumb */}
         <div className="px-4 md:px-6 pt-3 md:pt-4 flex-shrink-0">
@@ -867,7 +861,6 @@ export default function UpgradeConfirmModal({
             </div>
           )}
         </div>
-      </div>
-    </div>
+    </AnimatedModal>
   );
 }

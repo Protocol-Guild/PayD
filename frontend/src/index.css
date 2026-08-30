@@ -148,6 +148,50 @@ h6 {
   }
 }
 
+/* ── Modal Animation Pattern ─────────────────────────────────────────────── */
+/*
+ * Standardized modal enter/exit animation using framer-motion.
+ * The AnimatedModal component handles the actual animations.
+ * These CSS utilities provide fallback styles for reduced-motion preference.
+ *
+ * Usage:
+ *   import AnimatedModal from './AnimatedModal';
+ *
+ *   <AnimatedModal isOpen={showModal} onClose={() => setShowModal(false)}>
+ *     <div>Modal content</div>
+ *   </AnimatedModal>
+ *
+ * Props:
+ *   isOpen: boolean - Whether the modal is visible
+ *   onClose: () => void - Callback when modal should close
+ *   className: string - Additional CSS classes for content container
+ *   disableBackdropClose: boolean - Prevent closing on backdrop click
+ *   maxWidth: string - Maximum width of modal (default: max-w-2xl)
+ *   isProcessing: boolean - Prevent close during processing states
+ *
+ * Animation Details:
+ *   - Backdrop: fade in/out (opacity 0 → 1)
+ *   - Content: scale 95% → 100% with Y translate 8px → 0
+ *   - Duration: 200ms enter, 150ms exit
+ *   - Easing: cubic-bezier(0.22, 1, 0.36, 1)
+ *   - Respects prefers-reduced-motion (disables animations)
+ *
+ * Accessibility:
+ *   - Focus trapped within modal
+ *   - Escape key closes modal
+ *   - ARIA dialog role and aria-modal attribute
+ */
+
+/* Reduced motion fallback: disable animations */
+@media (prefers-reduced-motion: reduce) {
+  .page-fade,
+  .modal-backdrop,
+  .modal-content {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
 /* ── SDS Component Fixes ── */
 select {
   appearance: none !important;
