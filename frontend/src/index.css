@@ -289,3 +289,217 @@ a[class*='w-6'] {
 .scrollbar-hide::-webkit-scrollbar {
   display: none; /* Chrome, Safari and Opera */
 }
+
+/* ── Print/Export Stylesheet ──────────────────────────────────────────────── */
+/*
+ * Global print styles using design tokens.
+ * For more advanced print functionality, see utils/exportChart.ts
+ *
+ * Pattern:
+ * - Uses CSS @media print for browser print dialog
+ * - Forces light theme for print output
+ * - Hides interactive elements
+ * - Optimizes typography for print readability
+ * - Maintains design token consistency
+ *
+ * Usage:
+ *   printPage() from utils/exportChart.ts for programmatic printing
+ *   Ctrl/Cmd+P for browser print dialog
+ *
+ * Token Integration:
+ *   All print styles use the same CSS custom properties as screen styles
+ *   to ensure visual consistency between screen and print outputs.
+ */
+
+@media print {
+  /* Force light theme for print */
+  :root,
+  [data-theme='dark'],
+  [data-theme='light'] {
+    --bg: #ffffff;
+    --surface: #f6f8fa;
+    --surface-hi: #f0f2f5;
+    --border: rgba(0, 0, 0, 0.08);
+    --border-hi: rgba(0, 0, 0, 0.15);
+    --text: #1f2328;
+    --muted: #656d76;
+    --accent: #0d9668;
+    --accent2: #6c5ce7;
+    --danger: #d1242f;
+    --success: #1a7f37;
+    color-scheme: light;
+  }
+
+  /* Page setup */
+  @page {
+    margin: 1cm;
+    size: A4;
+  }
+
+  /* Base print styles */
+  body {
+    font-size: 12pt;
+    line-height: 1.5;
+    background: var(--bg) !important;
+    color: var(--text) !important;
+  }
+
+  /* Hide interactive elements */
+  button,
+  a[href],
+  input:not([type="hidden"]),
+  select,
+  textarea,
+  [role="button"],
+  .no-print,
+  nav,
+  header:not(.print-header),
+  footer,
+  .modal,
+  [data-modal],
+  .toast,
+  [role="alert"],
+  .sidebar,
+  .topbar {
+    display: none !important;
+  }
+
+  /* Show print-only elements */
+  .print-only {
+    display: block !important;
+  }
+
+  /* Typography adjustments */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-head);
+    page-break-after: avoid;
+    margin-top: 1em;
+    margin-bottom: 0.5em;
+  }
+
+  h1 { font-size: 24pt; }
+  h2 { font-size: 20pt; }
+  h3 { font-size: 16pt; }
+  h4 { font-size: 14pt; }
+
+  /* Code blocks */
+  code, pre {
+    font-family: var(--font-mono);
+    font-size: 10pt;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+  }
+
+  pre {
+    padding: 12px;
+    overflow: visible;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+
+  /* Tables */
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 12pt 0;
+    font-size: 10pt;
+  }
+
+  th, td {
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    text-align: left;
+  }
+
+  th {
+    background: var(--surface);
+    font-weight: 600;
+  }
+
+  /* Links */
+  a {
+    color: var(--accent);
+    text-decoration: underline;
+  }
+
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 9pt;
+    color: var(--muted);
+  }
+
+  /* Images and charts */
+  img, svg {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Page breaks */
+  .page-break {
+    page-break-before: always;
+  }
+
+  .no-break {
+    page-break-inside: avoid;
+  }
+
+  /* Card styling for print */
+  .card,
+  [class*="Card"] {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md, 10px);
+    padding: 12px;
+    margin-bottom: 12px;
+    background: var(--background, #ffffff);
+  }
+
+  /* Remove shadows and transforms */
+  * {
+    box-shadow: none !important;
+    transform: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Ensure proper contrast */
+  .text-accent { color: var(--accent) !important; }
+  .text-accent2 { color: var(--accent2) !important; }
+  .text-danger { color: var(--danger) !important; }
+  .text-success { color: var(--success) !important; }
+  .text-muted { color: var(--muted) !important; }
+
+  /* Status indicators */
+  [class*="status"] {
+    border: 1px solid currentColor;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 9pt;
+    text-transform: uppercase;
+  }
+}
+
+/* Print-only header */
+.print-header {
+  display: none;
+}
+
+@media print {
+  .print-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 12px;
+    margin-bottom: 24px;
+    border-bottom: 2px solid var(--border);
+  }
+
+  .print-header h1 {
+    font-size: 18pt;
+    margin: 0;
+  }
+
+  .print-header .print-date {
+    font-size: 10pt;
+    color: var(--muted);
+  }
+}
