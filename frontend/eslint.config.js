@@ -40,6 +40,19 @@ export default tseslint.config(
     },
   },
   {
+    // Test files: vi.fn() mock call args (mock.calls[0][0]) cannot be
+    // type-inspected, so we relax the no-unsafe rules for tests.
+    files: ['src/**/*.{test,spec}.{ts,tsx}', 'src/test/**'],
+    rules: {
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/require-await': 'off',
+    },
+  },
+  {
     // Playwright E2E tests: the fixture `use()` callback collides with React's
     // `use` hook name, so the React-specific rules don't apply here.
     files: ['e2e/**/*.ts'],
