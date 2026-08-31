@@ -190,12 +190,12 @@ export default function RevenueSplitDashboard() {
 
   return (
     <div className="flex-1 flex flex-col p-4 md:p-6 lg:p-12 max-w-7xl mx-auto w-full">
-      <div className="mb-6 md:mb-8 flex flex-wrap items-end justify-between gap-4 border-b border-zinc-800 pb-4 md:pb-6">
+      <div className="mb-6 md:mb-8 flex flex-wrap items-end justify-between gap-4 border-b border-[var(--border-hi)] pb-4 md:pb-6">
         <div>
           <h1 className="text-2xl md:text-3xl lg:text-4xl font-black tracking-tight">
             Revenue Split <span className="text-accent">Dashboard</span>
           </h1>
-          <p className="text-zinc-500 font-mono text-xs md:text-sm tracking-wider uppercase mt-2">
+          <p className="text-[var(--muted)] font-mono text-xs md:text-sm tracking-wider uppercase mt-2">
             Contract-backed allocations and distribution history
           </p>
         </div>
@@ -211,14 +211,14 @@ export default function RevenueSplitDashboard() {
             Connect Wallet
           </button>
         ) : (
-          <span className="text-xs text-zinc-400 font-mono">
+          <span className="text-xs text-[var(--muted)] font-mono">
             Connected: {address.slice(0, 6)}...{address.slice(-4)}
           </span>
         )}
       </div>
 
       {isLoading ? (
-        <p className="text-sm text-zinc-400 mb-6">Loading revenue split dashboard...</p>
+        <p className="text-sm text-[var(--muted)] mb-6">Loading revenue split dashboard...</p>
       ) : null}
       {error ? <p className="text-sm text-red-400 mb-6">{error}</p> : null}
 
@@ -232,11 +232,11 @@ export default function RevenueSplitDashboard() {
             />
             <div className="space-y-2 w-full md:w-auto">
               {allocations.length === 0 ? (
-                <p className="text-sm text-zinc-400">No allocation data loaded.</p>
+                <p className="text-sm text-[var(--muted)]">No allocation data loaded.</p>
               ) : (
                 allocations.map((entry, idx) => (
                   // eslint-disable-next-line react-x/no-array-index-key
-                  <p key={`${entry.recipient}-${idx}`} className="text-xs text-zinc-300">
+                  <p key={`${entry.recipient}-${idx}`} className="text-xs text-[var(--text)]">
                     {entry.recipient.slice(0, 6)}...{entry.recipient.slice(-4)} -{' '}
                     <span className="font-bold text-white">{entry.percentage.toFixed(2)}%</span>
                   </p>
@@ -276,7 +276,7 @@ export default function RevenueSplitDashboard() {
                   value={entry.recipient}
                   onChange={(event) => setAllocationField(idx, 'recipient', event.target.value)}
                   placeholder="Recipient Stellar Address"
-                  className="md:col-span-8 bg-[#0a0a0c] border border-zinc-800 rounded-lg px-3 py-2 text-xs"
+                  className="md:col-span-8 bg-[var(--bg)] border border-[var(--border-hi)] rounded-lg px-3 py-2 text-xs"
                   style={{ minHeight: '44px' }}
                 />
                 <input
@@ -287,7 +287,7 @@ export default function RevenueSplitDashboard() {
                   max={100}
                   step={0.01}
                   placeholder="%"
-                  className="md:col-span-3 bg-[#0a0a0c] border border-zinc-800 rounded-lg px-3 py-2 text-xs"
+                  className="md:col-span-3 bg-[var(--bg)] border border-[var(--border-hi)] rounded-lg px-3 py-2 text-xs"
                   style={{ minHeight: '44px' }}
                 />
                 <button
@@ -303,7 +303,7 @@ export default function RevenueSplitDashboard() {
           </div>
 
           <div className="mt-5 flex items-center justify-between">
-            <p className="text-xs text-zinc-400">Total allocation must be exactly 100%.</p>
+            <p className="text-xs text-[var(--muted)]">Total allocation must be exactly 100%.</p>
             <button
               type="button"
               onClick={() => {
@@ -323,15 +323,15 @@ export default function RevenueSplitDashboard() {
         <section className="card glass noise lg:col-span-1">
           <h2 className="text-base md:text-lg font-bold mb-4">Live Recipient Balances</h2>
           {recipientBalances.length === 0 ? (
-            <p className="text-sm text-zinc-400">No recipient distributions available yet.</p>
+            <p className="text-sm text-[var(--muted)]">No recipient distributions available yet.</p>
           ) : (
             <div className="space-y-2">
               {recipientBalances.map((row) => (
                 <div
                   key={row.recipient}
-                  className="flex items-center justify-between border-b border-zinc-800 pb-2"
+                  className="flex items-center justify-between border-b border-[var(--border-hi)] pb-2"
                 >
-                  <span className="text-xs text-zinc-300 truncate max-w-[120px] md:max-w-[180px]">
+                  <span className="text-xs text-[var(--text)] truncate max-w-[120px] md:max-w-[180px]">
                     {row.recipient}
                   </span>
                   <span className="text-xs font-bold text-white">
@@ -350,13 +350,13 @@ export default function RevenueSplitDashboard() {
         <section className="card glass noise lg:col-span-2">
           <h2 className="text-base md:text-lg font-bold mb-4">Historical Distribution Events</h2>
           {events.length === 0 ? (
-            <p className="text-sm text-zinc-400">No backend indexed distribution events found.</p>
+            <p className="text-sm text-[var(--muted)]">No backend indexed distribution events found.</p>
           ) : (
             <>
               {/* Desktop Table View */}
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="text-left text-zinc-500 border-b border-zinc-800">
+                  <thead className="text-left text-[var(--muted)] border-b border-[var(--border-hi)]">
                     <tr>
                       <th className="py-2 pr-4">Date</th>
                       <th className="py-2 pr-4">Recipient</th>
@@ -367,7 +367,7 @@ export default function RevenueSplitDashboard() {
                   </thead>
                   <tbody>
                     {events.map((event) => (
-                      <tr key={event.id} className="border-b border-zinc-800/50">
+                      <tr key={event.id} className="border-b border-[var(--border-hi)]/50">
                         <td className="py-2 pr-4 text-xs">
                           {new Date(event.createdAt).toLocaleString()}
                         </td>
@@ -387,7 +387,7 @@ export default function RevenueSplitDashboard() {
                               {event.txHash.slice(0, 10)}...
                             </a>
                           ) : (
-                            <span className="text-zinc-500">N/A</span>
+                            <span className="text-[var(--muted)]">N/A</span>
                           )}
                         </td>
                       </tr>
@@ -401,7 +401,7 @@ export default function RevenueSplitDashboard() {
                 {events.map((event) => (
                   <div key={event.id} className="bg-white/5 rounded-lg p-3 border border-white/10">
                     <div className="flex justify-between items-start mb-2">
-                      <span className="text-xs text-zinc-400">
+                      <span className="text-xs text-[var(--muted)]">
                         {new Date(event.createdAt).toLocaleDateString()}
                       </span>
                       <span className="text-xs font-semibold text-white px-2 py-1 bg-zinc-800 rounded">
@@ -410,13 +410,13 @@ export default function RevenueSplitDashboard() {
                     </div>
                     <div className="space-y-1 text-xs">
                       <div className="flex justify-between">
-                        <span className="text-zinc-400">Recipient:</span>
-                        <span className="text-zinc-300 truncate max-w-[150px]">
+                        <span className="text-[var(--muted)]">Recipient:</span>
+                        <span className="text-[var(--text)] truncate max-w-[150px]">
                           {event.recipientLabel}
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-zinc-400">Amount:</span>
+                        <span className="text-[var(--muted)]">Amount:</span>
                         <span className="text-white font-semibold">
                           {formatAmount(event.amount, event.assetCode || preferredStablecoin)}
                         </span>
