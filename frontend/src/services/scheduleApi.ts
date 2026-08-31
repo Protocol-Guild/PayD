@@ -1,6 +1,4 @@
-import axios from 'axios';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
+import api from '../utils/api';
 
 export interface PaymentRecipient {
   walletAddress: string;
@@ -44,19 +42,19 @@ export interface GetSchedulesResponse {
 }
 
 export const createSchedule = async (input: CreateScheduleInput): Promise<ScheduleRecord> => {
-  const { data } = await axios.post<ScheduleRecord>(`${API_BASE_URL}/schedules`, input);
+  const { data } = await api.post<ScheduleRecord>('/v1/schedules', input);
   return data;
 };
 
 export const getSchedules = async (
   params: { status?: string; page?: number; limit?: number } = {}
 ): Promise<GetSchedulesResponse> => {
-  const { data } = await axios.get<GetSchedulesResponse>(`${API_BASE_URL}/schedules`, {
+  const { data } = await api.get<GetSchedulesResponse>('/v1/schedules', {
     params,
   });
   return data;
 };
 
 export const deleteSchedule = async (id: number): Promise<void> => {
-  await axios.delete(`${API_BASE_URL}/schedules/${id}`);
+  await api.delete(`/v1/schedules/${id}`);
 };

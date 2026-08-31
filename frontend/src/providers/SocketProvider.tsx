@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useNotification } from '../hooks/useNotification';
 import { SocketContext } from '../hooks/useSocket';
+import { API_ROOT_URL } from '../utils/api';
 
-// Assuming backend is running on port 3000
-const SOCKET_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:3000';
+// Socket.IO connects to the API root (same host, no /api prefix)
+const SOCKET_URL = API_ROOT_URL;
 
 export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [socket, setSocket] = useState<Socket | null>(null);
