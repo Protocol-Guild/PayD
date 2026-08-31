@@ -124,6 +124,12 @@
     "debuggerTitle": "El depurador se bloqueó",
     "debuggerDescription": "Reinicia el depurador o vuelve al panel principal."
   },
+  "notFound": {
+    "title": "Página no encontrada",
+    "description": "La página que buscas no existe o ha sido movida.",
+    "goHome": "Ir al inicio",
+    "helpCenter": "Centro de ayuda"
+  },
   "connectAccount": {
     "authenticated": "Autenticado",
     "connect": "Conectar",
