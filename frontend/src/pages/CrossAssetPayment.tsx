@@ -172,14 +172,14 @@ export default function CrossAssetPayment() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0c] text-white p-8 font-sans">
+    <div className="min-h-screen bg-[#0a0a0c] text-white p-4 sm:p-6 lg:p-8 font-sans">
       <div className="max-w-4xl mx-auto">
-        <header className="mb-12 flex items-end justify-between gap-4">
+        <header className="mb-6 sm:mb-8 lg:mb-12 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
               Cross-Asset Payment Settlement
             </h1>
-            <p className="text-zinc-400 mt-2">
+            <p className="text-zinc-400 mt-2 text-sm sm:text-base">
               Live pathfinding, Soroban simulation, and wallet-signed contract submission.
             </p>
           </div>
@@ -200,8 +200,8 @@ export default function CrossAssetPayment() {
           )}
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="bg-[#16161a] border border-zinc-800 rounded-2xl p-8 shadow-2xl backdrop-blur-xl">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
+          <div className="bg-[#16161a] border border-zinc-800 rounded-2xl p-4 sm:p-6 lg:p-8 shadow-2xl backdrop-blur-xl">
             <div className="space-y-6">
               <ContractErrorPanel error={contractError} />
               <div className="flex items-center gap-4">
@@ -291,10 +291,10 @@ export default function CrossAssetPayment() {
             </div>
           </div>
 
-          <div className="space-y-8">
+          <div className="space-y-4 sm:space-y-6 lg:space-y-8">
             {/* Quote Panel */}
             {(isLoadingPaths || paths.length > 0) && (
-              <div className="bg-gradient-to-br from-zinc-900 to-black border border-zinc-800 rounded-2xl p-8 shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="bg-gradient-to-br from-zinc-900 to-black border border-zinc-800 rounded-2xl p-4 sm:p-6 lg:p-8 shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <h3 className="text-lg font-bold flex items-center gap-2 mb-6">
                   <ShieldCheck className="text-emerald-400" />
                   Available Conversion Paths
@@ -356,7 +356,7 @@ export default function CrossAssetPayment() {
             )}
 
             {status !== 'idle' && (
-              <div className="bg-[#16161a] border border-blue-900/30 rounded-2xl p-8 shadow-xl relative overflow-hidden">
+              <div className="bg-[#16161a] border border-blue-900/30 rounded-2xl p-4 sm:p-6 lg:p-8 shadow-xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-4">
                   <div
                     className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest ${status === 'completed' || status === 'confirmed' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-blue-500/20 text-blue-400'}`}

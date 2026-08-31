@@ -10,14 +10,14 @@ export default function Settings() {
   };
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-start p-12 max-w-3xl mx-auto w-full">
-      <div className="w-full mb-12 flex items-end justify-between border-b border-hi pb-8">
+    <div className="flex-1 flex flex-col items-center justify-start p-4 sm:p-6 lg:p-12 max-w-3xl mx-auto w-full">
+      <div className="w-full mb-6 sm:mb-8 lg:mb-12 flex flex-col sm:flex-row sm:items-end sm:justify-between border-b border-hi pb-4 sm:pb-6 lg:pb-8 gap-4">
         <div>
-          <h1 className="text-4xl font-black mb-2 tracking-tight">{t('settings.title')}</h1>
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black mb-2 tracking-tight">{t('settings.title')}</h1>
         </div>
       </div>
 
-      <div className="w-full card glass noise p-8">
+      <div className="w-full card glass noise p-4 sm:p-6 lg:p-8">
         <div className="flex flex-col gap-3">
           <label className="block text-xs font-bold uppercase tracking-widest text-muted">
             {t('settings.languageLabel')}
@@ -51,7 +51,7 @@ export default function Settings() {
 
       <Link
         to="/settings/webhooks"
-        className="w-full card glass noise p-8 mt-8 flex items-center justify-between gap-4 hover:border-hi transition-all"
+        className="w-full card glass noise p-4 sm:p-6 lg:p-8 mt-6 sm:mt-8 flex items-center justify-between gap-4 hover:border-hi transition-all"
       >
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 rounded-xl grid place-items-center bg-accent/10 text-accent">
