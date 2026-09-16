@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Button, Card, Icon } from '@stellar/design-system';
+import { useNotification } from '../hooks/useNotification';
 
 // Define all possible columns for the report
 type ReportColumn = {
@@ -64,6 +65,9 @@ const CustomReportBuilder = () => {
   const [selectedColumns, setSelectedColumns] = useState<string[]>(ALL_COLUMNS.map((c) => c.id));
   const [startDate, setStartDate] = useState<string>('2026-02-01');
   const [endDate, setEndDate] = useState<string>('2026-02-28');
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const { notifySuccess, notifyError } = useNotification();
 
   const toggleColumn = (colId: string) => {
     setSelectedColumns((prev) =>
@@ -83,12 +87,50 @@ const CustomReportBuilder = () => {
     });
   }, [startDate, endDate]);
 
-  const handleExport = () => {
-    // Simulate export logic (e.g. converting filteredData to CSV and triggering download)
-    alert(
-      `Exporting ${filteredData.length} records with columns: ${activeColumns.map((c) => c.label).join(', ')}`
-    );
+  // Escape a cell value for CSV (wrap in quotes if it contains commas, quotes, or newlines)
+  const escapeCsvCell = (value: string): string => {
+    if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+      return `"${value.replace(/"/g, '""')}"`;
+    }
+    return value;
   };
+
+  const handleExport = useCallback(async () => {
+    setExportError(null);
+    setIsExporting(true);
+
+    try {
+      // Simulate a brief async export (e.g. calling a backend endpoint)
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Build CSV string
+      const header = activeColumns.map((c) => c.label).join(',');
+      const rows = filteredData.map((row) =>
+        activeColumns.map((col) => escapeCsvCell(String(row[col.id as keyof typeof row]))).join(',')
+      );
+      const csv = [header, ...rows].join('\n');
+
+      // Trigger download
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `payroll-report-${startDate}-to-${endDate}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      notifySuccess('Export successful', `${filteredData.length} records exported`);
+    } catch (error) {
+      const msg =
+        error instanceof Error ? error.message : 'An unexpected error occurred during export.';
+      setExportError(msg);
+      notifyError('Export failed', msg);
+    } finally {
+      setIsExporting(false);
+    }
+  }, [filteredData, activeColumns, startDate, endDate, notifySuccess, notifyError]);
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8">
@@ -98,6 +140,13 @@ const CustomReportBuilder = () => {
           Select columns and date ranges to preview and export custom payroll data.
         </p>
       </div>
+
+      {exportError && (
+        <div className="rounded-lg border border-red-600/30 bg-red-500/10 px-4 py-3 text-sm text-red-400 flex items-center gap-2">
+          <Icon.AlertCircle className="h-4 w-4 shrink-0" />
+          {exportError}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
         {/* Controls Sidebar */}
@@ -148,13 +197,42 @@ const CustomReportBuilder = () => {
           </Card>
 
           <Button
-            onClick={handleExport}
+            onClick={() => void handleExport()}
             variant="primary"
             size="md"
             className="w-full flex justify-center mt-auto"
+            disabled={isExporting || activeColumns.length === 0 || filteredData.length === 0}
           >
-            <Icon.DownloadCloud01 className="mr-2" />
-            Export Data
+            {isExporting ? (
+              <>
+                <svg
+                  className="animate-spin -ml-1 mr-2 h-4 w-4"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
+                </svg>
+                Exporting...
+              </>
+            ) : (
+              <>
+                <Icon.DownloadCloud01 className="mr-2" />
+                Export Data
+              </>
+            )}
           </Button>
         </div>
 
@@ -170,7 +248,24 @@ const CustomReportBuilder = () => {
               </div>
 
               <div className="overflow-x-auto">
-                {activeColumns.length > 0 ? (
+                {activeColumns.length === 0 ? (
+                  <div className="py-12 text-center border-2 border-dashed border-gray-200 rounded-lg">
+                    <Icon.Filter2 className="h-10 w-10 mx-auto mb-3 text-gray-300" />
+                    <p className="text-gray-500 font-medium">No columns selected</p>
+                    <p className="text-gray-400 text-sm mt-1">
+                      Select at least one column from the sidebar to preview data.
+                    </p>
+                  </div>
+                ) : filteredData.length === 0 ? (
+                  <div className="py-12 text-center border-2 border-dashed border-gray-200 rounded-lg">
+                    <Icon.SearchLg className="h-10 w-10 mx-auto mb-3 text-gray-300" />
+                    <p className="text-gray-500 font-medium">No matching records</p>
+                    <p className="text-gray-400 text-sm mt-1">
+                      No records found for the selected date range. Try adjusting your start or end
+                      date.
+                    </p>
+                  </div>
+                ) : (
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
@@ -197,22 +292,8 @@ const CustomReportBuilder = () => {
                           ))}
                         </tr>
                       ))}
-                      {filteredData.length === 0 && (
-                        <tr>
-                          <td
-                            colSpan={activeColumns.length}
-                            className="px-6 py-8 text-center text-gray-500"
-                          >
-                            No data found for the selected date range.
-                          </td>
-                        </tr>
-                      )}
                     </tbody>
                   </table>
-                ) : (
-                  <div className="py-12 text-center text-gray-500 border-2 border-dashed border-gray-200 rounded-lg">
-                    Please select at least one column to preview data.
-                  </div>
                 )}
               </div>
             </div>
