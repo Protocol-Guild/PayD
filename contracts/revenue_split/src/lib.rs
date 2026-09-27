@@ -1,6 +1,6 @@
 #![no_std]
 
-use soroban_sdk::{contract, contracterror, contractimpl, contracttype, Address, Env, Vec, token, Symbol};
+use soroban_sdk::{contract, contracterror, contractevent, contractimpl, contracttype, Address, Env, Vec, token};
 use common::CommonError;
 
 #[cfg(test)]
@@ -43,6 +43,19 @@ pub struct RecipientShare {
 }
 
 pub const TOTAL_BASIS_POINTS: u32 = 10000; // 100%
+
+// ── Events ────────────────────────────────────────────────────────────────────
+
+/// Emitted once per asset distribution so off-chain indexers can track totals,
+/// recipient counts, and the active split weights (basis points, 10000 = 100%).
+#[contractevent]
+pub struct DistributionExecutedEvent {
+    pub asset: Address,
+    pub total_amount: i128,
+    pub recipient_count: u32,
+    /// Share weights in basis points (10000 = 100%).
+    pub split_percentages: Vec<u32>,
+}
 
 #[contract]
 pub struct RevenueSplitContract;
@@ -109,25 +122,36 @@ impl RevenueSplitContract {
             let mut amount_distributed = 0;
 
             for (i, share) in shares.iter().enumerate() {
-                // Calculate slice of the total amount using basis points
-                // Formula: amount * basis_points / 10000
-                let recipient_amount = (amount as i128 * share.basis_points as i128) / TOTAL_BASIS_POINTS as i128;
-                
-                if recipient_amount > 0 {
-                    // To avoid precision loss dust, the last recipient takes any minor remainders.
-                    if i as u32 == shares.len() - 1 {
-                        let final_amount = amount - amount_distributed;
-                        if final_amount > 0 {
-                            client.transfer(&from, &share.destination, &final_amount);
-                        }
-                    } else {
+                // The last recipient receives the remainder even when its own
+                // rounded share is zero. Otherwise an event could claim that
+                // dust was distributed while the tokens remained with the sender.
+                if i as u32 == shares.len() - 1 {
+                    let final_amount = amount - amount_distributed;
+                    if final_amount > 0 {
+                        client.transfer(&from, &share.destination, &final_amount);
+                    }
+                } else {
+                    let recipient_amount =
+                        (amount * share.basis_points as i128) / TOTAL_BASIS_POINTS as i128;
+                    if recipient_amount > 0 {
                         client.transfer(&from, &share.destination, &recipient_amount);
                         amount_distributed += recipient_amount;
                     }
                 }
             }
 
-            env.events().publish((Symbol::new(&env, "distribute"), token.clone()), amount);
+            let mut split_percentages: Vec<u32> = Vec::new(&env);
+            for share in shares.iter() {
+                split_percentages.push_back(share.basis_points);
+            }
+
+            DistributionExecutedEvent {
+                asset: token.clone(),
+                total_amount: amount,
+                recipient_count: shares.len(),
+                split_percentages,
+            }
+            .publish(&env);
         }
 
         Ok(())
