@@ -1,0 +1,15 @@
+[package]
+name = "payd-contracts"
+version = "48.0.0"
+edition = "2021"
+description = "PayD Protocol Soroban Contracts"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+soroban-sdk = { version = "20.0.0" }
+payd-core = { path = "../payd-core", version = "48.0.0" }
+
+[dev-dependencies]
+soroban-sdk = { version = "20.0.0", features = ["testutils"] }

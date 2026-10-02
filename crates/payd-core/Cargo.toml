@@ -1,0 +1,16 @@
+[package]
+name = "payd-core"
+version = "48.0.0"
+edition = "2021"
+description = "PayD Protocol Core Library"
+
+[dependencies]
+soroban-sdk = { version = "20.0.0", features = ["alloc"] }
+stellar-asset-framework = { version = "20.0.0", optional = true }
+
+[dev-dependencies]
+soroban-sdk = { version = "20.0.0", features = ["testutils"] }
+
+[features]
+default = []
+std = []
