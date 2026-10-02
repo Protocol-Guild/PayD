@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState,useMemo, useCallback } from 'react';
 import {
   BarChart,
   Bar,
@@ -74,9 +74,8 @@ export default function CashFlowForecast() {
     }
   }, [params, notifyError, notifySuccess]);
 
-  useEffect(() => {
-    void loadForecast();
-  }, [loadForecast]);
+  // Removed auto-fetching useEffect to prevent infinite loop on keystrokes
+  // and spurious error toasts on mount when params are empty.
 
   const chartData = useMemo(() => {
     if (!forecast) return [];
