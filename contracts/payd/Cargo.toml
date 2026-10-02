@@ -1,0 +1,32 @@
+[package]
+name = "payd-contracts"
+version = "0.168.0"
+edition = "2021"
+description = "Protocol Guild PayD - Soroban smart contracts"
+
+[lib]
+crate-type = ["cdylib"]
+doctest = false
+
+[dependencies]
+soroban-sdk = "22.0.2"
+minimize = { path = "../core/minimize" }
+
+[dev-dependencies]
+soroban-sdk = { version = "22.0.2", features = ["testutils"] }
+proptest = "1.5.0"
+criterion = "0.5.1"
+
+[[test]]
+name = "integration_tests"
+path = "tests/integration_tests.rs"
+
+[profile.release]
+opt-level = "z"
+overflow-checks = true
+debug = false
+strip = "symbols"
+debug-assertions = false
+panic = "abort"
+codegen-units = 1
+lto = true
