@@ -7,10 +7,10 @@ import {
   getRateLimitStats,
   updateOrganizationTier,
 } from '../organizationRateLimiter.js';
-import pool from '../../db/index.js';
+import pool from '../../config/database.js';
 import logger from '../../utils/logger.js';
 
-jest.mock('../../db/index.js');
+jest.mock('../../config/database.js');
 jest.mock('../../utils/logger.js');
 
 describe('OrganizationRateLimiter', () => {

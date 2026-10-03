@@ -24,7 +24,7 @@ describe('Tenant Security Guard Middleware', () => {
       path: '/api/employees',
       tenantId: 1,
       user: {
-        id: 'user-123',
+        id: 123,
         email: 'test@example.com',
         organizationId: 1,
         role: 'EMPLOYER',
@@ -102,6 +102,7 @@ describe('Tenant Security Guard Middleware', () => {
         expect.objectContaining({
           eventType: 'anomaly_detected',
           severity: 'medium',
+          sourceUserId: 123,
         })
       );
     });
@@ -165,6 +166,7 @@ describe('Tenant Security Guard Middleware', () => {
         expect.objectContaining({
           eventType: 'cross_tenant_access_attempt',
           severity: 'high',
+          sourceUserId: 123,
         })
       );
     });

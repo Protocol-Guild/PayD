@@ -10,7 +10,10 @@ import {
 import { pool } from '../../config/database.js';
 import logger from '../../utils/logger.js';
 
-jest.mock('../../config/database.js');
+jest.mock('../../config/database.js', () => ({
+  ...jest.requireActual('../../config/database.js'),
+  pool: { query: jest.fn(), connect: jest.fn() },
+}));
 jest.mock('../../utils/logger.js');
 
 describe('Enhanced Tenant Isolation Middleware', () => {
@@ -24,7 +27,7 @@ describe('Enhanced Tenant Isolation Middleware', () => {
     mockRequest = {
       tenantId: 1,
       user: {
-        id: 'user-123',
+        id: 123,
         email: 'test@example.com',
         organizationId: 1,
         role: 'EMPLOYER',
@@ -199,14 +202,12 @@ describe('Enhanced Tenant Isolation Middleware', () => {
   });
 
   describe('enforceRLS', () => {
-    it('should set PostgreSQL session variables for RLS', async () => {
+    it('should establish RLS scope without retaining an unused connection', async () => {
       await enforceRLS(mockRequest as Request, mockResponse as Response, nextFunction);
 
       expect(mockPool.connect).toHaveBeenCalled();
-      expect(mockClient.query).toHaveBeenCalledWith('SET LOCAL app.current_tenant_id = $1', [1]);
-      expect(mockClient.query).toHaveBeenCalledWith('SET LOCAL app.current_user_id = $1', [
-        'user-123',
-      ]);
+      expect(mockClient.release).toHaveBeenCalledTimes(1);
+      expect(mockRequest.dbClient?.query).toEqual(expect.any(Function));
       expect(nextFunction).toHaveBeenCalled();
     });
 
@@ -220,11 +221,13 @@ describe('Enhanced Tenant Isolation Middleware', () => {
       }) as any;
 
       await enforceRLS(mockRequest as Request, mockResponse as Response, nextFunction);
+      await mockRequest.dbClient!.query('SELECT 1');
 
       expect(finishCallback).toBeTruthy();
       finishCallback!();
-
-      expect(mockClient.release).toHaveBeenCalled();
+      await Promise.resolve();
+      expect(mockClient.release).toHaveBeenCalledTimes(2);
+      expect(mockRequest.dbClient).toBeNull();
     });
 
     it('should reject when tenant ID is missing', async () => {
@@ -259,7 +262,7 @@ describe('Enhanced Tenant Isolation Middleware', () => {
         'Tenant access',
         expect.objectContaining({
           tenantId: 1,
-          userId: 'user-123',
+          userId: 123,
           method: 'GET',
           path: '/api/employees',
         })
@@ -277,7 +280,7 @@ describe('Enhanced Tenant Isolation Middleware', () => {
         expect.stringContaining('INSERT INTO tenant_access_logs'),
         expect.arrayContaining([
           1,
-          'user-123',
+          123,
           'test@example.com',
           'EMPLOYER',
           'GET',

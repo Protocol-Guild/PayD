@@ -1,5 +1,6 @@
 import cron from 'node-cron';
 import type { ScheduledTask } from 'node-cron';
+import type { PoolClient } from 'pg';
 import pool from '../config/database.js';
 import { tenantQuotaService } from '../services/tenantQuotaService.js';
 import { auditIntegrityService } from '../services/auditIntegrityService.js';
@@ -68,22 +69,34 @@ export function scheduleNightlyIntegrityCheck(): ScheduledJob {
  * Try to acquire a Postgres advisory lock. If this pod wins the lock,
  * execute the job and release; otherwise skip silently.
  *
- * pg_try_advisory_lock is non-blocking and session-scoped: it releases
- * automatically when the client connection returns to the pool.
+ * Session advisory locks survive transaction rollback and pool return. Pair
+ * each successful acquisition with one unlock on that same checked-out client.
  */
-async function runWithAdvisoryLock(
+export async function runWithAdvisoryLock(
   lockId: number,
   jobName: string,
   job: () => Promise<void>,
 ): Promise<void> {
-  const client = await pool.connect();
+  let client: PoolClient | undefined;
+  let acquired = false;
+  let discardClient = false;
   try {
+    client = await pool.connect();
+    // If acquisition fails before we receive its result, the session may still
+    // own the lock. Do not return an uncertain connection to the pool.
+    discardClient = true;
     const { rows } = await client.query<{ acquired: boolean }>(
       'SELECT pg_try_advisory_lock($1) AS acquired',
       [lockId],
     );
 
-    if (!rows[0].acquired) {
+    const lockResult = rows[0];
+    if (!lockResult || typeof lockResult.acquired !== 'boolean') {
+      throw new Error('Advisory lock query returned no result');
+    }
+    acquired = lockResult.acquired;
+    discardClient = false;
+    if (!acquired) {
       logger.debug(`[${jobName}] Lock held by another pod — skipping`);
       return;
     }
@@ -93,7 +106,23 @@ async function runWithAdvisoryLock(
   } catch (err) {
     logger.error(`[${jobName}] Error during leader-elected execution`, { err });
   } finally {
-    client.release();
+    if (client) {
+      if (acquired) {
+        try {
+          const { rows } = await client.query<{ released: boolean }>(
+            'SELECT pg_advisory_unlock($1) AS released',
+            [lockId],
+          );
+          if (rows[0]?.released !== true) {
+            throw new Error('Advisory lock was not held during cleanup');
+          }
+        } catch (err) {
+          discardClient = true;
+          logger.error(`[${jobName}] Failed to release advisory lock; discarding connection`, { err });
+        }
+      }
+      client.release(discardClient);
+    }
   }
 }
 

@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import pool from '../db/index.js';
+import pool from '../config/database.js';
 import logger from '../utils/logger.js';
+import { parseRouteInteger } from '../utils/routeParams.js';
 
 /**
  * Security event severity levels
@@ -39,12 +40,12 @@ function getOrganizationId(req: Request): number | null {
     return (req as any).organizationId;
   }
 
-  if (req.query.organizationId) {
-    return parseInt(req.query.organizationId as string, 10);
+  if (typeof req.query.organizationId === 'string') {
+    return parseInt(req.query.organizationId, 10);
   }
 
-  if (req.params.organizationId) {
-    return parseInt(req.params.organizationId, 10);
+  if (typeof req.params.organizationId === 'string') {
+    return parseRouteInteger(req.params.organizationId);
   }
 
   return null;
@@ -213,7 +214,7 @@ export function strictTenantBoundaryCheck(): (
         requestedOrganizationId,
         req.method === 'GET' ? 'read' : req.method === 'DELETE' ? 'delete' : 'write',
         req.path.split('/')[2] || 'unknown',
-        req.params.id || null,
+        typeof req.params.id === 'string' ? req.params.id : null,
         false,
         'Cross-tenant access denied',
         ipAddress,
@@ -337,7 +338,8 @@ export function monitorTenantAccessPattern(): (
 
     // Extract resource info
     const resourceType = req.path.split('/')[2] || 'unknown';
-    const resourceId = req.params.id || req.params[Object.keys(req.params)[0]] || null;
+    const resourceParam = req.params.id || Object.values(req.params)[0];
+    const resourceId = typeof resourceParam === 'string' ? resourceParam : null;
 
     // Log the access (fire-and-forget)
     logTenantAccess(
@@ -476,26 +478,18 @@ export function comprehensiveTenantSecurity(): (
       detectSqlInjection(),
     ];
 
-    const executeChain = async (index: number): Promise<void> => {
-      if (index >= chain.length) {
-        return next();
-      }
-
-      return new Promise((resolve, reject) => {
-        chain[index](req, res, (err?: any) => {
-          if (err) {
-            reject(err);
-          } else if (res.headersSent) {
-            resolve();
-          } else {
-            executeChain(index + 1).then(resolve).catch(reject);
-          }
-        });
-      });
-    };
-
     try {
-      await executeChain(0);
+      for (const middleware of chain) {
+        let shouldContinue = false;
+        let middlewareError: unknown;
+        await middleware(req, res, (error?: unknown) => {
+          middlewareError = error;
+          shouldContinue = !error;
+        });
+        if (middlewareError) throw middlewareError;
+        if (res.headersSent || !shouldContinue) return;
+      }
+      next();
     } catch (error) {
       next(error);
     }
@@ -579,7 +573,7 @@ export async function resolveSecurityEvent(
     [eventId, resolvedBy]
   );
 
-  return result.rowCount > 0;
+  return (result.rowCount ?? 0) > 0;
 }
 
 /**
