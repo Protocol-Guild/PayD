@@ -1,6 +1,7 @@
 # Staging database and API
 
-Copy `backend/.env.staging.example` to `backend/.env.staging` and set independent
+Run the commands below from the repository root. Copy
+`backend/.env.staging.example` to `backend/.env.staging` and set independent
 database-owner, application, JWT, and JWT-refresh secrets. The application and
 owner database usernames must differ. Every Compose command uses the same file:
 
@@ -16,9 +17,10 @@ testnet; staging does not inherit a production `.env` file.
 
 PostgreSQL becomes healthy only when its normal TCP listener is available. The
 `migrate` service then applies **every** SQL migration in filename order through
-the same migration core as `npm run db:migrate`. It records each file's checksum
-and SQL changes in one transaction, serializes simultaneous migration runs with an
-advisory lock, and rejects changed applied files before executing pending SQL.
+the same migration core as `npm --prefix backend run db:migrate`. It records each
+file's checksum and SQL changes in one transaction, serializes simultaneous
+migration runs with an advisory lock, and rejects changed applied files before
+executing pending SQL.
 Migration SQL is included in both the migration image and the production image.
 
 After migration, one transaction loads `src/db/seed.sql`, records its `seed-v1`
@@ -79,9 +81,20 @@ All `/api/admin` routes require an access token and the `ADMIN` role before the
 existing justification and audit requirements. A reason header alone grants no
 access, and a two-factor challenge token cannot be used as an access token.
 
-After `npm run build`, run the pool lifecycle checks with
-`node --test tests/tenant-pool.test.mjs`. The SQL and HTTP acceptance command is
-`node tests/tenant-rls-postgres.mjs`; it requires `RLS_TEST_DATABASE_URL` for a
+Build the API and run the pool lifecycle checks from the repository root:
+
+```sh
+(cd backend && npm run build && node --test tests/tenant-pool.test.mjs)
+```
+
+Run the SQL and HTTP acceptance command from the backend directory as well:
+
+```sh
+(cd backend && node tests/tenant-rls-postgres.mjs)
+```
+
+The subshells leave the working directory at the repository root for subsequent
+Compose commands. The SQL and HTTP command requires `RLS_TEST_DATABASE_URL` for a
 disposable database owner's connection, plus `STAGING_DB_USER` and
 `STAGING_DB_PASSWORD` for a distinct application role. It initializes that
 database and creates dedicated regression fixtures. Native mode connects using
@@ -90,10 +103,11 @@ harness and does not establish native PostgreSQL authentication or concurrency.
 
 ## Build and verification boundaries
 
-`npm run build` compiles production sources with the existing strict checks and
-refuses to emit on a compiler error. Tests remain available through `npm test`;
-`npm run typecheck` checks the complete source and test graph without emitting.
-The complete typecheck still exposes inherited test-source diagnostics and must
+`npm --prefix backend run build` compiles production sources with the existing
+strict checks and refuses to emit on a compiler error. Tests remain available
+through `npm --prefix backend test`; `npm --prefix backend run typecheck` checks
+the complete source and test graph without emitting. The complete typecheck
+still exposes inherited test-source diagnostics and must
 not be reported as passing merely because the production build succeeds.
 
 The image includes SQL migrations, the staging entrypoint, and `.well-known`
