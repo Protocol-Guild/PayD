@@ -40,6 +40,7 @@ export default function CrossAssetPayment() {
   const [submissionTxHash, setSubmissionTxHash] = useState<string | null>(null);
   const [liveStatusMessage, setLiveStatusMessage] = useState<string>('Waiting for submission...');
   const [status, setStatus] = useState<string>('idle');
+  const isComplete = status === 'success' || status === 'completed' || status === 'confirmed';
 
   const requestKey = JSON.stringify([assetIn, assetOut, amount]);
   const parsedAmount = Number(amount);
@@ -424,7 +425,7 @@ export default function CrossAssetPayment() {
               <div className="bg-[#16161a] border border-blue-900/30 rounded-2xl p-8 shadow-xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-4">
                   <div
-                    className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest ${status === 'completed' || status === 'confirmed' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-blue-500/20 text-blue-400'}`}
+                    className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest ${isComplete ? 'bg-emerald-500/20 text-emerald-400' : 'bg-blue-500/20 text-blue-400'}`}
                   >
                     {status}
                   </div>
@@ -446,7 +447,7 @@ export default function CrossAssetPayment() {
 
                   <div className="flex items-center gap-4">
                     <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center ${status === 'pending' || status === 'completed' || status === 'confirmed' ? 'bg-emerald-500' : 'bg-(--muted)/40'}`}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center ${status === 'pending' || isComplete ? 'bg-emerald-500' : 'bg-(--muted)/40'}`}
                     >
                       {status === 'pending' ? (
                         <Loader2 className="h-5 w-5 animate-spin" />
@@ -462,9 +463,9 @@ export default function CrossAssetPayment() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4 opacity-50">
+                  <div className={`flex items-center gap-4 ${isComplete ? '' : 'opacity-50'}`}>
                     <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center ${status === 'completed' || status === 'confirmed' ? 'bg-emerald-500' : 'bg-(--muted)/40'}`}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center ${isComplete ? 'bg-emerald-500' : 'bg-(--muted)/40'}`}
                     >
                       <CheckCircle2 className="h-5 w-5 text-(--text)" />
                     </div>
