@@ -201,6 +201,68 @@ describe('errorHandler with the Express body parsers', () => {
     }
   );
 
+  it.each(['application/json', 'application/x-www-form-urlencoded'])(
+    'preserves a sanitized 415 for an unsupported %s charset',
+    async (contentType) => {
+      const response = await request(createApp())
+        .post('/body')
+        .set('Content-Type', `${contentType}; charset=private-unsupported-charset`)
+        .set('X-Request-ID', 'charset-request')
+        .send('private-request-body');
+
+      expect(response.status).toBe(415);
+      expect(response.headers['x-request-id']).toBe('charset-request');
+      expect(response.body).toEqual({
+        error: 'AppError',
+        message: 'Unsupported request body charset',
+        code: 'UNSUPPORTED_MEDIA_TYPE',
+        requestId: 'charset-request',
+      });
+      expect(logger.error).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each(['application/json', 'application/x-www-form-urlencoded'])(
+    'preserves a sanitized 415 for unsupported %s content encoding',
+    async (contentType) => {
+      const response = await request(createApp())
+        .post('/body')
+        .set('Content-Type', contentType)
+        .set('Content-Encoding', 'private-unsupported-encoding')
+        .set('X-Request-ID', 'encoding-request')
+        .send('private-request-body');
+
+      expect(response.status).toBe(415);
+      expect(response.headers['x-request-id']).toBe('encoding-request');
+      expect(response.body).toEqual({
+        error: 'AppError',
+        message: 'Unsupported request body encoding',
+        code: 'UNSUPPORTED_MEDIA_TYPE',
+        requestId: 'encoding-request',
+      });
+      expect(logger.error).not.toHaveBeenCalled();
+    }
+  );
+
+  it('preserves 413 when form parameters exceed the parser limit', async () => {
+    const body = Array.from({ length: 1001 }, (_, index) => `p${index}=private-value`).join('&');
+    const response = await request(createApp())
+      .post('/body')
+      .set('Content-Type', 'application/x-www-form-urlencoded')
+      .set('X-Request-ID', 'parameters-request')
+      .send(body);
+
+    expect(response.status).toBe(413);
+    expect(response.headers['x-request-id']).toBe('parameters-request');
+    expect(response.body).toEqual({
+      error: 'AppError',
+      message: 'Too many request body parameters',
+      code: 'PAYLOAD_TOO_LARGE',
+      requestId: 'parameters-request',
+    });
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
   it('includes the original parser stack only in development', async () => {
     (config as any).nodeEnv = 'development';
     const response = await request(createApp())

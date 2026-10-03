@@ -29,6 +29,12 @@ function normalizeBodyParserError(err: unknown): unknown {
     normalized = new ValidationError('Invalid request body');
   } else if (parserError.type === 'entity.too.large' && parserError.status === 413) {
     normalized = new AppError('Request body is too large', 413, 'PAYLOAD_TOO_LARGE');
+  } else if (parserError.type === 'parameters.too.many' && parserError.status === 413) {
+    normalized = new AppError('Too many request body parameters', 413, 'PAYLOAD_TOO_LARGE');
+  } else if (parserError.type === 'charset.unsupported' && parserError.status === 415) {
+    normalized = new AppError('Unsupported request body charset', 415, 'UNSUPPORTED_MEDIA_TYPE');
+  } else if (parserError.type === 'encoding.unsupported' && parserError.status === 415) {
+    normalized = new AppError('Unsupported request body encoding', 415, 'UNSUPPORTED_MEDIA_TYPE');
   } else {
     return err;
   }
