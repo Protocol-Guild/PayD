@@ -38,6 +38,7 @@ backend:
     DB_USER: ""
     DB_PASSWORD: ""
     JWT_SECRET: ""
+    JWT_REFRESH_SECRET: ""  # Required: staging uses the production runtime
     STELLAR_SECRET_KEY: ""
     ANCHOR_API_KEY: ""
     SDS_API_KEY: ""
