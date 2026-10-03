@@ -144,72 +144,20 @@ Every payment includes:
 
 ## 🚀 Getting Started
 
-### Prerequisites
+Start with the [contributor prerequisites](./CONTRIBUTING.md#prerequisites), then
+clone the repository:
 
-Ensure you have the following installed:
+```bash
+git clone https://github.com/Protocol-Guild/PayD.git
+cd PayD
+```
 
-- **Node.js** v22+
-- **npm** or **yarn**
-- **Rust** (for Soroban contracts)
-- **Stellar CLI**
-- **Docker** (optional, for local development)
+Follow the [local development setup](./CONTRIBUTING.md#local-development-setup)
+for dependency installation, environment files, database setup, and commands to
+run the frontend, backend, and optional contract workflow. The guide distinguishes
+standalone frontend Vite from the root Stellar scaffold workflow and keeps the
+local API port aligned with the frontend proxy.
 
-### Installation
-
-1. **Clone the repository:**
-   ```bash
-   git clone [https://github.com/your-org/payD.git](https://github.com/your-org/payD.git)
-   cd payD
-   Install dependencies:
-   bash
-   npm install
-   Environment Setup:
-   bash
-   cp .env.example .env
-   ```
-
-# Edit .env with your configuration
-
-Database Setup:
-bash
-
-# Using Docker
-
-docker run --name payd-postgres -e POSTGRES_PASSWORD=mypassword -d postgres:15
-
-# Or set up PostgreSQL manually
-
-Configuration
-Edit
-.env
-with the following key variables:
-
-env
-
-# Stellar Network
-
-STELLAR_NETWORK=testnet # or mainnet
-STELLAR_HORIZON_URL=https://horizon-testnet.stellar.org
-
-# Database
-
-DATABASE_URL=postgresql://user:password@localhost:5432/payd
-
-# API Keys
-
-STELLAR_SECRET_KEY=your_issuer_secret_key
-ANCHOR_API_KEY=your_anchor_service_key
-
-# JWT
-
-JWT_SECRET=your_jwt_secret
-Development
-Start the development server:
-bash
-npm run dev
-Build for production:
-bash
-npm run build
-Run tests:
-bash
-npm run test.
+Use the [testing guide](./CONTRIBUTING.md#testing-guide) for the commands for each
+component, and the [pull request process](./CONTRIBUTING.md#pull-request-process)
+when contributing a change.
