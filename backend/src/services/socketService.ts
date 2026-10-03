@@ -11,6 +11,11 @@ export const initializeSocket = (httpServer: HttpServer) => {
       methods: ['GET', 'POST'],
       credentials: true,
     },
+    allowRequest(req, callback) {
+      // CORS does not restrict WebSocket handshakes.
+      const origin = req.headers.origin;
+      callback(null, !origin || allowedCorsOrigins.includes(origin));
+    },
   });
 
   io.on('connection', (socket: Socket) => {
