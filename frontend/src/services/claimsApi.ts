@@ -1,6 +1,5 @@
 import axios from 'axios';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
+import { API_V1_BASE_URL } from '../config/api';
 
 export interface PendingClaimRecord {
   id: string;
@@ -16,7 +15,7 @@ export interface PendingClaimRecord {
 
 export const fetchPendingClaims = async (walletAddress: string): Promise<PendingClaimRecord[]> => {
   const { data } = await axios.get<{ success: boolean; data: PendingClaimRecord[] }>(
-    `${API_BASE_URL}/claims/pending`,
+    `${API_V1_BASE_URL}/claims/pending`,
     {
       params: { walletAddress },
     }

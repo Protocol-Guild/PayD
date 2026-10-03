@@ -1,6 +1,5 @@
 import axios from 'axios';
-
-const API_BASE_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:3000/api';
+import { API_BASE_URL } from '../config/api';
 
 export interface PathRecord {
   source_asset_type: string;

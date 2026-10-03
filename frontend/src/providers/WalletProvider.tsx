@@ -35,8 +35,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const { t } = useTranslation();
   const { notify, notifySuccess, notifyError } = useNotification();
 
-  // `vite.config.ts` sets `envPrefix: 'PUBLIC_'`, so `VITE_`-prefixed vars are
-  // not exposed; read `PUBLIC_STELLAR_NETWORK` like the rest of the app does.
+  // Prefer the existing PUBLIC_STELLAR_NETWORK setting, with
+  // VITE_STELLAR_NETWORK retained as a compatibility fallback.
   // Map the network name (e.g. "TESTNET") to the passphrase the kit expects,
   // falling back to TESTNET so an unset/unknown value never crashes the app.
   const networkName = (

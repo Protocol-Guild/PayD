@@ -1,6 +1,5 @@
 import axios from 'axios';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
+import { API_V1_BASE_URL } from '../config/api';
 
 export interface ForecastLiquidity {
   status: 'green' | 'yellow' | 'red';
@@ -59,7 +58,7 @@ function authHeaders() {
 
 export const getForecast = async (monthsForward: number = 6): Promise<ForecastResponse> => {
   const { data } = await axios.get<{ success: boolean; data: ForecastResponse }>(
-    `${API_BASE_URL}/forecast`,
+    `${API_V1_BASE_URL}/forecast`,
     {
       params: { monthsForward },
       headers: authHeaders(),
@@ -70,7 +69,7 @@ export const getForecast = async (monthsForward: number = 6): Promise<ForecastRe
 
 export const getLiquiditySettings = async (): Promise<LiquiditySettings | null> => {
   const { data } = await axios.get<{ success: boolean; data: LiquiditySettings | null }>(
-    `${API_BASE_URL}/forecast/settings`,
+    `${API_V1_BASE_URL}/forecast/settings`,
     {
       headers: authHeaders(),
     }
@@ -82,7 +81,7 @@ export const updateLiquiditySettings = async (
   input: LiquiditySettings
 ): Promise<LiquiditySettings> => {
   const { data } = await axios.put<{ success: boolean; data: LiquiditySettings }>(
-    `${API_BASE_URL}/forecast/settings`,
+    `${API_V1_BASE_URL}/forecast/settings`,
     input,
     { headers: authHeaders() }
   );

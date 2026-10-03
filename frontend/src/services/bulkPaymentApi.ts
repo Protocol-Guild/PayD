@@ -1,6 +1,5 @@
 import axios from 'axios';
-
-const API_BASE_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:3001/api/v1';
+import { API_V1_BASE_URL } from '../config/api';
 
 export type RecipientStatus = 'pending' | 'confirmed' | 'failed';
 
@@ -44,7 +43,7 @@ export const fetchBulkPaymentBatches = async (
   filters: BulkPaymentFilters = {}
 ): Promise<BulkPaymentListResponse> => {
   try {
-    const { data } = await axios.get<BulkPaymentListResponse>(`${API_BASE_URL}/bulk-payments`, {
+    const { data } = await axios.get<BulkPaymentListResponse>(`${API_V1_BASE_URL}/bulk-payments`, {
       params: filters,
     });
     return data;
@@ -59,7 +58,7 @@ export const retryBatchPayment = async (
 ): Promise<{ success: boolean; txHash?: string; error?: string }> => {
   try {
     const { data } = await axios.post<{ success: boolean; txHash?: string; error?: string }>(
-      `${API_BASE_URL}/bulk-payments/${batchId}/retry`
+      `${API_V1_BASE_URL}/bulk-payments/${batchId}/retry`
     );
     return data;
   } catch {

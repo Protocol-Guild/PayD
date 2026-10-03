@@ -1,7 +1,5 @@
 import axios, { type AxiosError } from 'axios';
-
-const API_BASE_URL =
-  (import.meta.env.VITE_API_BASE_URL as string | undefined) || 'http://localhost:3001';
+import { API_BASE_URL } from '../config/api';
 
 export interface CertificateGenerationParams {
   employeeId: number;
@@ -50,7 +48,7 @@ export interface CertificateVerificationResult {
  */
 export const generateCertificate = async (params: CertificateGenerationParams): Promise<Blob> => {
   try {
-    const response = await axios.get<Blob>(`${API_BASE_URL}/api/certificates/generate`, {
+    const response = await axios.get<Blob>(`${API_BASE_URL}/certificates/generate`, {
       params,
       responseType: 'blob',
     });
@@ -95,7 +93,7 @@ export const verifyCertificate = async (
 ): Promise<CertificateVerificationResult> => {
   try {
     const response = await axios.get<CertificateVerificationResult>(
-      `${API_BASE_URL}/api/certificates/verify`,
+      `${API_BASE_URL}/certificates/verify`,
       {
         params,
       }
@@ -137,7 +135,7 @@ export const getTransactionInfo = async (
 ): Promise<{ employeeId: number; organizationId: number } | null> => {
   try {
     const response = await axios.get<TransactionInfoResponse>(
-      `${API_BASE_URL}/api/certificates/transaction-info`,
+      `${API_BASE_URL}/certificates/transaction-info`,
       {
         params: { transactionHash },
       }

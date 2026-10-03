@@ -1,6 +1,5 @@
 import axios from 'axios';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
+import { API_V1_BASE_URL } from '../config/api';
 
 function authHeaders() {
   const token = localStorage.getItem('payd_auth_token');
@@ -30,7 +29,7 @@ export interface DraftPayslip {
 
 export const getMyDeductionsDraftPayslip = async (): Promise<DraftPayslip> => {
   const { data } = await axios.get<{ success: boolean; data: DraftPayslip }>(
-    `${API_BASE_URL}/benefits/me/deductions`,
+    `${API_V1_BASE_URL}/benefits/me/deductions`,
     {
       headers: authHeaders(),
     }

@@ -1,8 +1,7 @@
 import axios from 'axios';
+import { API_BASE_URL } from '../config/api';
 
-const RAW_API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api/v1';
-const API_ROOT = RAW_API_URL.replace(/\/api\/v1\/?$/, '').replace(/\/api\/?$/, '');
-const TWO_FACTOR_URL = `${API_ROOT}/api/auth/2fa`;
+const TWO_FACTOR_URL = `${API_BASE_URL}/auth/2fa`;
 
 function authHeaders() {
   const token = localStorage.getItem('payd_auth_token');
