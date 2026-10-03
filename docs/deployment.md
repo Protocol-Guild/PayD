@@ -53,11 +53,16 @@ kubectl create secret generic payd-backend-secrets \
   --from-literal=DB_USER="your_db_user" \
   --from-literal=DB_PASSWORD="your_db_password" \
   --from-literal=JWT_SECRET="$(openssl rand -hex 32)" \
+  --from-literal=JWT_REFRESH_SECRET="$(openssl rand -hex 32)" \
   --from-literal=STELLAR_SECRET_KEY="your_stellar_secret_key" \
   --from-literal=ANCHOR_API_KEY="your_anchor_api_key" \
   --from-literal=SDS_API_KEY="your_sds_api_key" \
   --dry-run=client -o yaml | kubectl apply -f -
 ```
+
+Keep `JWT_REFRESH_SECRET` separate from `JWT_SECRET`. The
+[backend Deployment](../k8s/base/backend-deployment.yaml) requires the refresh
+key before new containers can start.
 
 The manual Secret alone does not make `kubectl apply -k k8s/base/` work on a
 cluster without ESO CRDs. Use the separate non-ESO local apply commands in
