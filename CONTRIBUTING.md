@@ -66,7 +66,7 @@ Install these before cloning:
 | **Node.js** 22+ | Frontend and backend |
 | **npm** (or yarn/pnpm) | Package management |
 | **Docker** (optional) | Local Postgres / Redis |
-| **Rust** + **Stellar CLI** | Only needed for contract work |
+| **Rust** + **Stellar CLI/scaffold tooling** | Root scaffold workflow or contract work |
 | **Git** | Branching and PRs |
 
 ## Local development setup
@@ -99,18 +99,28 @@ Copy the example env files and edit secrets for your machine:
 
 ```bash
 cp .env.example .env
+cp .env.example frontend/.env
 cp backend/.env.example backend/.env
 ```
 
+The root `.env` configures the scaffold workflow. Vite launched from `frontend/`
+reads `frontend/.env`; configure its `PUBLIC_STELLAR_*` values for your network.
+The [frontend Vite config](./frontend/vite.config.ts) uses Vite's default
+[environment directory](https://vite.dev/config/shared-options#envdir).
+
+In `backend/.env`, keep one `PORT=3000` assignment and remove the duplicate `PORT`
+entries copied from the example. This local setting matches the frontend's
+`/api` proxy at `http://localhost:3000`. If you choose another API port, update
+that proxy target and the health-check URL together.
+
 Important backend variables (see `backend/.env.example`):
 
-- `PORT` — API port (default `3001`)
+- `PORT` — use `3000` for the local setup above; the
+  [backend config](./backend/src/config/index.ts) falls back to `3001` when unset
 - `DATABASE_URL` / `DB_*` — Postgres connection
 - `STELLAR_HORIZON_URL` / `STELLAR_NETWORK_PASSPHRASE` — network target
 - `SDS_*` — optional Stellar Data Service settings
 - `NODE_ENV` — `development` for verbose errors; never leak stacks in production
-
-Frontend public vars are prefixed with `PUBLIC_STELLAR_*` in `.env.example`.
 
 ### 3. Database
 
@@ -133,21 +143,34 @@ npm run db:verify-schema
 
 ### 4. Run the apps
 
-**Backend** (API on port 3001 by default):
+Use separate terminals for the backend and frontend. Start each command block
+below from the repository root.
+
+**Backend** (API on port 3000 with the local configuration above):
 
 ```bash
 cd backend
 npm run dev
 ```
 
-**Frontend** (Vite):
+**Frontend** (standalone Vite project):
 
 ```bash
-# from repo root
+cd frontend
 npm run dev
-# or
-cd frontend && npm run dev
 ```
+
+This invokes `vite` via [frontend/package.json](./frontend/package.json).
+
+**Root scaffold workflow** (Stellar contract watcher and Vite):
+
+```bash
+npm run dev
+```
+
+The root [package.json](./package.json) maps `dev` to `npm start`, which runs
+`stellar scaffold watch --build-clients` and `vite` concurrently. Install the
+Rust and Stellar CLI/scaffold tooling before using this workflow.
 
 **Contracts** (optional):
 
@@ -157,7 +180,7 @@ cargo build --release
 # or use Stellar CLI / scaffold workflows as documented in contract READMEs
 ```
 
-Health check: `GET http://localhost:3001/health`
+Health check for the local configuration above: `GET http://localhost:3000/health`
 
 ## Code style and standards
 
