@@ -179,34 +179,49 @@ The supplied keys are `VITE_API_URL`, `VITE_STELLAR_NETWORK`,
 production currently inherit all four default entries, including the internal
 `http://payd-backend:3001` URL and TESTNET labels.
 
-This chart selects a prebuilt frontend image. It does not rebuild browser assets
-or generate browser runtime configuration. An image needs its own explicit
-runtime mechanism to make pod variables visible to the browser; otherwise its
-public endpoints and network settings must be established when building its
-assets. The repository does not supply a frontend image recipe or such a
-runtime mechanism at this revision.
+This chart selects a prebuilt frontend image. The supplied
+[frontend Dockerfile](../../frontend/Dockerfile) builds static Vite assets and
+serves them through Nginx on port 80. Follow the
+[frontend deployment guide](../../frontend/DEPLOYMENT.md#build-a-staging-image)
+to build an image with the environment's public API origin and matching Stellar
+network, Horizon and Soroban RPC endpoints, then select that image through
+`frontend.image.repository` and `frontend.image.tag`.
 
-The checked-in [Vite configuration](../../frontend/vite.config.ts) exposes
-both `PUBLIC_` and `VITE_` variables supplied to the frontend build. This
-preserves existing `PUBLIC_` consumers and makes `VITE_API_URL`,
-`VITE_API_BASE_URL` and the other public `VITE_` settings available through
-`import.meta.env`. Values under either prefix are bundled into client code;
-use them only for public configuration. API path conventions still differ:
+Those public settings are established when the assets are built. The chart does
+not rebuild them, and the supplied image has no mechanism that copies pod
+environment variables into browser configuration. Changing `frontend.config`
+alone therefore does not change an existing bundle. Do not use a cluster-only
+service hostname as a public browser URL.
 
-| Source consumer | Path composition |
+The checked-in [Vite configuration](../../frontend/vite.config.ts) exposes both
+`PUBLIC_` and `VITE_` build inputs. Nonempty `PUBLIC_` Stellar values take
+precedence over their corresponding legacy `VITE_` aliases. Values under either
+prefix are bundled into client code; use them only for public configuration.
+
+The shared [API configuration](../../frontend/src/config/api.ts) resolves one
+origin from `VITE_API_URL`, with `VITE_API_BASE_URL` and `VITE_BACKEND_URL` as
+compatibility aliases. Legacy values ending in `/api` or `/api/v1` normalize to
+the same origin before clients add their route prefixes:
+
+| Source consumer | Current path composition |
 |---|---|
-| `frontend/src/services/scheduleApi.ts` | Appends `/schedules`; the backend mounts schedules at `/api/schedules`. |
-| `frontend/src/services/benefitsApi.ts`, `forecastApi.ts` | Append paths served below `/api/v1`. |
-| `frontend/src/services/transactionHistory.ts` | Appends `/api/v1/audit` and `/api/events/...` itself, expecting an origin. |
-| `frontend/src/providers/SocketProvider.tsx` | Passes the same configured URL to Socket.IO. |
-| `frontend/src/services/contracts.ts` | Reads the separate `VITE_API_BASE_URL` setting. |
+| `frontend/src/services/scheduleApi.ts` | Shared `API_BASE_URL` plus `/schedules` gives `/api/schedules`. |
+| `frontend/src/services/benefitsApi.ts`, `forecastApi.ts` | Shared `API_V1_BASE_URL` supplies the `/api/v1` prefix. |
+| `frontend/src/services/transactionHistory.ts` | Uses `API_V1_BASE_URL` for `/api/v1/audit` and `API_BASE_URL` for `/api/events/...`. |
+| `frontend/src/providers/SocketProvider.tsx` | Passes shared `API_ORIGIN` to Socket.IO, without an API prefix. |
+| `frontend/src/services/contracts.ts` | Uses shared `API_BASE_URL` for `/api/contracts`. |
 
-The corresponding route mounts are in [backend/src/app.ts](../../backend/src/app.ts)
-and [backend/src/routes/v1/index.ts](../../backend/src/routes/v1/index.ts). A
-universal Helm `VITE_API_URL` override does not resolve these differences.
-Frontend delivery therefore still needs consistent API-origin/path composition
-and a verified frontend image configuration contract. Do not use a
-cluster-only service hostname as a public browser URL.
+A deliberate same-origin build requires a reverse proxy for backend paths; the
+static Nginx image does not supply that proxy. The chart's separate frontend and
+backend hosts require an explicit public API origin. See the deployment guide
+for the supported build inputs and route configuration.
+
+Consistent host and prefix composition does not add missing backend handlers.
+The deployment guide separately records the still-unmounted `/api/v1/claims`,
+`/api/v1/bulk-payments`, `/api/withdrawal` and
+`POST /api/v1/payments/pathfind` contracts. The corresponding current mounts
+are in [backend/src/app.ts](../../backend/src/app.ts) and
+[backend/src/routes/v1/index.ts](../../backend/src/routes/v1/index.ts).
 
 ## Render the configured chart
 
