@@ -98,6 +98,9 @@ app.use(
   )
 );
 
+// Liveness must not wait for Redis-backed limits or other dependency middleware.
+app.get('/health/live', HealthController.getLiveness);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
@@ -132,9 +135,8 @@ app.get('/.well-known/stellar.toml', (req, res) => {
   res.sendFile(path.join(__dirname, '../.well-known/stellar.toml'));
 });
 
-// Health check endpoints (public / unauthenticated)
+// Dependency readiness endpoint (public / unauthenticated)
 app.get('/health', HealthController.getHealthStatus);
-app.get('/health/live', HealthController.getLiveness);
 
 // Middleware for versioning
 app.use(apiVersionMiddleware);
