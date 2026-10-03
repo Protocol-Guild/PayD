@@ -29,6 +29,7 @@ COPY package*.json ./
 RUN npm ci --only=production
 
 COPY --from=builder /usr/src/app/dist ./dist
+COPY .well-known/ ./.well-known/
 COPY src/db/migrations-core.mjs ./dist/db/migrations-core.mjs
 COPY src/db/migrations/ ./dist/db/migrations/
 COPY staging/start.mjs ./staging/start.mjs

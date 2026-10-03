@@ -50,6 +50,10 @@ privileged roles are rejected rather than silently repurposed. PostgreSQL 15
 views use `security_invoker` so the application cannot bypass table RLS through
 an owner-created view.
 
+Bootstrap refuses a role that owns a schema and refuses to add synthetic seed
+data to an already populated database without its seed marker. Use an independent
+Compose project for a fresh staging dataset; existing data is preserved.
+
 The tenant policies use `app.current_tenant_id`. JWT authentication establishes
 the signed user's organization and user ID in the asynchronous request context.
 The shared database pool applies both values with parameterized `set_config`
@@ -65,6 +69,16 @@ remain under service control. The legacy request `dbClient` acquires its
 connection only when used, so an unused request connection cannot exhaust the
 pool while service queries wait. Environment flags alone do not grant access.
 
+Employee operations and quota counts also open a transaction with a local tenant
+setting on the same client. This keeps direct service calls scoped when no HTTP
+request context exists. Bulk imports retain their existing transaction and set
+its tenant before inserting rows. Successful operations commit before responding;
+failures roll back, and a connection with failed rollback is discarded.
+
+All `/api/admin` routes require an access token and the `ADMIN` role before the
+existing justification and audit requirements. A reason header alone grants no
+access, and a two-factor challenge token cannot be used as an access token.
+
 After `npm run build`, run the pool lifecycle checks with
 `node --test tests/tenant-pool.test.mjs`. The SQL and HTTP acceptance command is
 `node tests/tenant-rls-postgres.mjs`; it requires `RLS_TEST_DATABASE_URL` for a
@@ -73,6 +87,23 @@ disposable database owner's connection, plus `STAGING_DB_USER` and
 database and creates dedicated regression fixtures. Native mode connects using
 the application login. Its explicit `--pglite` mode is only for a local WASM
 harness and does not establish native PostgreSQL authentication or concurrency.
+
+## Build and verification boundaries
+
+`npm run build` compiles production sources with the existing strict checks and
+refuses to emit on a compiler error. Tests remain available through `npm test`;
+`npm run typecheck` checks the complete source and test graph without emitting.
+The complete typecheck still exposes inherited test-source diagnostics and must
+not be reported as passing merely because the production build succeeds.
+
+The image includes SQL migrations, the staging entrypoint, and `.well-known`
+assets. Local `.env` files are excluded from the Docker context.
+
+`/health/live` reports that the API process can answer. `/health` separately
+checks PostgreSQL, Redis, and Horizon and returns 503 when a configured dependency
+fails. Local SQL or HTTP verification does not establish a successful Docker
+Compose deployment, native PostgreSQL login/concurrency, or a reachable external
+Horizon service; run the complete stack before reporting those deployment facts.
 
 ## Volumes created by the previous partial staging stack
 

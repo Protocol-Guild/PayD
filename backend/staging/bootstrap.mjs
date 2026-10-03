@@ -29,6 +29,7 @@ async function main() {
       const { rows: [ownership] } = await client.query(`SELECT
         EXISTS(SELECT 1 FROM pg_class WHERE relowner = $1 AND relnamespace = 'public'::regnamespace)
         OR EXISTS(SELECT 1 FROM pg_database WHERE datdba = $1)
+        OR EXISTS(SELECT 1 FROM pg_namespace WHERE nspowner = $1)
         OR EXISTS(SELECT 1 FROM pg_auth_members WHERE member = $1) AS privileged`, [existing.oid]);
       if (existing.rolsuper || existing.rolbypassrls || existing.rolcreatedb || existing.rolcreaterole || existing.rolreplication || ownership.privileged) {
         throw new Error('STAGING_DB_USER already owns objects or has privileged roles. Choose a separate unprivileged application role; the existing role was not changed.');
@@ -42,13 +43,20 @@ async function main() {
       )`);
       const seed = await client.query("SELECT 1 FROM staging_bootstrap WHERE name = 'seed-v1'");
       if (!seed.rowCount) {
+        const { rows: [data] } = await client.query(`SELECT
+          EXISTS(SELECT 1 FROM organizations)
+          OR EXISTS(SELECT 1 FROM employees)
+          OR EXISTS(SELECT 1 FROM transactions) AS populated`);
+        if (data.populated) {
+          throw new Error('Application data exists without a staging seed marker. Preserve this database and use an independent Compose project for synthetic staging data.');
+        }
         await client.query(await fs.readFile(new URL('../src/db/seed.sql', import.meta.url), 'utf8'));
         await client.query("INSERT INTO staging_bootstrap (name) VALUES ('seed-v1')");
         console.log('[staging] Seed applied');
       }
       const role = pg.escapeIdentifier(appUser);
       if (!existing) await client.query(`CREATE ROLE ${role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS NOINHERIT`);
-      await client.query(`ALTER ROLE ${role} LOGIN PASSWORD ${pg.escapeLiteral(appPassword)}`);
+      await client.query(`ALTER ROLE ${role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS NOINHERIT PASSWORD ${pg.escapeLiteral(appPassword)}`);
       const { rows: [{ database }] } = await client.query('SELECT current_database() AS database');
       await client.query(`GRANT CONNECT ON DATABASE ${pg.escapeIdentifier(database)} TO ${role}`);
       await client.query(`GRANT USAGE ON SCHEMA public TO ${role}`);

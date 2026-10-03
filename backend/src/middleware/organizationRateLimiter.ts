@@ -66,7 +66,7 @@ setInterval(() => {
       rateLimitStore.delete(key);
     }
   }
-}, 5 * 60 * 1000); // Clean up every 5 minutes
+}, 5 * 60 * 1000).unref(); // Clean up every 5 minutes without keeping the process alive
 
 /**
  * Extract organization ID from request

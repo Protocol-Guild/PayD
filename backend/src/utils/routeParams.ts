@@ -1,4 +1,6 @@
-/** Parse a scalar Express route parameter without coercing wildcard arrays. */
+/** Parse a positive database ID without coercing wildcard arrays or partial numbers. */
 export function parseRouteInteger(value: string | string[] | undefined): number {
-  return typeof value === 'string' ? Number.parseInt(value, 10) : Number.NaN;
+  if (typeof value !== 'string' || !/^\d+$/.test(value)) return Number.NaN;
+  const id = Number(value);
+  return Number.isSafeInteger(id) && id > 0 ? id : Number.NaN;
 }

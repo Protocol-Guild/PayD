@@ -6,19 +6,38 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import { TenantQuotaService, QuotaExceededError } from '../tenantQuotaService.js';
 
-const mockQuery = jest.fn();
+type QueryResult = { rows: Record<string, unknown>[] };
+type Query = (sql: string, values?: unknown[]) => Promise<QueryResult>;
+const mockQuery = jest.fn<Query>();
+const mockClientQuery = jest.fn<Query>();
+const mockRelease = jest.fn<(error?: Error) => void>();
+const mockClient = { query: mockClientQuery, release: mockRelease };
+const mockConnect = jest.fn<() => Promise<typeof mockClient>>();
 
 jest.mock('../../config/database.js', () => ({
-  pool: { query: (...args: any[]) => mockQuery(...args) },
+  pool: {
+    query: (...args: Parameters<Query>) => mockQuery(...args),
+    connect: () => mockConnect(),
+  },
 }));
+
+beforeEach(() => {
+  mockQuery.mockReset();
+  mockRelease.mockReset();
+  mockConnect.mockReset().mockResolvedValue(mockClient);
+  mockClientQuery.mockReset().mockImplementation(async (sql, values) => {
+    if (sql === 'BEGIN' || sql === 'COMMIT' || sql === 'ROLLBACK' || sql.includes('set_config')) {
+      return { rows: [] };
+    }
+    return mockQuery(sql, values);
+  });
+});
 
 function makeService() {
   return new TenantQuotaService();
 }
 
 describe('TenantQuotaService.getQuotas', () => {
-  beforeEach(() => mockQuery.mockReset());
-
   it('returns DB row values when a settings row exists', async () => {
     mockQuery.mockResolvedValueOnce({
       rows: [{
@@ -51,8 +70,6 @@ describe('TenantQuotaService.getQuotas', () => {
 });
 
 describe('TenantQuotaService.assertEmployeeQuota', () => {
-  beforeEach(() => mockQuery.mockReset());
-
   function setupMocks(currentCount: number, limit: number) {
     // getQuotas query
     mockQuery.mockResolvedValueOnce({
@@ -80,6 +97,11 @@ describe('TenantQuotaService.assertEmployeeQuota', () => {
     setupMocks(100, 500);
     const svc = makeService();
     await expect(svc.assertEmployeeQuota(1)).resolves.toBeUndefined();
+    expect(mockClientQuery).toHaveBeenNthCalledWith(1, 'BEGIN');
+    expect(mockClientQuery).toHaveBeenNthCalledWith(2,
+      "SELECT set_config('app.current_tenant_id', $1, true)", ['1']);
+    expect(mockClientQuery).toHaveBeenLastCalledWith('COMMIT');
+    expect(mockRelease).toHaveBeenCalledTimes(1);
   });
 
   it('QuotaExceededError carries correct resource and numbers', async () => {
@@ -95,5 +117,16 @@ describe('TenantQuotaService.assertEmployeeQuota', () => {
       expect(qErr.current).toBe(500);
       expect(qErr.limit).toBe(500);
     }
+  });
+});
+
+describe('TenantQuotaService.getCurrentUsage', () => {
+  it('rolls back and releases the client when a scoped count fails', async () => {
+    const failure = new Error('count failed');
+    mockQuery.mockRejectedValueOnce(failure).mockResolvedValueOnce({ rows: [{ count: '0' }] });
+    await expect(makeService().getCurrentUsage(1)).rejects.toBe(failure);
+    expect(mockClientQuery).toHaveBeenLastCalledWith('ROLLBACK');
+    expect(mockClientQuery).not.toHaveBeenCalledWith('COMMIT');
+    expect(mockRelease).toHaveBeenCalledTimes(1);
   });
 });

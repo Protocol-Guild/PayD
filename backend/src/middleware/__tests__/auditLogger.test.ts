@@ -24,7 +24,7 @@ describe('Audit Logger Middleware', () => {
         'content-type': 'application/json',
       },
       user: {
-        id: 'user-123',
+        id: 123,
         email: 'test@example.com',
         organizationId: 1,
         role: 'EMPLOYER',
@@ -68,7 +68,7 @@ describe('Audit Logger Middleware', () => {
       expect(mockPool.query).toHaveBeenCalledWith(
         expect.stringContaining('INSERT INTO api_audit_logs'),
         expect.arrayContaining([
-          'user-123',
+          '123',
           'test@example.com',
           1,
           'create',
@@ -173,7 +173,7 @@ describe('Audit Logger Middleware', () => {
         'Sensitive operation attempted',
         expect.objectContaining({
           operationType: 'admin_delete_employee',
-          userId: 'user-123',
+          userId: 123,
           organizationId: 1,
         })
       );
@@ -184,7 +184,7 @@ describe('Audit Logger Middleware', () => {
         expect.stringContaining('INSERT INTO sensitive_operations_audit'),
         expect.arrayContaining([
           1,
-          'user-123',
+          123,
           'test@example.com',
           'admin_delete_employee',
           'create',

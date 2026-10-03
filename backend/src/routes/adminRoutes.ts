@@ -6,8 +6,12 @@ import { requireAdminJustification } from '../middleware/requireAdminJustificati
 import { auditSensitiveOperation } from '../middleware/auditLogger.js';
 import logger from '../utils/logger.js';
 import { parseRouteInteger } from '../utils/routeParams.js';
+import authenticateJWT from '../middlewares/auth.js';
+import { authorizeRoles } from '../middlewares/rbac.js';
 
 const router = Router();
+
+router.use(authenticateJWT, authorizeRoles('ADMIN'));
 
 // ---------------------------------------------------------------------------
 // Audit integrity

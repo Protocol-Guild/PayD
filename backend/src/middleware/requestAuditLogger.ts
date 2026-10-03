@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { randomUUID as uuidv4 } from 'node:crypto';
-import pool from '../db/index.js';
+import { randomUUID } from 'node:crypto';
+import pool from '../config/database.js';
 import logger from '../utils/logger.js';
 import { parseRouteInteger } from '../utils/routeParams.js';
 
@@ -90,8 +90,9 @@ function sanitizeObject(obj: any, sensitiveFields: string[]): any {
  */
 function truncatePayload(payload: any, maxSize: number): any {
   const str = JSON.stringify(payload);
-  // Bodyless requests serialize to undefined; keep the audit payload absent.
-  if (str === undefined) return undefined;
+  if (str === undefined) {
+    return null;
+  }
   if (str.length > maxSize) {
     return {
       _truncated: true,
@@ -118,12 +119,12 @@ function getOrganizationId(req: Request): number | null {
   }
 
   // From query params
-  if (req.query.organizationId) {
-    return parseInt(req.query.organizationId as string, 10);
+  if (typeof req.query.organizationId === 'string') {
+    return parseInt(req.query.organizationId, 10);
   }
 
   // From route params
-  if (req.params.organizationId) {
+  if (typeof req.params.organizationId === 'string') {
     return parseRouteInteger(req.params.organizationId);
   }
 
@@ -219,7 +220,7 @@ export function requestAuditLoggerMiddleware(
       return next();
     }
 
-    const requestId = uuidv4();
+    const requestId = randomUUID();
     const startTime = Date.now();
 
     // Attach request ID to request for tracing
@@ -249,58 +250,63 @@ export function requestAuditLoggerMiddleware(
 
     // Log after response is sent
     res.on('finish', () => {
-      const duration = Date.now() - startTime;
-      const statusCode = res.statusCode;
+      try {
+        const duration = Date.now() - startTime;
+        const statusCode = res.statusCode;
 
-      // Skip if only logging errors and this isn't an error
-      if (finalConfig.logErrorsOnly && statusCode < 400) {
-        return;
+        // Skip if only logging errors and this isn't an error
+        if (finalConfig.logErrorsOnly && statusCode < 400) {
+          return;
+        }
+
+        // Prepare audit log data
+        const logData = {
+          organizationId: getOrganizationId(req),
+          userId: getUserId(req),
+          requestId,
+          method: req.method,
+          path: req.path,
+          queryParams: Object.keys(req.query).length > 0 ? req.query : null,
+          requestBody: finalConfig.includeRequestBody
+            ? truncatePayload(
+                sanitizeObject(req.body, finalConfig.sensitiveFields!),
+                finalConfig.maxBodySize!
+              )
+            : null,
+          responseStatus: statusCode,
+          responseBody: finalConfig.includeResponseBody
+            ? truncatePayload(
+                sanitizeObject(responseBody, finalConfig.sensitiveFields!),
+                finalConfig.maxBodySize!
+              )
+            : null,
+          ipAddress: getClientIp(req),
+          userAgent: req.headers['user-agent'] || null,
+          requestDurationMs: duration,
+          errorMessage: statusCode >= 400 ? res.statusMessage : null,
+        };
+
+        // Save to database (fire-and-forget)
+        saveAuditLog(logData).catch((err) => {
+          logger.error('Audit log save failed:', err);
+        });
+
+        // Also log to structured logger for real-time monitoring
+        const logLevel = statusCode >= 500 ? 'error' : statusCode >= 400 ? 'warn' : 'info';
+        logger[logLevel]('Request audit', {
+          requestId,
+          method: req.method,
+          path: req.path,
+          status: statusCode,
+          duration: `${duration}ms`,
+          orgId: logData.organizationId,
+          userId: logData.userId,
+          ip: logData.ipAddress,
+        });
+      } catch (error) {
+        // Response-finish listeners must not let audit preparation errors escape.
+        logger.error('Failed to create request audit log:', error);
       }
-
-      // Prepare audit log data
-      const logData = {
-        organizationId: getOrganizationId(req),
-        userId: getUserId(req),
-        requestId,
-        method: req.method,
-        path: req.path,
-        queryParams: Object.keys(req.query).length > 0 ? req.query : null,
-        requestBody: finalConfig.includeRequestBody
-          ? truncatePayload(
-              sanitizeObject(req.body, finalConfig.sensitiveFields!),
-              finalConfig.maxBodySize!
-            )
-          : null,
-        responseStatus: statusCode,
-        responseBody: finalConfig.includeResponseBody
-          ? truncatePayload(
-              sanitizeObject(responseBody, finalConfig.sensitiveFields!),
-              finalConfig.maxBodySize!
-            )
-          : null,
-        ipAddress: getClientIp(req),
-        userAgent: req.headers['user-agent'] || null,
-        requestDurationMs: duration,
-        errorMessage: statusCode >= 400 ? res.statusMessage : null,
-      };
-
-      // Save to database (fire-and-forget)
-      saveAuditLog(logData).catch((err) => {
-        logger.error('Audit log save failed:', err);
-      });
-
-      // Also log to structured logger for real-time monitoring
-      const logLevel = statusCode >= 500 ? 'error' : statusCode >= 400 ? 'warn' : 'info';
-      logger[logLevel]('Request audit', {
-        requestId,
-        method: req.method,
-        path: req.path,
-        status: statusCode,
-        duration: `${duration}ms`,
-        orgId: logData.organizationId,
-        userId: logData.userId,
-        ip: logData.ipAddress,
-      });
     });
 
     next();
@@ -323,8 +329,7 @@ export function auditCriticalOperation(
     const organizationId = getOrganizationId(req);
     const userId = getUserId(req);
     const resourceType = req.path.split('/')[2] || 'unknown'; // e.g., /api/employees/:id -> 'employees'
-    const firstParam = Object.values(req.params)[0];
-    const resourceParam = req.params.id || firstParam;
+    const resourceParam = req.params.id || Object.values(req.params)[0];
     const resourceId = typeof resourceParam === 'string' ? resourceParam : undefined;
 
     // Capture before state if this is an update/delete
