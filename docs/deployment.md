@@ -42,9 +42,9 @@ This guide covers deploying PayD to a Kubernetes cluster using either raw manife
 
 ### 1. Create Secrets
 
-**Do not edit `k8s/base/backend-secret.yaml` with real values.** That file is
-tracked by git and must only contain placeholders. Instead, create the secret
-imperatively:
+**Do not commit real secret values.** Production `k8s/base/` requires External
+Secrets Operator and the AWS values described in [k8s/README.md](../k8s/README.md).
+For a local cluster without ESO, create the secret imperatively:
 
 ```bash
 kubectl create secret generic payd-backend-secrets \
@@ -53,14 +53,21 @@ kubectl create secret generic payd-backend-secrets \
   --from-literal=DB_USER="your_db_user" \
   --from-literal=DB_PASSWORD="your_db_password" \
   --from-literal=JWT_SECRET="$(openssl rand -hex 32)" \
+  --from-literal=JWT_REFRESH_SECRET="$(openssl rand -hex 32)" \
   --from-literal=STELLAR_SECRET_KEY="your_stellar_secret_key" \
   --from-literal=ANCHOR_API_KEY="your_anchor_api_key" \
   --from-literal=SDS_API_KEY="your_sds_api_key" \
   --dry-run=client -o yaml | kubectl apply -f -
 ```
 
-For production, use the External Secrets Operator to sync from AWS Secrets
-Manager. See [k8s/README.md](../k8s/README.md) for details.
+Keep `JWT_REFRESH_SECRET` separate from `JWT_SECRET`. The
+[backend Deployment](../k8s/base/backend-deployment.yaml) requires the refresh
+key before new containers can start.
+
+The manual Secret alone does not make `kubectl apply -k k8s/base/` work on a
+cluster without ESO CRDs. Use the separate non-ESO local apply commands in
+[k8s/README.md](../k8s/README.md). In production, install ESO and configure the
+SecretStore and remote keys first.
 
 ### 2. Update ConfigMap
 
@@ -121,8 +128,14 @@ containers:
 ### 6. Deploy
 
 ```bash
-kubectl apply -k k8s/base/
+kubectl -n payd apply -k k8s/base/
+kubectl -n payd get externalsecret payd-backend-secrets
 ```
+
+Only use this base command after ESO is installed and its AWS access is
+configured; wait for the ExternalSecret to report Ready=True before serving
+traffic. For a local cluster without ESO, use the manifest list in
+[k8s/README.md](../k8s/README.md).
 
 ### 7. Verify Deployment
 
