@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { pool } from '../config/database.js';
 import logger from '../utils/logger.js';
+import { establishTenantContext, TenantContextMismatchError } from './tenantContext.js';
 
 /**
  * Enhanced tenant isolation with additional security checks and monitoring
@@ -215,39 +216,19 @@ export const enforceRLS = async (
   }
 
   try {
-    // Get a dedicated client for this request
-    const client = await pool.connect();
-
-    // Set the current tenant in PostgreSQL session
-    await client.query('SET LOCAL app.current_tenant_id = $1', [req.tenantId]);
-
-    // Also set the user ID if available for additional audit context
-    if (req.user?.id) {
-      await client.query('SET LOCAL app.current_user_id = $1', [req.user.id]);
-    }
-
-    // Store client reference for cleanup
-    (req as any).dbClient = client;
-
-    // Ensure client is released after response
-    const cleanup = () => {
-      if ((req as any).dbClient) {
-        (req as any).dbClient.release();
-        (req as any).dbClient = null;
-      }
-    };
-
-    res.on('finish', cleanup);
-    res.on('close', cleanup);
-
-    logger.debug('RLS enforced for request', {
-      tenantId: req.tenantId,
-      userId: req.user?.id,
-      path: req.path,
+    await establishTenantContext(req, res, () => {
+      logger.debug('RLS enforced for request', {
+        tenantId: req.tenantId,
+        userId: req.user?.id,
+        path: req.path,
+      });
+      next();
     });
-
-    next();
   } catch (error) {
+    if (error instanceof TenantContextMismatchError) {
+      res.status(403).json({ error: 'Access denied', message: error.message });
+      return;
+    }
     logger.error('Failed to enforce RLS', {
       error,
       tenantId: req.tenantId,

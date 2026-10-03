@@ -50,11 +50,29 @@ privileged roles are rejected rather than silently repurposed. PostgreSQL 15
 views use `security_invoker` so the application cannot bypass table RLS through
 an owner-created view.
 
-The existing tenant policies use `app.current_tenant_id`. An application
-connection with no tenant set sees no employee or transaction rows; a transaction
-can select its tenant with `SELECT set_config('app.current_tenant_id', '1', true)`.
-These permissions exercise the application's existing tenant-context and auth
-implementation. Environment flags alone do not grant tenant access.
+The tenant policies use `app.current_tenant_id`. JWT authentication establishes
+the signed user's organization and user ID in the asynchronous request context.
+The shared database pool applies both values with parameterized `set_config`
+calls on every checkout, so ordinary service queries and explicit service
+transactions use the same scope. Conflicting organization headers or URL
+parameters return 403. A connection with no tenant scope sees no employee or
+transaction rows.
+
+The pool rolls back unfinished transactions and clears both session values
+before returning a connection for reuse. Initialization or cleanup failures
+discard the connection. Explicit service `BEGIN`, `COMMIT`, and `ROLLBACK`
+remain under service control. The legacy request `dbClient` acquires its
+connection only when used, so an unused request connection cannot exhaust the
+pool while service queries wait. Environment flags alone do not grant access.
+
+After `npm run build`, run the pool lifecycle checks with
+`node --test tests/tenant-pool.test.mjs`. The SQL and HTTP acceptance command is
+`node tests/tenant-rls-postgres.mjs`; it requires `RLS_TEST_DATABASE_URL` for a
+disposable database owner's connection, plus `STAGING_DB_USER` and
+`STAGING_DB_PASSWORD` for a distinct application role. It initializes that
+database and creates dedicated regression fixtures. Native mode connects using
+the application login. Its explicit `--pglite` mode is only for a local WASM
+harness and does not establish native PostgreSQL authentication or concurrency.
 
 ## Volumes created by the previous partial staging stack
 

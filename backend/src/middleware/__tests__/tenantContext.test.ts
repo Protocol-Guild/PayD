@@ -3,7 +3,8 @@ import { extractTenantId, validateTenant, setTenantContext } from '../tenantCont
 import { pool } from '../../config/database.js';
 
 // Mock the database pool
-jest.mock('../../config/database', () => ({
+jest.mock('../../config/database.js', () => ({
+  ...jest.requireActual('../../config/database.js'),
   pool: {
     query: jest.fn(),
     connect: jest.fn(),
@@ -176,14 +177,16 @@ describe('Tenant Context Middleware', () => {
       (pool.connect as jest.Mock).mockResolvedValue(mockClient);
     });
 
-    it('should set tenant context in PostgreSQL session', async () => {
+    it('should enter tenant context without pinning an unused request client', async () => {
       mockRequest.tenantId = 123;
 
       await setTenantContext(mockRequest as Request, mockResponse as Response, mockNext);
 
       expect(pool.connect).toHaveBeenCalled();
-      expect(mockClient.query).toHaveBeenCalledWith('SET LOCAL app.current_tenant_id = $1', [123]);
-      expect((mockRequest as any).dbClient).toBe(mockClient);
+      expect(mockClient.release).toHaveBeenCalledTimes(1);
+      expect(mockRequest.dbClient).toEqual(expect.objectContaining({
+        query: expect.any(Function), release: expect.any(Function),
+      }));
       expect(mockNext).toHaveBeenCalled();
       expect(statusMock).not.toHaveBeenCalled();
     });
@@ -222,6 +225,37 @@ describe('Tenant Context Middleware', () => {
 
       expect(onMock).toHaveBeenCalledWith('finish', expect.any(Function));
       expect(onMock).toHaveBeenCalledWith('close', expect.any(Function));
+    });
+
+    it('should reuse request setup and release a used compatibility client only once', async () => {
+      mockRequest.tenantId = 123;
+      const callbacks: Record<string, () => void> = {};
+      mockResponse.on = jest.fn((event, callback) => {
+        callbacks[event] = callback;
+        return mockResponse;
+      }) as any;
+      await setTenantContext(mockRequest as Request, mockResponse as Response, mockNext);
+      const client = mockRequest.dbClient!;
+      await setTenantContext(mockRequest as Request, mockResponse as Response, mockNext);
+      expect(mockRequest.dbClient).toBe(client);
+      expect(pool.connect).toHaveBeenCalledTimes(1);
+      await client.query('SELECT 1');
+      expect(pool.connect).toHaveBeenCalledTimes(2);
+      callbacks.finish!();
+      callbacks.close!();
+      await Promise.resolve();
+      expect(mockClient.release).toHaveBeenCalledTimes(2); // Probe, then used request lease.
+      expect(mockRequest.dbClient).toBeNull();
+      await expect(client.query('SELECT 1')).rejects.toThrow(/released/);
+    });
+
+    it('should reject a tenant that conflicts with the authenticated user', async () => {
+      mockRequest.tenantId = 123;
+      mockRequest.user = { id: 1, organizationId: 456, role: 'EMPLOYER' };
+      await setTenantContext(mockRequest as Request, mockResponse as Response, mockNext);
+      expect(statusMock).toHaveBeenCalledWith(403);
+      expect(pool.connect).not.toHaveBeenCalled();
+      expect(mockNext).not.toHaveBeenCalled();
     });
   });
 });

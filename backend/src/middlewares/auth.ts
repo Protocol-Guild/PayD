@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { config } from '../config/env.js';
 import { JWTPayload } from '../types/auth.js';
 import { TOKEN_TYPE_ACCESS } from '../services/authService.js';
+import { syncTenantFromUser } from '../middleware/tenantContext.js';
 
 /**
  * Middleware to authenticate requests using JWT
@@ -27,7 +28,7 @@ export const authenticateJWT = (req: Request, res: Response, next: NextFunction)
       }
 
       req.user = decoded;
-      next();
+      syncTenantFromUser(req, res, next);
     } catch (error) {
       console.error('JWT verification failed:', error);
       return res.status(403).json({ error: 'Invalid or expired token' });
