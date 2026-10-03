@@ -2,9 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useNotification } from '../hooks/useNotification';
 import { SocketContext } from '../hooks/useSocket';
-
-// Assuming backend is running on port 3000
-const SOCKET_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:3000';
+import { API_ORIGIN } from '../config/api';
 
 export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -12,7 +10,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const { notifySuccess, notifyError } = useNotification();
 
   useEffect(() => {
-    const newSocket = io(SOCKET_URL, {
+    const newSocket = io(API_ORIGIN || undefined, {
       withCredentials: true,
       transports: ['websocket', 'polling'], // Allow fallback to polling
       reconnectionAttempts: 5,

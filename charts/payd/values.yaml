@@ -68,6 +68,7 @@ backend:
     DB_USER: "payd_user"
     DB_PASSWORD: ""
     JWT_SECRET: ""
+    JWT_REFRESH_SECRET: ""  # Required for the production runtime
     STELLAR_SECRET_KEY: ""
     ANCHOR_API_KEY: ""
     SDS_API_KEY: ""

@@ -1,7 +1,5 @@
 import axios, { type AxiosError } from 'axios';
-
-const API_BASE_URL =
-  (import.meta.env.VITE_API_BASE_URL as string | undefined) || 'http://localhost:3001';
+import { API_BASE_URL } from '../config/api';
 
 export interface HistoricalPayrollData {
   period: string;
@@ -98,7 +96,7 @@ export interface AlertsResponse {
  */
 export const getForecast = async (params: ForecastParams): Promise<CashFlowForecast> => {
   try {
-    const response = await axios.get<ForecastResponse>(`${API_BASE_URL}/api/cash-flow/forecast`, {
+    const response = await axios.get<ForecastResponse>(`${API_BASE_URL}/cash-flow/forecast`, {
       params: {
         forecastDays: params.forecastDays || 90,
         distributionAccount: params.distributionAccount,
@@ -140,7 +138,7 @@ export const getHistoricalData = async (
 }> => {
   try {
     const response = await axios.get<HistoricalDataResponse>(
-      `${API_BASE_URL}/api/cash-flow/historical`,
+      `${API_BASE_URL}/cash-flow/historical`,
       {
         params: {
           monthsBack: monthsBack || 6,
@@ -179,7 +177,7 @@ export const getProjections = async (
 ): Promise<UpcomingPayrollProjection[]> => {
   try {
     const response = await axios.get<ProjectionsResponse>(
-      `${API_BASE_URL}/api/cash-flow/projections`,
+      `${API_BASE_URL}/cash-flow/projections`,
       {
         params: {
           forecastDays: forecastDays || 90,
@@ -220,7 +218,7 @@ export const getAlerts = async (
   summary: { totalAlerts: number; criticalAlerts: number; warningAlerts: number };
 }> => {
   try {
-    const response = await axios.get<AlertsResponse>(`${API_BASE_URL}/api/cash-flow/alerts`, {
+    const response = await axios.get<AlertsResponse>(`${API_BASE_URL}/cash-flow/alerts`, {
       params: {
         forecastDays: params.forecastDays || 90,
         distributionAccount: params.distributionAccount,

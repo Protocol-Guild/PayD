@@ -1,10 +1,9 @@
 import React from 'react';
+import { API_ORIGIN } from '../config/api';
 
 const Login: React.FC = () => {
-  const backendUrl = (import.meta.env.VITE_BACKEND_URL as string) || 'http://localhost:4000';
-
   const handleLogin = (provider: 'google' | 'github') => {
-    window.location.href = `${backendUrl}/auth/${provider}`;
+    window.location.href = `${API_ORIGIN}/auth/${provider}`;
   };
 
   return (
