@@ -23,7 +23,7 @@ export interface AuditRowForVerification {
   method: string;
   path: string;
   response_status: number | null;
-  created_at: Date;
+  created_at: Date | string;
   row_hash: string | null;
   chain_hash: string | null;
 }
@@ -33,6 +33,13 @@ export interface AuditRowForVerification {
  * formula used by the PostgreSQL trigger (compute_audit_chain_hash).
  */
 export function recomputeRowHash(row: AuditRowForVerification): string {
+  // Database verification supplies PostgreSQL's original text representation:
+  // a JavaScript Date loses microseconds and may reinterpret a timestamp's zone.
+  // Retain Date support for callers with millisecond-precision values, matching
+  // PostgreSQL's omission of trailing fractional zeros.
+  const createdAt = typeof row.created_at === 'string'
+    ? row.created_at
+    : row.created_at.toISOString().replace('T', ' ').replace(/Z$/, '').replace(/\.?0+$/, '');
   const data = [
     row.user_id ?? '',
     row.user_email ?? '',
@@ -43,7 +50,7 @@ export function recomputeRowHash(row: AuditRowForVerification): string {
     row.method,
     row.path,
     row.response_status?.toString() ?? '',
-    row.created_at.toISOString().replace('T', ' ').replace('Z', ''),
+    createdAt,
   ].join('|');
 
   return createHash('sha256').update(data).digest('hex');
@@ -77,7 +84,7 @@ export class AuditIntegrityService {
 
     const result = await pool.query<AuditRowForVerification>(
       `SELECT id, user_id, user_email, organization_id, action, resource, resource_id,
-              method, path, response_status, created_at, row_hash, chain_hash
+              method, path, response_status, created_at::text AS created_at, row_hash, chain_hash
          FROM api_audit_logs
         ORDER BY id ASC
         LIMIT $1`,
