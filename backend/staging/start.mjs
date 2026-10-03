@@ -14,6 +14,6 @@ try {
   process.env.DATABASE_URL = url.toString();
   await import('../dist/index.js');
 } catch (error) {
-  console.error('[staging]', error.message);
+  console.error('[staging]', error);
   process.exitCode = 1;
 }
