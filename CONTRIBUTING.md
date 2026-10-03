@@ -221,13 +221,31 @@ Additional helpers:
 
 ### Frontend
 
+Start in a new terminal at the repository root, after installing the frontend
+dependencies described above:
+
 ```bash
-# from frontend/ or via root scripts where available
+cd frontend
 npm run lint
 npm run build
+npx playwright install chromium firefox
 npm run test:e2e            # Playwright
 npm run test:e2e:ui         # interactive Playwright
 ```
+
+Install the configured Chromium and Firefox browsers before the first E2E run,
+and repeat the install command after updating Playwright. Its browser binaries
+are tied to the installed Playwright version.
+
+On Linux hosts that also need browser system dependencies, use
+`npx playwright install --with-deps chromium firefox` from `frontend/` instead
+of the browser-only install command. This is the same setup used by the
+[E2E workflow](./.github/workflows/e2e.yml).
+
+Playwright starts the Vite dev server automatically. See the
+[frontend E2E guide](./frontend/e2e/README.md) for headed runs and reports, and
+the [Playwright browser guide](https://playwright.dev/docs/browsers) for
+installation details.
 
 ### Contracts
 
