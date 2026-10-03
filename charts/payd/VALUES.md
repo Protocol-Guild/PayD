@@ -187,8 +187,11 @@ assets. The repository does not supply a frontend image recipe or such a
 runtime mechanism at this revision.
 
 The checked-in [Vite configuration](../../frontend/vite.config.ts) exposes
-`PUBLIC_` variables, while several API clients read `VITE_API_URL` or
-`VITE_API_BASE_URL`. Their API path conventions also differ:
+both `PUBLIC_` and `VITE_` variables supplied to the frontend build. This
+preserves existing `PUBLIC_` consumers and makes `VITE_API_URL`,
+`VITE_API_BASE_URL` and the other public `VITE_` settings available through
+`import.meta.env`. Values under either prefix are bundled into client code;
+use them only for public configuration. API path conventions still differ:
 
 | Source consumer | Path composition |
 |---|---|
@@ -201,9 +204,8 @@ The checked-in [Vite configuration](../../frontend/vite.config.ts) exposes
 The corresponding route mounts are in [backend/src/app.ts](../../backend/src/app.ts)
 and [backend/src/routes/v1/index.ts](../../backend/src/routes/v1/index.ts). A
 universal Helm `VITE_API_URL` override does not resolve these differences.
-Frontend delivery therefore still needs consistent API-origin/path composition,
-compatible build-time environment exposure that preserves existing `PUBLIC_`
-consumers, and a verified frontend image configuration contract. Do not use a
+Frontend delivery therefore still needs consistent API-origin/path composition
+and a verified frontend image configuration contract. Do not use a
 cluster-only service hostname as a public browser URL.
 
 ## Render the configured chart

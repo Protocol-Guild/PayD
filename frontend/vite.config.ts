@@ -27,7 +27,7 @@ export default defineConfig(() => {
     define: {
       global: 'window',
     },
-    envPrefix: 'PUBLIC_',
+    envPrefix: ['PUBLIC_', 'VITE_'],
     server: {
       proxy: {
         '/api': {
