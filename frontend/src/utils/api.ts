@@ -1,7 +1,15 @@
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
+import { toast } from 'sonner';
+
+/** Shared API base URL — single source of truth for all API calls. */
+export const API_BASE_URL =
+  (import.meta.env.VITE_API_URL as string | undefined) || 'http://localhost:4000/api';
+
+/** API root URL (strips /api and /api/v1 suffix for endpoints outside the API prefix). */
+export const API_ROOT_URL = API_BASE_URL.replace(/\/api\/v1\/?$/, '').replace(/\/api\/?$/, '');
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:4000/api',
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -20,6 +28,40 @@ api.interceptors.request.use(
     return Promise.reject(error instanceof Error ? error : new Error(String(error)));
   }
 );
+
+const AUTH_TOKEN_KEY = 'payd_auth_token';
+const LOGIN_PATH = '/login';
+
+function handleUnauthorized(error: AxiosError) {
+  if (error.response?.status !== 401) {
+    return Promise.reject(error);
+  }
+
+  // Skip auth endpoints (login itself may legitimately return 401 for bad credentials).
+  const requestUrl = error.config?.url ?? '';
+  if (requestUrl.includes('/auth/')) {
+    return Promise.reject(error);
+  }
+
+  const hadToken = Boolean(localStorage.getItem(AUTH_TOKEN_KEY));
+  localStorage.removeItem(AUTH_TOKEN_KEY);
+
+  const currentPath = window.location.pathname;
+
+  if (hadToken && currentPath !== LOGIN_PATH) {
+    toast.error('Session expired, please log in again');
+    window.location.assign(LOGIN_PATH);
+  }
+
+  return Promise.reject(error);
+}
+
+// Register the 401 handler on the shared axios instance.
+api.interceptors.response.use((response) => response, handleUnauthorized);
+
+// Also handle 401 globally for every bare `axios.*` call across the app so an
+// expired session never surfaces as a silent spinner/empty table.
+axios.interceptors.response.use((response) => response, handleUnauthorized);
 
 export default api;
 

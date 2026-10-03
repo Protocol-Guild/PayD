@@ -9,8 +9,7 @@ import {
   xdr,
 } from '@stellar/stellar-sdk';
 import { simulateTransaction } from './transactionSimulation';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { API_BASE_URL } from '../utils/api';
 const DEFAULT_RPC_URL =
   (import.meta.env.PUBLIC_STELLAR_RPC_URL as string | undefined) ||
   'https://soroban-testnet.stellar.org';
@@ -185,7 +184,7 @@ export async function fetchDistributionEvents(
   limit = 30
 ): Promise<DistributionEvent[]> {
   const response = await fetch(
-    `${normalizeBaseUrl(API_BASE_URL)}/api/v1/payroll/audit?organizationId=${organizationId}&page=${page}&limit=${limit}`
+    `${API_BASE_URL.replace(/\/+$/, '')}/v1/payroll/audit?organizationId=${organizationId}&page=${page}&limit=${limit}`
   );
   if (!response.ok) {
     throw new Error(`Failed to fetch distribution events (${response.status})`);

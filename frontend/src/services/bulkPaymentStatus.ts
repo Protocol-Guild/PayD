@@ -7,8 +7,7 @@ import {
   nativeToScVal,
 } from '@stellar/stellar-sdk';
 import { simulateTransaction } from './transactionSimulation';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { API_BASE_URL } from '../utils/api';
 const DEFAULT_RPC_URL =
   (import.meta.env.PUBLIC_STELLAR_RPC_URL as string | undefined) ||
   'https://soroban-testnet.stellar.org';
@@ -78,7 +77,7 @@ export async function fetchPayrollRuns(
   limit = 20
 ): Promise<{ data: PayrollRunRecord[]; total: number }> {
   const response = await fetch(
-    `${normalizeBaseUrl(API_BASE_URL)}/api/v1/payroll-bonus/runs?organizationId=${organizationId}&page=${page}&limit=${limit}`
+    `${API_BASE_URL.replace(/\/+$/, '')}/v1/payroll-bonus/runs?organizationId=${organizationId}&page=${page}&limit=${limit}`
   );
 
   if (!response.ok) {
@@ -91,7 +90,7 @@ export async function fetchPayrollRuns(
 
 export async function fetchPayrollRunSummary(runId: number): Promise<PayrollRunSummary> {
   const response = await fetch(
-    `${normalizeBaseUrl(API_BASE_URL)}/api/v1/payroll-bonus/runs/${runId}`
+    `${API_BASE_URL.replace(/\/+$/, '')}/v1/payroll-bonus/runs/${runId}`
   );
   if (!response.ok) {
     throw new Error(`Failed to fetch payroll run summary (${response.status})`);

@@ -1,6 +1,4 @@
-import axios from 'axios';
-
-const API_BASE_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:3000/api';
+import api from '../utils/api';
 
 export interface PathRecord {
   source_asset_type: string;
@@ -25,7 +23,7 @@ export const pathfindingService = {
     destAssets: string
   ): Promise<PathRecord[]> => {
     try {
-      const response = await axios.get<{ paths: PathRecord[] }>(`${API_BASE_URL}/payments/paths`, {
+      const response = await api.get<{ paths: PathRecord[] }>('/payments/paths', {
         params: {
           sourceAsset,
           sourceAmount,

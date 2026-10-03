@@ -1,11 +1,4 @@
-import axios from 'axios';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
-
-function authHeaders() {
-  const token = localStorage.getItem('payd_auth_token');
-  return token ? { Authorization: `Bearer ${token}` } : undefined;
-}
+import api from '../utils/api';
 
 export interface CountryTaxField {
   label: string;
@@ -148,9 +141,8 @@ export const getAvailableCountries = (): string[] => {
 
 export const getTaxRules = async (): Promise<TaxRule[]> => {
   try {
-    const { data } = await axios.get<{ success: boolean; data: TaxRule[] }>(
-      `${API_BASE_URL}/taxes/rules`,
-      { headers: authHeaders() }
+    const { data } = await api.get<{ success: boolean; data: TaxRule[] }>(
+      '/v1/taxes/rules'
     );
     return data.data || [];
   } catch (error) {
@@ -160,27 +152,23 @@ export const getTaxRules = async (): Promise<TaxRule[]> => {
 };
 
 export const createTaxRule = async (rule: TaxRule): Promise<TaxRule> => {
-  const { data } = await axios.post<{ success: boolean; data: TaxRule }>(
-    `${API_BASE_URL}/taxes/rules`,
-    rule,
-    { headers: authHeaders() }
+  const { data } = await api.post<{ success: boolean; data: TaxRule }>(
+    '/v1/taxes/rules',
+    rule
   );
   return data.data;
 };
 
 export const updateTaxRule = async (id: number, rule: Partial<TaxRule>): Promise<TaxRule> => {
-  const { data } = await axios.put<{ success: boolean; data: TaxRule }>(
-    `${API_BASE_URL}/taxes/rules/${id}`,
-    rule,
-    { headers: authHeaders() }
+  const { data } = await api.put<{ success: boolean; data: TaxRule }>(
+    `/v1/taxes/rules/${id}`,
+    rule
   );
   return data.data;
 };
 
 export const deleteTaxRule = async (id: number): Promise<void> => {
-  await axios.delete(`${API_BASE_URL}/taxes/rules/${id}`, {
-    headers: authHeaders(),
-  });
+  await api.delete(`/v1/taxes/rules/${id}`);
 };
 
 export const calculateTaxPreview = async (
@@ -243,11 +231,10 @@ export const exportTaxSummary = async (
   endDate: string
 ): Promise<TaxSummaryReport> => {
   try {
-    const { data } = await axios.get<{ success: boolean; data: TaxSummaryReport }>(
-      `${API_BASE_URL}/taxes/reports`,
+    const { data } = await api.get<{ success: boolean; data: TaxSummaryReport }>(
+      '/v1/taxes/reports',
       {
         params: { country, startDate, endDate },
-        headers: authHeaders(),
       }
     );
     return data.data;

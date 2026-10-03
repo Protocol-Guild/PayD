@@ -7,8 +7,7 @@ import {
   nativeToScVal,
 } from '@stellar/stellar-sdk';
 import { simulateTransaction } from './transactionSimulation';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { API_BASE_URL } from '../utils/api';
 const DEFAULT_RPC_URL =
   (import.meta.env.PUBLIC_STELLAR_RPC_URL as string | undefined) ||
   'https://soroban-testnet.stellar.org';
@@ -81,7 +80,7 @@ function fallbackPaths(request: PathfindRequest): ConversionPath[] {
 }
 
 export async function fetchConversionPaths(request: PathfindRequest): Promise<ConversionPath[]> {
-  const endpoint = `${normalizeBaseUrl(API_BASE_URL)}/api/v1/payments/pathfind`;
+  const endpoint = `${API_BASE_URL.replace(/\/+$/, '')}/v1/payments/pathfind`;
   try {
     const response = await fetch(endpoint, {
       method: 'POST',

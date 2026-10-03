@@ -10,15 +10,14 @@
  * 3. The service handles caching and retry logic automatically
  */
 
-import axios, { AxiosError } from 'axios';
+import { AxiosError } from 'axios';
+import api from '../utils/api';
 import { ContractRegistry, ContractType, NetworkType } from './contracts.types';
 
 class ContractService {
   private cache: ContractRegistry | null = null;
   private lastFetch: number | null = null;
   private readonly CACHE_TTL = 3600000; // 1 hour in milliseconds
-  private readonly API_BASE_URL =
-    (import.meta.env.VITE_API_BASE_URL as string | undefined) || 'http://localhost:3000';
   private readonly MAX_RETRIES = 3;
 
   /**
@@ -36,7 +35,7 @@ class ContractService {
 
     for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
       try {
-        const response = await axios.get<ContractRegistry>(`${this.API_BASE_URL}/api/contracts`);
+        const response = await api.get<ContractRegistry>('/contracts');
 
         // Update cache
         this.cache = response.data;
