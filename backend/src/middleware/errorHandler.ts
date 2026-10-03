@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import config from '../config/index.js';
 import logger from '../utils/logger.js';
-import { AppError, NotFoundError } from '../errors/index.js';
+import { AppError, NotFoundError, ValidationError } from '../errors/index.js';
 
 /** Consistent error payload returned to clients. */
 export interface ErrorResponseBody {
@@ -14,6 +14,27 @@ export interface ErrorResponseBody {
 
 function requestIdOf(req: Request): string | undefined {
   return typeof req.requestId === 'string' ? req.requestId : undefined;
+}
+
+/** Preserve known body-parser client failures without exposing their raw body. */
+function normalizeBodyParserError(err: unknown): unknown {
+  if (!(err instanceof Error) || err instanceof AppError) {
+    return err;
+  }
+
+  const parserError = err as Error & { type?: unknown; status?: unknown };
+  let normalized: AppError;
+
+  if (parserError.type === 'entity.parse.failed' && parserError.status === 400) {
+    normalized = new ValidationError('Invalid request body');
+  } else if (parserError.type === 'entity.too.large' && parserError.status === 413) {
+    normalized = new AppError('Request body is too large', 413, 'PAYLOAD_TOO_LARGE');
+  } else {
+    return err;
+  }
+
+  normalized.stack = err.stack;
+  return normalized;
 }
 
 /**
@@ -39,6 +60,7 @@ export function errorHandler(
     return;
   }
 
+  err = normalizeBodyParserError(err);
   const requestId = requestIdOf(req);
   const isDev = config.nodeEnv === 'development';
 

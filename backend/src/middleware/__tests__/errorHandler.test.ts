@@ -1,5 +1,7 @@
-import { Request, Response, NextFunction } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
+import request from 'supertest';
 import { errorHandler, notFoundHandler } from '../errorHandler.js';
+import { requestIdMiddleware } from '../requestId.js';
 import { NotFoundError, ValidationError, AuthError, AppError } from '../../errors/index.js';
 import config from '../../config/index.js';
 import logger from '../../utils/logger.js';
@@ -102,8 +104,12 @@ describe('errorHandler middleware', () => {
     );
   });
 
-  it('hides internal details for unknown errors outside development', () => {
-    errorHandler(new Error('SELECT * FROM secrets'), req as Request, res as Response, next);
+  it.each([
+    ['Error', new Error('SELECT * FROM secrets')],
+    ['SyntaxError', new SyntaxError('Internal JSON parsing failure')],
+    ['unrecognized status', Object.assign(new Error('Unrecognized client error'), { status: 400 })],
+  ])('hides internal details for unknown errors outside development: %s', (_name, err) => {
+    errorHandler(err, req as Request, res as Response, next);
 
     expect(statusMock).toHaveBeenCalledWith(500);
     expect(jsonMock).toHaveBeenCalledWith({
@@ -134,5 +140,87 @@ describe('errorHandler middleware', () => {
     const forwarded = (next as jest.Mock).mock.calls[0][0];
     expect(forwarded).toBeInstanceOf(NotFoundError);
     expect(forwarded.message).toContain('GET /api/missing');
+  });
+});
+
+describe('errorHandler with the Express body parsers', () => {
+  function createApp() {
+    const app = express();
+    app.use(requestIdMiddleware);
+    app.use(express.json());
+    app.use(express.urlencoded({ extended: true }));
+    app.post('/body', (_req, res) => {
+      res.json({ ok: true });
+    });
+    app.use(errorHandler);
+    return app;
+  }
+
+  beforeEach(() => {
+    (config as any).nodeEnv = 'production';
+    jest.clearAllMocks();
+  });
+
+  it('returns a sanitized 400 for malformed JSON with the request ID', async () => {
+    const response = await request(createApp())
+      .post('/body')
+      .set('Content-Type', 'application/json')
+      .set('X-Request-ID', 'parse-request')
+      .send('private-request-body');
+
+    expect(response.status).toBe(400);
+    expect(response.headers['x-request-id']).toBe('parse-request');
+    expect(response.body).toEqual({
+      error: 'ValidationError',
+      message: 'Invalid request body',
+      code: 'VALIDATION_ERROR',
+      requestId: 'parse-request',
+    });
+    expect(JSON.stringify(response.body)).not.toContain('private-request-body');
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  it.each(['application/json', 'application/x-www-form-urlencoded'])(
+    'preserves 413 for an oversized %s body',
+    async (contentType) => {
+      const response = await request(createApp())
+        .post('/body')
+        .set('Content-Type', contentType)
+        .set('X-Request-ID', 'large-request')
+        .send('x'.repeat(110 * 1024));
+
+      expect(response.status).toBe(413);
+      expect(response.headers['x-request-id']).toBe('large-request');
+      expect(response.body).toEqual({
+        error: 'AppError',
+        message: 'Request body is too large',
+        code: 'PAYLOAD_TOO_LARGE',
+        requestId: 'large-request',
+      });
+      expect(logger.error).not.toHaveBeenCalled();
+    }
+  );
+
+  it('includes the original parser stack only in development', async () => {
+    (config as any).nodeEnv = 'development';
+    const response = await request(createApp())
+      .post('/body')
+      .set('Content-Type', 'application/json')
+      .send('{');
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toBe('Invalid request body');
+    expect(response.body.stack).toEqual(expect.stringContaining('SyntaxError'));
+  });
+
+  it('continues handling valid bodies normally', async () => {
+    const response = await request(createApp())
+      .post('/body')
+      .set('X-Request-ID', 'valid-request')
+      .send({ value: 'valid' });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ ok: true });
+    expect(response.headers['x-request-id']).toBe('valid-request');
   });
 });
