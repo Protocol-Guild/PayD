@@ -1,0 +1,15 @@
+[package]
+name = "payd-contracts"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+doctest = false
+
+[dependencies]
+soroban-sdk = { version = "=21.0.0-rc.1", features = ["alloc"] }
+# Add other dependencies as needed
+
+[dev-dependencies]
+soroban-sdk = { version = "=21.0.0-rc.1", features = ["testutils"] }
