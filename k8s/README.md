@@ -28,7 +28,15 @@ k8s/examples/
 the External Secrets Operator (`secret-store.yaml` + `external-secret.yaml`) so
 the `payd-backend-secrets` Secret is created only when AWS Secrets Manager is
 reachable. If the store or remote keys are missing, the ExternalSecret stays
-unready and pods that require `payd-backend-secrets` fail to start (fail closed).
+unready. On first deployment, pods that require `payd-backend-secrets` cannot
+start until that Secret is created.
+
+The backend Deployment also requires the specific `JWT_REFRESH_SECRET` key.
+This prevents a Secret created by an older manifest, without that key, from
+starting new containers with the backend's development refresh-signing default.
+Kubernetes [requires a referenced key in a non-optional Secret](https://kubernetes.io/docs/concepts/configuration/secret/#optional-secrets)
+before the container can start. Provision the refresh key before applying this
+Deployment update.
 
 `kubectl apply -k k8s/base/` requires the ESO CRDs and a configured AWS
 SecretStore. For local clusters without ESO, create a Secret with Method 1 and
@@ -50,12 +58,14 @@ no real value ever touches a tracked file:
 
 ```bash
 # From environment variables (recommended for CI)
+: "${JWT_REFRESH_SECRET:?Set JWT_REFRESH_SECRET before creating the backend Secret}"
 kubectl create secret generic payd-backend-secrets \
   --namespace payd \
   --from-literal=DATABASE_URL="$DATABASE_URL" \
   --from-literal=DB_USER="$DB_USER" \
   --from-literal=DB_PASSWORD="$DB_PASSWORD" \
   --from-literal=JWT_SECRET="$JWT_SECRET" \
+  --from-literal=JWT_REFRESH_SECRET="$JWT_REFRESH_SECRET" \
   --from-literal=STELLAR_SECRET_KEY="$STELLAR_SECRET_KEY" \
   --from-literal=ANCHOR_API_KEY="$ANCHOR_API_KEY" \
   --from-literal=SDS_API_KEY="$SDS_API_KEY" \
@@ -101,16 +111,19 @@ and inject them at deploy time:
   env:
     DATABASE_URL: ${{ secrets.DATABASE_URL }}
     JWT_SECRET: ${{ secrets.JWT_SECRET }}
+    JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
     STELLAR_SECRET_KEY: ${{ secrets.STELLAR_SECRET_KEY }}
     ANCHOR_API_KEY: ${{ secrets.ANCHOR_API_KEY }}
     SDS_API_KEY: ${{ secrets.SDS_API_KEY }}
   run: |
+    : "${JWT_REFRESH_SECRET:?Configure the JWT_REFRESH_SECRET deployment secret}"
     kubectl create secret generic payd-backend-secrets \
       --namespace payd \
       --from-literal=DATABASE_URL="$DATABASE_URL" \
       --from-literal=DB_USER="payd_user" \
       --from-literal=DB_PASSWORD="$DB_PASSWORD" \
       --from-literal=JWT_SECRET="$JWT_SECRET" \
+      --from-literal=JWT_REFRESH_SECRET="$JWT_REFRESH_SECRET" \
       --from-literal=STELLAR_SECRET_KEY="$STELLAR_SECRET_KEY" \
       --from-literal=ANCHOR_API_KEY="$ANCHOR_API_KEY" \
       --from-literal=SDS_API_KEY="$SDS_API_KEY" \
@@ -162,11 +175,16 @@ helm install external-secrets external-secrets/external-secrets \
    values in AWS Secrets Manager before deploying the backend:
 
    - `payd-production/database-url`: complete Postgres connection URL
+   - `payd-production/jwt-refresh-secret`: independent refresh-token signing key
    - `payd-production/anchor-api-key`: anchor API key
    - `payd-production/sds-api-key`: SDS API key
 
    Their names and formats must match `k8s/base/external-secret.yaml`. Missing
-   values leave the ExternalSecret unready and the backend without a Secret.
+   values leave the ExternalSecret unready and prevent initial Secret creation.
+   The Terraform module does not create the refresh-token key; provision it
+   separately and include it in the service account's IAM read permissions.
+   Use a generated secret value, not the backend's development default or the
+   example manifest's `REPLACE_AT_APPLY_TIME` marker.
 
 4. Apply the namespaced `SecretStore` and `ExternalSecret` from `k8s/base/`:
 
@@ -192,6 +210,10 @@ spec:
    `kubectl -n payd apply -k k8s/base/` includes both resources. Before routing traffic,
    inspect `kubectl -n payd get externalsecret payd-backend-secrets` and confirm
    Ready=True. Do not put remote values in a tracked YAML file.
+
+   Existing containers retain the environment they started with. Roll out the
+   backend after the Secret is updated so it uses the new refresh-signing key;
+   rotating this key invalidates refresh tokens signed with the previous key.
 
 ## Pre-commit Safety Check
 
