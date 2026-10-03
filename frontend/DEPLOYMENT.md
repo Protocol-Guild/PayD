@@ -104,6 +104,13 @@ branch: `/api/v1/claims`, `/api/v1/bulk-payments`, `/api/withdrawal`, and
 this configuration repair does not add those handlers or replace them with
 different request/response contracts.
 
+The cross-asset page displays only conversion paths returned by its configured
+quote endpoint. Failed or malformed responses show **Quotes unavailable**, and
+an empty response shows that no paths are available. These outcomes do not
+produce synthetic exchange rates or enable submission. Changing an amount or
+asset pair immediately retires the previous quote and cancels its request;
+only a successful response for the current inputs can be selected.
+
 ## Verify configuration and client requests
 
 ```sh

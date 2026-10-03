@@ -51,56 +51,59 @@ function getNetworkPassphrase(): string {
   return network === 'MAINNET' ? Networks.PUBLIC : Networks.TESTNET;
 }
 
-function fallbackPaths(request: PathfindRequest): ConversionPath[] {
-  const baseRate = request.toAsset === 'NGN' ? 1550 : request.toAsset === 'BRL' ? 5.1 : 1.15;
-  const fastFee = Number((request.amount * 0.006).toFixed(4));
-  const cheapFee = Number((request.amount * 0.003).toFixed(4));
-
-  return [
-    {
-      id: 'path-fast',
-      sourceAsset: request.fromAsset,
-      destinationAsset: request.toAsset,
-      rate: baseRate,
-      fee: fastFee,
-      slippage: 0.35,
-      estimatedDestinationAmount: Number((request.amount * baseRate - fastFee).toFixed(4)),
-      hops: [request.fromAsset, 'XLM', request.toAsset],
-    },
-    {
-      id: 'path-cheap',
-      sourceAsset: request.fromAsset,
-      destinationAsset: request.toAsset,
-      rate: Number((baseRate * 0.994).toFixed(6)),
-      fee: cheapFee,
-      slippage: 0.8,
-      estimatedDestinationAmount: Number((request.amount * baseRate * 0.994 - cheapFee).toFixed(4)),
-      hops: [request.fromAsset, 'USDC', request.toAsset],
-    },
-  ];
+function isConversionPath(value: unknown, request: PathfindRequest): value is ConversionPath {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const path = value as Partial<ConversionPath>;
+  return (
+    typeof path.id === 'string' &&
+    path.id.trim().length > 0 &&
+    path.sourceAsset === request.fromAsset &&
+    path.destinationAsset === request.toAsset &&
+    typeof path.rate === 'number' &&
+    Number.isFinite(path.rate) &&
+    path.rate > 0 &&
+    typeof path.fee === 'number' &&
+    Number.isFinite(path.fee) &&
+    path.fee >= 0 &&
+    typeof path.slippage === 'number' &&
+    Number.isFinite(path.slippage) &&
+    path.slippage >= 0 &&
+    typeof path.estimatedDestinationAmount === 'number' &&
+    Number.isFinite(path.estimatedDestinationAmount) &&
+    path.estimatedDestinationAmount > 0 &&
+    Array.isArray(path.hops) &&
+    path.hops.every((hop) => typeof hop === 'string' && hop.trim().length > 0)
+  );
 }
 
-export async function fetchConversionPaths(request: PathfindRequest): Promise<ConversionPath[]> {
+export async function fetchConversionPaths(
+  request: PathfindRequest,
+  signal?: AbortSignal
+): Promise<ConversionPath[]> {
   const endpoint = `${API_V1_BASE_URL}/payments/pathfind`;
-  try {
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(request),
-    });
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+    signal,
+  });
 
-    if (!response.ok) {
-      throw new Error(`Pathfinding endpoint unavailable (${response.status})`);
-    }
-
-    const payload = (await response.json()) as { paths?: ConversionPath[] };
-    if (!payload.paths?.length) {
-      return fallbackPaths(request);
-    }
-    return payload.paths;
-  } catch {
-    return fallbackPaths(request);
+  if (!response.ok) {
+    throw new Error(`Pathfinding endpoint unavailable (${response.status})`);
   }
+
+  const payload: unknown = await response.json();
+  if (!payload || typeof payload !== 'object' || !('paths' in payload)) {
+    throw new Error('Invalid pathfinding response.');
+  }
+  const paths: unknown = payload.paths;
+  if (!Array.isArray(paths) || !paths.every((path) => isConversionPath(path, request))) {
+    throw new Error('Invalid pathfinding response.');
+  }
+  if (new Set(paths.map((path) => path.id)).size !== paths.length) {
+    throw new Error('Invalid pathfinding response: duplicate path identifiers.');
+  }
+  return paths;
 }
 
 export async function submitCrossAssetPayment(

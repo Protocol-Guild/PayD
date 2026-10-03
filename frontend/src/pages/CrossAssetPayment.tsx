@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Loader2,
   ArrowRightLeft,
@@ -20,6 +20,10 @@ import {
   type ConversionPath,
 } from '../services/crossAssetPayment';
 
+type QuoteResult =
+  | { requestKey: string; status: 'success'; paths: ConversionPath[] }
+  | { requestKey: string; status: 'unavailable'; message: string };
+
 export default function CrossAssetPayment() {
   const { notifySuccess, notifyError } = useNotification();
   const { address, signTransaction, connect } = useWallet();
@@ -30,53 +34,72 @@ export default function CrossAssetPayment() {
   const [amount, setAmount] = useState('');
   const [receiver, setReceiver] = useState('');
 
-  const [paths, setPaths] = useState<ConversionPath[]>([]);
+  const [quoteResult, setQuoteResult] = useState<QuoteResult | null>(null);
   const [selectedPathId, setSelectedPathId] = useState<string>('');
-  const [isLoadingPaths, setIsLoadingPaths] = useState(false);
+  const quoteController = useRef<AbortController | null>(null);
   const [submissionTxHash, setSubmissionTxHash] = useState<string | null>(null);
   const [liveStatusMessage, setLiveStatusMessage] = useState<string>('Waiting for submission...');
   const [status, setStatus] = useState<string>('idle');
 
-  const selectedPath = useMemo<ConversionPath | null>(
-    () => paths.find((path) => path.id === selectedPathId) || null,
-    [paths, selectedPathId]
-  );
+  const requestKey = JSON.stringify([assetIn, assetOut, amount]);
+  const parsedAmount = Number(amount);
+  const hasValidAmount = Number.isFinite(parsedAmount) && parsedAmount > 0;
+  // A result from a different input cannot be displayed or submitted, even
+  // during the render before the previous request's effect is cleaned up.
+  const currentQuote = quoteResult?.requestKey === requestKey ? quoteResult : null;
+  const paths = currentQuote?.status === 'success' ? currentQuote.paths : [];
+  const isLoadingPaths = hasValidAmount && currentQuote === null;
+  const selectedPath = paths.find((path) => path.id === selectedPathId) ?? null;
+
+  const invalidateQuote = () => {
+    // Invalidate in the input event as well as effect cleanup: an old promise
+    // may settle before the next passive effect, or after an A → B → A edit.
+    quoteController.current?.abort();
+    quoteController.current = null;
+    setQuoteResult(null);
+    setSelectedPathId('');
+  };
 
   useEffect(() => {
-    const parsedAmount = Number.parseFloat(amount);
+    const parsedAmount = Number(amount);
     if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-      setPaths([]);
-      setSelectedPathId('');
       return;
     }
 
-    setIsLoadingPaths(true);
+    const controller = new AbortController();
+    quoteController.current = controller;
+    const isCurrentRequest = () =>
+      !controller.signal.aborted && quoteController.current === controller;
+
     const timeout = setTimeout(() => {
       void (async () => {
         try {
-          const nextPaths: ConversionPath[] = await fetchConversionPaths({
-            fromAsset: assetIn,
-            toAsset: assetOut,
-            amount: parsedAmount,
-          });
-          setPaths(nextPaths);
-          setSelectedPathId((current) => current || nextPaths[0]?.id || '');
-        } catch (error) {
-          notifyError(
-            'Pathfinding failed',
-            error instanceof Error ? error.message : 'Failed to fetch conversion paths.'
+          const nextPaths = await fetchConversionPaths(
+            { fromAsset: assetIn, toAsset: assetOut, amount: parsedAmount },
+            controller.signal
           );
-        } finally {
-          setIsLoadingPaths(false);
+          if (!isCurrentRequest()) return;
+          setQuoteResult({ requestKey, status: 'success', paths: nextPaths });
+          setSelectedPathId(nextPaths[0]?.id ?? '');
+        } catch (error) {
+          if (!isCurrentRequest()) return;
+          setQuoteResult({
+            requestKey,
+            status: 'unavailable',
+            message:
+              error instanceof Error ? error.message : 'Unable to retrieve conversion paths.',
+          });
+          setSelectedPathId('');
         }
       })();
     }, 450);
 
     return () => {
       clearTimeout(timeout);
-      setIsLoadingPaths(false);
+      controller.abort();
+      if (quoteController.current === controller) quoteController.current = null;
     };
-  }, [amount, assetIn, assetOut, notifyError]);
+  }, [amount, assetIn, assetOut, requestKey]);
 
   useEffect(() => {
     if (!socket || !submissionTxHash) return;
@@ -113,12 +136,15 @@ export default function CrossAssetPayment() {
       notifyError('Wallet required', 'Connect your wallet before submitting cross-asset payment.');
       return;
     }
-    if (!selectedPath) {
-      notifyError('No path selected', 'Select a conversion path before submitting.');
+    const selectedQuoteController = quoteController.current;
+    if (!selectedPath || !selectedQuoteController || selectedQuoteController.signal.aborted) {
+      notifyError(
+        'Quote required',
+        'Wait for a conversion quote for the current asset pair and amount.'
+      );
       return;
     }
 
-    const parsedAmount = Number.parseFloat(amount);
     if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
       notifyError('Invalid amount', 'Enter a valid payment amount.');
       return;
@@ -127,6 +153,13 @@ export default function CrossAssetPayment() {
     setStatus('submitting');
     try {
       await contractService.initialize();
+      if (
+        selectedQuoteController.signal.aborted ||
+        quoteController.current !== selectedQuoteController
+      ) {
+        setStatus('idle');
+        return;
+      }
       const contractId =
         contractService.getContractId('cross_asset_payment', 'testnet') ||
         (import.meta.env.VITE_CROSS_ASSET_PAYMENT_CONTRACT_ID as string | undefined);
@@ -206,12 +239,19 @@ export default function CrossAssetPayment() {
               <ContractErrorPanel error={contractError} />
               <div className="flex items-center gap-4">
                 <div className="flex-1">
-                  <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">
+                  <label
+                    htmlFor="cross-asset-source"
+                    className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2"
+                  >
                     Send Asset
                   </label>
                   <select
+                    id="cross-asset-source"
                     value={assetIn}
-                    onChange={(e) => setAssetIn(e.target.value)}
+                    onChange={(e) => {
+                      invalidateQuote();
+                      setAssetIn(e.target.value);
+                    }}
                     className="w-full bg-[#0a0a0c] border border-zinc-800 rounded-xl px-4 py-3 outline-none"
                   >
                     <option>USDC</option>
@@ -222,12 +262,19 @@ export default function CrossAssetPayment() {
                   <ArrowRightLeft className="text-zinc-600 h-6 w-6" />
                 </div>
                 <div className="flex-1">
-                  <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">
+                  <label
+                    htmlFor="cross-asset-destination"
+                    className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2"
+                  >
                     Receive Asset
                   </label>
                   <select
+                    id="cross-asset-destination"
                     value={assetOut}
-                    onChange={(e) => setAssetOut(e.target.value)}
+                    onChange={(e) => {
+                      invalidateQuote();
+                      setAssetOut(e.target.value);
+                    }}
                     className="w-full bg-[#0a0a0c] border border-zinc-800 rounded-xl px-4 py-3 outline-none"
                   >
                     <option>XLM</option>
@@ -241,14 +288,21 @@ export default function CrossAssetPayment() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">
+                <label
+                  htmlFor="cross-asset-amount"
+                  className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2"
+                >
                   Amount to Send
                 </label>
                 <div className="relative">
                   <input
+                    id="cross-asset-amount"
                     type="number"
                     value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
+                    onChange={(e) => {
+                      invalidateQuote();
+                      setAmount(e.target.value);
+                    }}
                     placeholder="0.00"
                     className="w-full bg-[#0a0a0c] border border-zinc-800 rounded-xl px-4 py-3 text-2xl font-bold focus:ring-2 focus:ring-blue-500 outline-none"
                   />
@@ -293,17 +347,26 @@ export default function CrossAssetPayment() {
 
           <div className="space-y-8">
             {/* Quote Panel */}
-            {(isLoadingPaths || paths.length > 0) && (
+            {(isLoadingPaths || currentQuote !== null) && (
               <div className="bg-gradient-to-br from-zinc-900 to-black border border-zinc-800 rounded-2xl p-8 shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <h3 className="text-lg font-bold flex items-center gap-2 mb-6">
                   <ShieldCheck className="text-emerald-400" />
                   Available Conversion Paths
                 </h3>
                 {isLoadingPaths ? (
-                  <div className="flex items-center gap-2 text-sm text-zinc-400">
+                  <div role="status" className="flex items-center gap-2 text-sm text-zinc-400">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Fetching conversion paths...
                   </div>
+                ) : currentQuote?.status === 'unavailable' ? (
+                  <div role="alert" className="space-y-2 text-sm text-amber-300">
+                    <p className="font-semibold">Quotes unavailable</p>
+                    <p>{currentQuote.message}</p>
+                  </div>
+                ) : paths.length === 0 ? (
+                  <p role="status" className="text-sm text-zinc-400">
+                    No conversion paths are available for this asset pair and amount.
+                  </p>
                 ) : (
                   <div className="space-y-3">
                     {paths.map((path) => (
@@ -419,7 +482,7 @@ export default function CrossAssetPayment() {
               </div>
             )}
 
-            {!selectedPath && !isLoadingPaths && (
+            {!hasValidAmount && (
               <div className="bg-blue-900/10 border border-blue-900/30 rounded-2xl p-6 flex gap-4">
                 <Info className="text-blue-400 shrink-0" />
                 <p className="text-sm text-blue-300">
