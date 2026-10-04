@@ -21,7 +21,7 @@ describe('Smart Rate Limiter Middleware', () => {
       path: '/api/employees',
       tenantId: 1,
       user: {
-        id: 'user-123',
+        id: 123,
         email: 'test@example.com',
         organizationId: 1,
         role: 'EMPLOYER',
@@ -129,6 +129,18 @@ describe('Smart Rate Limiter Middleware', () => {
       expect(smartRateLimitService.checkRateLimit).not.toHaveBeenCalled();
     });
 
+    it.each([true, false])('should not query a missing tenant when organizationBased is %s', async (organizationBased) => {
+      mockRequest.tenantId = undefined;
+      mockRequest.user = undefined;
+
+      const middleware = smartRateLimitMiddleware({ organizationBased });
+      await middleware(mockRequest as Request, mockResponse as Response, nextFunction);
+
+      expect(nextFunction).toHaveBeenCalledTimes(1);
+      expect(smartRateLimitService.checkRateLimit).not.toHaveBeenCalled();
+      expect(smartRateLimitService.recordSuccess).not.toHaveBeenCalled();
+    });
+
     it('should handle errors gracefully', async () => {
       (smartRateLimitService.checkRateLimit as jest.Mock).mockRejectedValue(
         new Error('Service error')
@@ -149,7 +161,7 @@ describe('Smart Rate Limiter Middleware', () => {
       (smartRateLimitService.checkRateLimit as jest.Mock).mockResolvedValue({
         allowed: true,
         currentLimit: 100,
-        remaining: 5,
+        remaining: 15,
         resetAt: new Date(Date.now() + 3600000),
         behaviorScore: 100,
         isRestricted: false,

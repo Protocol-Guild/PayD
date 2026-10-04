@@ -1,4 +1,5 @@
-import { pool } from '../config/database.js';
+import type { PoolClient } from 'pg';
+import { withTenantTransaction } from '../config/tenantDatabase.js';
 import {
   CreateEmployeeInput,
   UpdateEmployeeInput,
@@ -6,8 +7,7 @@ import {
 } from '../schemas/employeeSchema.js';
 
 export class EmployeeService {
-  async create(data: CreateEmployeeInput, dbClient?: any) {
-    const executor = dbClient || pool;
+  async create(data: CreateEmployeeInput, dbClient?: PoolClient) {
     const {
       organization_id,
       first_name,
@@ -42,7 +42,10 @@ export class EmployeeService {
       base_currency || 'USDC',
     ];
 
-    const result = await executor.query(query, values);
+    // Bulk import supplies its existing tenant transaction; ordinary requests own one.
+    const result = dbClient
+      ? await dbClient.query(query, values)
+      : await withTenantTransaction(organization_id, (client) => client.query(query, values));
     return result.rows[0];
   }
 
@@ -88,7 +91,7 @@ export class EmployeeService {
     query += ` ORDER BY created_at DESC LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
     values.push(limit, offset);
 
-    const result = await pool.query(query, values);
+    const result = await withTenantTransaction(organization_id, (client) => client.query(query, values));
 
     const total = result.rows.length > 0 ? parseInt(result.rows[0].total_count) : 0;
     const employees = result.rows.map((row) => {
@@ -113,7 +116,9 @@ export class EmployeeService {
       SELECT * FROM employees
       WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL
     `;
-    const result = await pool.query(query, [id, organization_id]);
+    const result = await withTenantTransaction(organization_id, (client) =>
+      client.query(query, [id, organization_id])
+    );
     return result.rows[0] || null;
   }
 
@@ -139,7 +144,7 @@ export class EmployeeService {
       RETURNING *;
     `;
 
-    const result = await pool.query(query, values);
+    const result = await withTenantTransaction(organization_id, (client) => client.query(query, values));
     return result.rows[0] || null;
   }
 
@@ -150,7 +155,9 @@ export class EmployeeService {
       WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL
       RETURNING *;
     `;
-    const result = await pool.query(query, [id, organization_id]);
+    const result = await withTenantTransaction(organization_id, (client) =>
+      client.query(query, [id, organization_id])
+    );
     return result.rows[0] || null;
   }
 }

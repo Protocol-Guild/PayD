@@ -1,9 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { UserRole } from '../types/auth.js';
-import { Pool } from 'pg';
-import { config } from '../config/env.js';
-
-const pool = new Pool({ connectionString: config.DATABASE_URL });
+import pool from '../config/database.js';
 
 export const authorizeRoles = (...roles: UserRole[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
@@ -34,7 +31,7 @@ export const isolateOrganization = async (req: Request, res: Response, next: Nex
   const requestedOrgId =
     req.params.orgId ||
     req.params.organizationId ||
-    req.body.organizationId ||
+    req.body?.organizationId ||
     req.query.organizationId;
 
   if (requestedOrgId && Number(requestedOrgId) !== organizationId) {
@@ -43,7 +40,7 @@ export const isolateOrganization = async (req: Request, res: Response, next: Nex
 
   // Also check for Stellar public key if provided
   const requestedOrgPublicKey =
-    req.params.orgPublicKey || req.body.orgPublicKey || req.query.orgPublicKey;
+    req.params.orgPublicKey || req.body?.orgPublicKey || req.query.orgPublicKey;
   if (requestedOrgPublicKey && organizationId) {
     try {
       const result = await pool.query('SELECT public_key FROM organizations WHERE id = $1', [

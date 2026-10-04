@@ -5,12 +5,15 @@ import {
   queryAuditLogs,
   queryCriticalOperations,
 } from '../requestAuditLogger.js';
-import pool from '../../db/index.js';
+import pool from '../../config/database.js';
 import logger from '../../utils/logger.js';
 
-jest.mock('../../db/index.js');
+jest.mock('../../config/database.js');
 jest.mock('../../utils/logger.js');
-jest.mock('uuid', () => ({ v4: () => 'test-uuid-1234' }));
+jest.mock('node:crypto', () => ({
+  ...jest.requireActual<typeof import('node:crypto')>('node:crypto'),
+  randomUUID: () => 'test-uuid-1234',
+}));
 
 describe('RequestAuditLogger', () => {
   let mockRequest: Partial<Request>;
@@ -118,6 +121,47 @@ describe('RequestAuditLogger', () => {
       );
     });
 
+    it.each([200, 401])('should audit a bodyless request after status %i without throwing', (statusCode) => {
+      mockRequest.method = 'GET';
+      mockRequest.body = undefined;
+      mockRequest.user = undefined;
+      mockResponse.statusCode = statusCode;
+
+      const middleware = requestAuditLoggerMiddleware();
+      middleware(mockRequest as Request, mockResponse as Response, nextFunction);
+
+      expect(finishCallback).not.toBeNull();
+      expect(() => finishCallback!()).not.toThrow();
+      expect(mockPool.query).toHaveBeenCalledTimes(1);
+      const insertArgs = mockPool.query.mock.calls[0]?.[1] as unknown[] | undefined;
+      expect(insertArgs?.[6]).toBeNull();
+    });
+
+    it('should audit an undefined response body without throwing', () => {
+      const middleware = requestAuditLoggerMiddleware({ includeResponseBody: true });
+      middleware(mockRequest as Request, mockResponse as Response, nextFunction);
+      mockResponse.send!(undefined);
+
+      expect(() => finishCallback!()).not.toThrow();
+      expect(mockPool.query).toHaveBeenCalledTimes(1);
+      const insertArgs = mockPool.query.mock.calls[0]?.[1] as unknown[] | undefined;
+      expect(insertArgs?.[8]).toBeNull();
+    });
+
+    it('should contain audit serialization failures after the response finishes', () => {
+      mockRequest.body = { amount: 1n };
+
+      const middleware = requestAuditLoggerMiddleware();
+      middleware(mockRequest as Request, mockResponse as Response, nextFunction);
+
+      expect(() => finishCallback!()).not.toThrow();
+      expect(mockPool.query).not.toHaveBeenCalled();
+      expect(logger.error).toHaveBeenCalledWith(
+        'Failed to create request audit log:',
+        expect.any(TypeError)
+      );
+    });
+
     it('should sanitize sensitive fields in request body', async () => {
       const middleware = requestAuditLoggerMiddleware({ includeRequestBody: true });
       middleware(mockRequest as Request, mockResponse as Response, nextFunction);
@@ -125,14 +169,12 @@ describe('RequestAuditLogger', () => {
       finishCallback!();
       await new Promise((r) => setTimeout(r, 10));
 
-      const insertArgs = mockPool.query.mock.calls[0][1];
-      // The request body is one of the args — find the JSONB body arg
-      const bodyArg = insertArgs.find(
-        (arg: any) => typeof arg === 'object' && arg !== null && arg.name !== undefined
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining('INSERT INTO request_audit_logs'),
+        expect.arrayContaining([
+          { name: 'John Doe', password: '[REDACTED]', salary: 50000 },
+        ])
       );
-
-      // Regardless of exact position, the insert should have been called
-      expect(mockPool.query).toHaveBeenCalled();
     });
 
     it('should skip logging on non-error when logErrorsOnly is true', async () => {
@@ -268,7 +310,7 @@ describe('RequestAuditLogger', () => {
         maxStatusCode: 499,
       });
 
-      const queryString = mockPool.query.mock.calls[0][0] as string;
+      const queryString = mockPool.query.mock.calls[0]?.[0];
       expect(queryString).toContain('organization_id');
       expect(queryString).toContain('method');
       expect(queryString).toContain('response_status >=');
@@ -336,7 +378,7 @@ describe('RequestAuditLogger', () => {
         startDate: new Date('2024-01-01'),
       });
 
-      const queryString = mockPool.query.mock.calls[0][0] as string;
+      const queryString = mockPool.query.mock.calls[0]?.[0];
       expect(queryString).toContain('organization_id');
       expect(queryString).toContain('user_id');
       expect(queryString).toContain('created_at');

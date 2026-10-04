@@ -24,7 +24,7 @@ export class CashFlowForecastController {
    */
   static async getForecast(req: Request, res: Response): Promise<void> {
     try {
-      const organizationId = (req.user as { organizationId?: number })?.organizationId;
+      const organizationId = req.user?.organizationId;
 
       if (!organizationId) {
         res.status(403).json({
@@ -42,7 +42,7 @@ export class CashFlowForecastController {
       if (!validation.success) {
         res.status(400).json({
           error: 'Invalid request parameters',
-          details: validation.error.errors,
+          details: validation.error.issues,
         });
         return;
       }
@@ -72,7 +72,7 @@ sendInternalError(res, req, error, 'Failed to generate cash flow forecast');
    */
   static async getHistorical(req: Request, res: Response): Promise<void> {
     try {
-      const organizationId = (req.user as { organizationId?: number })?.organizationId;
+      const organizationId = req.user?.organizationId;
 
       if (!organizationId) {
         res.status(403).json({
@@ -118,7 +118,7 @@ sendInternalError(res, req, error, 'Failed to get historical payroll data');
    */
   static async getProjections(req: Request, res: Response): Promise<void> {
     try {
-      const organizationId = (req.user as { organizationId?: number })?.organizationId;
+      const organizationId = req.user?.organizationId;
 
       if (!organizationId) {
         res.status(403).json({
@@ -159,7 +159,7 @@ sendInternalError(res, req, error, 'Failed to get payroll projections');
    */
   static async getAlerts(req: Request, res: Response): Promise<void> {
     try {
-      const organizationId = (req.user as { organizationId?: number })?.organizationId;
+      const organizationId = req.user?.organizationId;
 
       if (!organizationId) {
         res.status(403).json({

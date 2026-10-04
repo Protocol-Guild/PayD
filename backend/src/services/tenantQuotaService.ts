@@ -1,4 +1,5 @@
 import { pool } from '../config/database.js';
+import { withTenantTransaction } from '../config/tenantDatabase.js';
 import logger from '../utils/logger.js';
 
 export interface TenantQuotas {
@@ -60,18 +61,18 @@ export class TenantQuotaService {
    * Return the current live usage figures for an organisation.
    */
   async getCurrentUsage(organizationId: number): Promise<QuotaUsage> {
-    const [empResult, txResult] = await Promise.all([
-      pool.query<{ count: string }>(
+    const [empResult, txResult] = await withTenantTransaction(organizationId, (client) => Promise.all([
+      client.query<{ count: string }>(
         `SELECT COUNT(*) FROM employees WHERE organization_id = $1 AND deleted_at IS NULL`,
         [organizationId]
       ),
-      pool.query<{ count: string }>(
+      client.query<{ count: string }>(
         `SELECT COUNT(*) FROM transactions
           WHERE organization_id = $1
             AND created_at >= date_trunc('month', NOW())`,
         [organizationId]
       ),
-    ]);
+    ]));
 
     return {
       employeeCount: parseInt(empResult.rows[0]?.count ?? '0', 10),

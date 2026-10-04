@@ -123,6 +123,9 @@ export class CsvPayrollImportService {
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
+        await client.query("SELECT set_config('app.current_tenant_id', $1, true)", [
+          String(organizationId),
+        ]);
         for (const employee of validEmployees) {
           await employeeService.create(employee, client);
           successCount++;
