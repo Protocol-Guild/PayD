@@ -1,5 +1,6 @@
 import { DateTime } from 'luxon';
 import { default as pool } from '../config/database.js';
+import type { PoolClient } from 'pg';
 import type {
   Schedule,
   ScheduleFrequency,
@@ -361,14 +362,18 @@ export class ScheduleService {
   async updateAfterExecution(
     scheduleId: number,
     executionResult: ExecutionResult,
+    client?: PoolClient,
   ): Promise<void> {
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
+    const ownsClient = !client;
+    const dbClient = client ?? (await pool.connect());
 
-      // Query the schedule to get its frequency and configuration
+    try {
+      if (ownsClient) {
+        await dbClient.query('BEGIN');
+      }
+
       const selectQuery = `
-        SELECT 
+        SELECT
           id,
           frequency,
           time_of_day as "timeOfDay",
@@ -379,7 +384,7 @@ export class ScheduleService {
         WHERE id = $1
       `;
 
-      const selectResult = await client.query(selectQuery, [scheduleId]);
+      const selectResult = await dbClient.query(selectQuery, [scheduleId]);
 
       if (selectResult.rows.length === 0) {
         throw new Error(`Schedule with ID ${scheduleId} not found`);
@@ -388,35 +393,27 @@ export class ScheduleService {
       const schedule = selectResult.rows[0];
       const executionTime = new Date();
 
-      // Determine the new status and next_run_timestamp based on execution result
       let newStatus: string;
       let nextRunTimestamp: Date | null = null;
 
       if (!executionResult.success) {
-        // If execution failed, set status to 'failed'
         newStatus = 'failed';
+      } else if (schedule.frequency === 'once') {
+        newStatus = 'completed';
       } else {
-        // Execution succeeded
-        if (schedule.frequency === 'once') {
-          // For one-time schedules, set status to 'completed'
-          newStatus = 'completed';
-        } else {
-          // For recurring schedules, calculate new next_run_timestamp and keep status 'active'
-          newStatus = 'active';
-          nextRunTimestamp = this.calculateNextRun(
-            schedule.frequency,
-            schedule.timeOfDay,
-            new Date(schedule.startDate),
-            schedule.timezone,
-            executionTime, // Use execution time as lastRun
-          );
-        }
+        newStatus = 'active';
+        nextRunTimestamp = this.calculateNextRun(
+          schedule.frequency,
+          schedule.timeOfDay,
+          new Date(schedule.startDate),
+          schedule.timezone,
+          executionTime,
+        );
       }
 
-      // Update the schedule in the database
       const updateQuery = `
         UPDATE schedules
-        SET 
+        SET
           last_run_timestamp = $1,
           status = $2,
           next_run_timestamp = COALESCE($3, next_run_timestamp),
@@ -424,19 +421,25 @@ export class ScheduleService {
         WHERE id = $4
       `;
 
-      await client.query(updateQuery, [
+      await dbClient.query(updateQuery, [
         executionTime,
         newStatus,
         nextRunTimestamp,
         scheduleId,
       ]);
 
-      await client.query('COMMIT');
+      if (ownsClient) {
+        await dbClient.query('COMMIT');
+      }
     } catch (error) {
-      await client.query('ROLLBACK');
+      if (ownsClient) {
+        await dbClient.query('ROLLBACK');
+      }
       throw error;
     } finally {
-      client.release();
+      if (ownsClient) {
+        dbClient.release();
+      }
     }
   }
 }
