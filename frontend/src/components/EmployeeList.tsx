@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Avatar } from './Avatar';
 import { CSVUploader } from './CSVUploader';
 import type { CSVRow } from './CSVUploader';
@@ -15,10 +15,25 @@ interface Employee {
   status?: 'Active' | 'Inactive';
 }
 
+export interface BulkImportResponse {
+  message: string;
+  summary: {
+    totalRows: number;
+    successCount: number;
+    errorCount: number;
+  };
+  errors: Array<{
+    row: number;
+    email: string;
+    errors: string[];
+  }>;
+}
+
 interface EmployeeListProps {
   employees: Employee[];
   onEmployeeClick?: (employee: Employee) => void;
   onAddEmployee: (employee: Employee) => void;
+  onBulkImport?: (csvContent: string) => Promise<BulkImportResponse>;
   onEditEmployee?: (employee: Employee) => void;
   onRemoveEmployee?: (id: string) => void;
 }
@@ -26,10 +41,15 @@ interface EmployeeListProps {
 export const EmployeeList: React.FC<EmployeeListProps> = ({
   employees,
   onAddEmployee,
+  onBulkImport,
   onEditEmployee,
   onRemoveEmployee,
 }) => {
-  const [csvData, setCsvData] = useState<Employee[]>([]);
+  const [csvData, setCsvData] = useState<CSVRow[]>([]);
+  const [csvContent, setCsvContent] = useState('');
+  const [isImporting, setIsImporting] = useState(false);
+  const [importResult, setImportResult] = useState<BulkImportResponse | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
   const [showCSVUploader, setShowCSVUploader] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState<{ open: boolean; employee?: Employee }>({
@@ -40,26 +60,48 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({
   });
   const [sortKey, setSortKey] = useState<keyof Employee>('name');
   const [sortAsc, setSortAsc] = useState(true);
+  const selectionGeneration = useRef(0);
+  const importPending = useRef(false);
+  const mounted = useRef(true);
 
-  const handleDataParsed = (data: CSVRow[]) => {
-    const newEmployees = data.map((row) => ({
-      id: String(Date.now() + Math.random()),
-      name: row.data.name,
-      email: row.data.email,
-      wallet: row.data.wallet,
-      position: row.data.position,
-      salary: Number(row.data.salary) || 0,
-      status: (row.data.status as 'Active' | 'Inactive') || 'Active',
-    }));
-    setCsvData(newEmployees);
+  // Modified 2026-10-05: bind import feedback to its selection, not a later preview.
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      selectionGeneration.current += 1;
+    };
+  }, []);
+
+  const handleDataParsed = (data: CSVRow[], rawCsv: string) => {
+    selectionGeneration.current += 1;
+    setCsvData(data);
+    setCsvContent(rawCsv);
+    setImportResult(null);
+    setImportError(null);
   };
 
-  const handleAddEmployees = () => {
-    csvData.forEach((employee) => {
-      onAddEmployee(employee);
-    });
-    setCsvData([]);
-    setShowCSVUploader(false);
+  const handleAddEmployees = async () => {
+    if (importPending.current || !onBulkImport || !csvContent || !csvData.some((row) => row.isValid)) return;
+
+    const generation = selectionGeneration.current;
+    importPending.current = true;
+    setIsImporting(true);
+    setImportError(null);
+    setImportResult(null);
+    try {
+      const result = await onBulkImport(csvContent);
+      if (mounted.current && generation === selectionGeneration.current) {
+        setImportResult(result);
+      }
+    } catch (error) {
+      if (mounted.current && generation === selectionGeneration.current) {
+        setImportError(error instanceof Error ? error.message : 'Employee import failed');
+      }
+    } finally {
+      importPending.current = false;
+      if (mounted.current) setIsImporting(false);
+    }
   };
 
   const handleSort = (key: keyof Employee) => {
@@ -362,8 +404,19 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({
       {/* CSV Import */}
       <div className="p-4 md:p-6 w-full flex flex-col items-center justify-center text-center bg-black/10">
         <p className="text-muted mb-4 font-medium">Need to migrate your legacy payroll system?</p>
+        {isImporting && (
+          <div className="mb-4 w-full max-w-2xl" role="status" aria-live="polite">
+            <div className="h-2 w-full overflow-hidden rounded bg-(--surface-hi)">
+              <div className="h-full w-2/3 animate-pulse rounded bg-blue-500" />
+            </div>
+            <p className="mt-2 text-sm text-(--muted)">
+              Import in progress. Closing or changing this preview does not cancel submitted rows.
+            </p>
+          </div>
+        )}
         {!showCSVUploader && (
           <button
+            type="button"
             className="text-accent font-bold text-sm hover:underline touch-manipulation py-2 px-4"
             style={{ minHeight: '44px' }}
             onClick={() => setShowCSVUploader(true)}
@@ -374,29 +427,68 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({
         {showCSVUploader && (
           <div className="w-full max-w-2xl mx-auto">
             <CSVUploader
-              requiredColumns={['name', 'email', 'wallet', 'position', 'salary', 'status']}
+              requiredColumns={['first_name', 'last_name', 'email']}
               onDataParsed={handleDataParsed}
+              validators={{
+                email: (value) =>
+                  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? null : 'Invalid email address',
+                base_salary: (value) => {
+                  if (!value) return null;
+                  const salary = Number(value);
+                  return Number.isFinite(salary) && salary >= 0
+                    ? null
+                    : 'base_salary must be a non-negative number';
+                },
+              }}
             />
             <div className="flex gap-2 justify-center mt-4">
               <button
-                onClick={handleAddEmployees}
-                className="px-4 py-2 bg-blue-500 text-white rounded touch-manipulation"
+                type="button"
+                onClick={() => void handleAddEmployees()}
+                className="px-4 py-2 bg-blue-500 text-white rounded touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ minHeight: '44px' }}
-                disabled={csvData.length === 0}
+                disabled={
+                  isImporting ||
+                  !onBulkImport ||
+                  csvData.length === 0 ||
+                  !csvData.some((row) => row.isValid)
+                }
+                aria-busy={isImporting}
               >
-                Add Employees from CSV
+                {isImporting
+                  ? 'Importing employees…'
+                  : `Import ${csvData.filter((row) => row.isValid).length} valid employees`}
               </button>
               <button
+                type="button"
                 onClick={() => {
                   setShowCSVUploader(false);
-                  setCsvData([]);
+                  handleDataParsed([], '');
                 }}
                 className="px-4 py-2 bg-(--surface-hi) text-(--text) rounded touch-manipulation"
                 style={{ minHeight: '44px' }}
               >
-                Cancel
+                {isImporting ? 'Close preview' : 'Cancel'}
               </button>
             </div>
+
+            {importResult && (
+              <div className="mt-4 rounded border border-(--border) p-3 text-left text-sm" role="status">
+                Imported {importResult.summary.successCount} of {importResult.summary.totalRows} rows.
+                {importResult.summary.errorCount > 0 && (
+                  <span className="ml-1 text-red-600">
+                    {importResult.summary.errorCount} row
+                    {importResult.summary.errorCount === 1 ? '' : 's'} rejected by the backend.
+                  </span>
+                )}
+              </div>
+            )}
+
+            {importError && (
+              <div className="mt-4 rounded border border-red-500/40 bg-red-500/10 p-3 text-left text-sm text-red-600" role="alert">
+                {importError}
+              </div>
+            )}
           </div>
         )}
       </div>

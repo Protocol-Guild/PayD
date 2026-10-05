@@ -1,16 +1,13 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Upload, AlertCircle, CheckCircle } from 'lucide-react';
+import { parseCSVPreview } from '../utils/csvPreview';
+import type { CSVRow } from '../utils/csvPreview';
 
-export interface CSVRow {
-  rowNumber: number;
-  data: Record<string, string>;
-  errors: string[];
-  isValid: boolean;
-}
+export type { CSVRow } from '../utils/csvPreview';
 
 interface CSVUploaderProps {
   requiredColumns: string[];
-  onDataParsed: (data: CSVRow[]) => void;
+  onDataParsed: (data: CSVRow[], csvContent: string) => void;
   validators?: Record<string, (value: string) => string | null>;
 }
 
@@ -23,60 +20,21 @@ export const CSVUploader: React.FC<CSVUploaderProps> = ({
   const [parsedData, setParsedData] = useState<CSVRow[]>([]);
   const [fileName, setFileName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const readGeneration = useRef(0);
 
-  const parseCSV = (content: string): CSVRow[] => {
-    const lines = content.trim().split('\n');
-    if (lines.length < 2) return [];
-
-    const headers = lines[0].split(',').map((h) => h.trim());
-
-    // Validate headers
-    const missingColumns = requiredColumns.filter((col) => !headers.includes(col));
-    if (missingColumns.length > 0) {
-      alert(`Missing required columns: ${missingColumns.join(', ')}`);
-      return [];
-    }
-
-    const rows: CSVRow[] = [];
-
-    for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',').map((v) => v.trim());
-      const row: Record<string, string> = {};
-      const errors: string[] = [];
-
-      headers.forEach((header, idx) => {
-        row[header] = values[idx] || '';
-      });
-
-      // Validate each field
-      requiredColumns.forEach((col) => {
-        if (!row[col]) {
-          errors.push(`Missing required field: ${col}`);
-        }
-      });
-
-      // Run custom validators
-      Object.entries(validators).forEach(([field, validator]) => {
-        if (row[field]) {
-          const error = validator(row[field]);
-          if (error) {
-            errors.push(error);
-          }
-        }
-      });
-
-      rows.push({
-        rowNumber: i + 1,
-        data: row,
-        errors,
-        isValid: errors.length === 0,
-      });
-    }
-
-    return rows;
-  };
+  // Modified 2026-10-05: prevent replaced or unmounted reads from publishing CSV data.
+  useEffect(() => () => {
+    readGeneration.current += 1;
+  }, []);
 
   const handleFileParse = (file: File) => {
+    const generation = ++readGeneration.current;
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    setParsedData([]);
+    setFileName(null);
+    onDataParsed([], '');
+    if (generation !== readGeneration.current) return;
+
     if (!file.name.endsWith('.csv')) {
       alert('Please upload a CSV file');
       return;
@@ -84,15 +42,38 @@ export const CSVUploader: React.FC<CSVUploaderProps> = ({
 
     setFileName(file.name);
     const reader = new FileReader();
-
-    reader.onload = (e) => {
-      const content = e.target?.result as string;
-      const rows = parseCSV(content);
-      setParsedData(rows);
-      onDataParsed(rows);
+    const handleReadError = () => {
+      if (generation === readGeneration.current) {
+        alert('Unable to read the CSV file. Please select it again.');
+      }
     };
 
-    reader.readAsText(file);
+    reader.onload = (e) => {
+      if (generation !== readGeneration.current) return;
+      const content = e.target?.result;
+      if (typeof content !== 'string') {
+        handleReadError();
+        return;
+      }
+      let rows: CSVRow[];
+      try {
+        rows = parseCSVPreview(content, requiredColumns, validators);
+      } catch (error) {
+        alert(error instanceof Error ? error.message : 'Unable to parse the CSV file');
+        return;
+      }
+      if (generation !== readGeneration.current) return;
+      setParsedData(rows);
+      onDataParsed(rows, content);
+    };
+    reader.onerror = handleReadError;
+    reader.onabort = handleReadError;
+
+    try {
+      reader.readAsText(file);
+    } catch {
+      handleReadError();
+    }
   };
 
   const handleDragEnter = (e: React.DragEvent) => {
@@ -130,6 +111,7 @@ export const CSVUploader: React.FC<CSVUploaderProps> = ({
       {/* Upload Zone */}
       <div
         onDragEnter={handleDragEnter}
+        onDragOver={(e) => e.preventDefault()}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         className={`relative border-2 border-dashed rounded-lg p-8 text-center transition cursor-pointer ${
@@ -146,7 +128,7 @@ export const CSVUploader: React.FC<CSVUploaderProps> = ({
           className="hidden"
         />
 
-        <button onClick={() => fileInputRef.current?.click()} className="w-full">
+        <button type="button" onClick={() => fileInputRef.current?.click()} className="w-full">
           <Upload className="w-12 h-12 mx-auto mb-2 text-(--muted)" />
           <p className="text-lg font-semibold text-(--text)">Drag and drop your CSV file</p>
           <p className="text-sm text-(--muted) mt-1">or click to browse</p>
@@ -178,7 +160,12 @@ export const CSVUploader: React.FC<CSVUploaderProps> = ({
       {/* Preview Table */}
       {parsedData.length > 0 && (
         <div className="mt-6">
-          <h3 className="text-lg font-semibold mb-4">Preview</h3>
+          <div className="mb-4 flex items-baseline justify-between gap-4">
+            <h3 className="text-lg font-semibold">Preview</h3>
+            <span className="text-xs text-(--muted)">
+              Showing first {Math.min(20, parsedData.length)} of {parsedData.length} rows
+            </span>
+          </div>
           <div className="overflow-x-auto">
             <table className="min-w-full text-left border-collapse">
               <thead>
@@ -194,7 +181,7 @@ export const CSVUploader: React.FC<CSVUploaderProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-(--border)">
-                {parsedData.map((row) => (
+                {parsedData.slice(0, 20).map((row) => (
                   <tr
                     key={row.rowNumber}
                     className={`border-b transition ${

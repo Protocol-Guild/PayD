@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useState, useEffect, useCallback } from 'react';
 import { Icon, Button, Card, Input, Select, Alert } from '@stellar/design-system';
-import { EmployeeList } from '../components/EmployeeList';
+import { EmployeeList, type BulkImportResponse } from '../components/EmployeeList';
 import { AutosaveIndicator } from '../components/AutosaveIndicator';
 import { WalletQRCode } from '../components/WalletQRCode';
 import { useAutosave } from '../hooks/useAutosave';
@@ -67,9 +67,9 @@ export default function EmployeeEntry() {
   );
   const { t } = useTranslation();
 
-  const fetchEmployees = useCallback(async () => {
+  const fetchEmployees = useCallback(async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       const response = await api.get<{ data: BackendEmployee[] }>('/employees');
       const employeeRows = Array.isArray(response.data?.data) ? response.data.data : [];
       const mapped: EmployeeItem[] = employeeRows.map((emp: BackendEmployee) => ({
@@ -84,13 +84,32 @@ export default function EmployeeEntry() {
     } catch (err) {
       console.error('Failed to fetch employees:', err);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     void fetchEmployees();
   }, [fetchEmployees]);
+
+  const handleBulkImport = async (csvContent: string): Promise<BulkImportResponse> => {
+    const response = await api.post<BulkImportResponse>('/employees/bulk-import', {
+      csv: csvContent,
+    });
+
+    // Keep the uploader mounted so its selection-bound import result survives.
+    await fetchEmployees(false);
+
+    const { successCount, errorCount } = response.data.summary;
+    notifySuccess(
+      `${successCount} employee${successCount === 1 ? '' : 's'} imported`,
+      errorCount > 0
+        ? `${errorCount} row${errorCount === 1 ? '' : 's'} need correction.`
+        : undefined
+    );
+
+    return response.data;
+  };
 
   useEffect(() => {
     const saved = loadSavedData();
@@ -348,6 +367,7 @@ export default function EmployeeEntry() {
           employees={employees}
           onEmployeeClick={(employee: EmployeeItem) => console.log('Clicked:', employee.name)}
           onAddEmployee={(employee: EmployeeItem) => console.log('Added:', employee)}
+          onBulkImport={handleBulkImport}
         />
       )}
     </div>
