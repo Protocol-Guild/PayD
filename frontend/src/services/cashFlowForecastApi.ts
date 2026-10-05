@@ -105,7 +105,7 @@ export const getForecast = async (params: ForecastParams): Promise<CashFlowForec
         assetIssuer: params.assetIssuer,
       },
       headers: {
-        Authorization: `Bearer ${localStorage.getItem('accessToken') || ''}`,
+        Authorization: `Bearer ${localStorage.getItem('payd_auth_token') || ''}`,
       },
     });
 
@@ -146,7 +146,7 @@ export const getHistoricalData = async (
           monthsBack: monthsBack || 6,
         },
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('accessToken') || ''}`,
+          Authorization: `Bearer ${localStorage.getItem('payd_auth_token') || ''}`,
         },
       }
     );
@@ -185,7 +185,7 @@ export const getProjections = async (
           forecastDays: forecastDays || 90,
         },
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('accessToken') || ''}`,
+          Authorization: `Bearer ${localStorage.getItem('payd_auth_token') || ''}`,
         },
       }
     );
@@ -227,7 +227,7 @@ export const getAlerts = async (
         assetIssuer: params.assetIssuer,
       },
       headers: {
-        Authorization: `Bearer ${localStorage.getItem('accessToken') || ''}`,
+        Authorization: `Bearer ${localStorage.getItem('payd_auth_token') || ''}`,
       },
     });
 
