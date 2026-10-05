@@ -1,6 +1,7 @@
 #![cfg(test)]
 
-use crate::{RevenueSplitContract, RevenueSplitContractClient, RecipientShare};
+use crate::{proportional_amount, RevenueSplitContract, RevenueSplitContractClient, RecipientShare};
+use proptest::prelude::*;
 use soroban_sdk::{testutils::{Address as _}, Address, Env, Vec};
 use soroban_sdk::token::Client as TokenClient;
 use soroban_sdk::token::StellarAssetClient;
@@ -239,4 +240,91 @@ fn test_update_recipients() {
     ]);
 
     client.update_recipients(&new_shares);
+}
+
+
+#[test]
+fn test_distribution_assigns_all_dust_to_last_recipient() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let token_admin = Address::generate(&env);
+    let (token_id, stellar_asset_client, token_client) =
+        create_token_contract(&env, &token_admin);
+
+    let contract_id = env.register(RevenueSplitContract, ());
+    let contract_client = RevenueSplitContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let first_recipient = Address::generate(&env);
+    let last_recipient = Address::generate(&env);
+    let shares = Vec::from_array(&env, [
+        RecipientShare {
+            destination: first_recipient.clone(),
+            basis_points: 9999,
+        },
+        RecipientShare {
+            destination: last_recipient.clone(),
+            basis_points: 1,
+        },
+    ]);
+    contract_client.init(&admin, &shares);
+
+    let sender = Address::generate(&env);
+    stellar_asset_client.mint(&sender, &1);
+    let assets = Vec::from_array(&env, [(token_id, 1i128)]);
+    contract_client.distribute(&sender, &assets);
+
+    assert_eq!(token_client.balance(&sender), 0);
+    assert_eq!(token_client.balance(&first_recipient), 0);
+    assert_eq!(token_client.balance(&last_recipient), 1);
+}
+
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(10_000))]
+
+    #[test]
+    fn proportional_rounding_conserves_every_generated_amount(
+        amount in 1i128..=i128::MAX,
+        first_seed in any::<u32>(),
+        second_seed in any::<u32>(),
+    ) {
+        let first_bp = first_seed % (crate::TOTAL_BASIS_POINTS + 1);
+        let remaining_bp = crate::TOTAL_BASIS_POINTS - first_bp;
+        let second_bp = if remaining_bp == 0 {
+            0
+        } else {
+            second_seed % (remaining_bp + 1)
+        };
+        let third_bp = remaining_bp - second_bp;
+
+        let first = proportional_amount(amount, first_bp);
+        let second = proportional_amount(amount, second_bp);
+        let final_amount = amount - first - second;
+        let third_floor = proportional_amount(amount, third_bp);
+
+        prop_assert_eq!(first + second + final_amount, amount);
+        prop_assert!(final_amount >= third_floor);
+        prop_assert!(final_amount - third_floor <= 2);
+    }
+}
+
+#[test]
+fn test_share_validation_rejects_overflow_sized_basis_points() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_id = env.register(RevenueSplitContract, ());
+    let client = RevenueSplitContractClient::new(&env, &contract_id);
+    let admin = Address::generate(&env);
+    let recipient1 = Address::generate(&env);
+    let recipient2 = Address::generate(&env);
+
+    let shares = Vec::from_array(&env, [
+        RecipientShare { destination: recipient1, basis_points: u32::MAX },
+        RecipientShare { destination: recipient2, basis_points: 1 },
+    ]);
+
+    assert!(client.try_init(&admin, &shares).is_err());
 }
