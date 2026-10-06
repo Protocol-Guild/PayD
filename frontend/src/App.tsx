@@ -12,6 +12,7 @@ import Settings from './pages/Settings';
 import WebhookSettings from './pages/WebhookSettings';
 import TwoFactorSettings from './pages/TwoFactorSettings';
 import CustomReportBuilder from './pages/CustomReportBuilder';
+import CashFlowForecast from './pages/CashFlowForecast';
 import CrossAssetPayment from './pages/CrossAssetPayment';
 import TransactionHistory from './pages/TransactionHistory';
 import BulkPaymentTracker from './pages/BulkPaymentTracker';
@@ -102,6 +103,16 @@ function App() {
           element={
             <ErrorBoundary fallback={<ErrorFallback />}>
               <CustomReportBuilder />
+            </ErrorBoundary>
+          }
+        />
+        <Route
+          path="/cash-flow"
+          element={
+            <ErrorBoundary
+              fallback={({ onReset }) => <ErrorFallback onReset={onReset} />}
+            >
+              <CashFlowForecast />
             </ErrorBoundary>
           }
         />
