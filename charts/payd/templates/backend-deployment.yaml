@@ -15,6 +15,9 @@ spec:
       {{- include "payd.backend.selectorLabels" . | nindent 6 }}
   template:
     metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/backend-configmap.yaml") . | sha256sum | quote }}
+        checksum/secret: {{ include (print $.Template.BasePath "/backend-secret.yaml") . | sha256sum | quote }}
       labels:
         {{- include "payd.backend.selectorLabels" . | nindent 8 }}
     spec:
@@ -28,7 +31,7 @@ spec:
           imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
           ports:
             - name: http
-              containerPort: {{ .Values.backend.service.port }}
+              containerPort: {{ get (.Values.backend.config | default dict) "PORT" | default "3001" | toString | atoi }}
               protocol: TCP
           envFrom:
             - configMapRef:
@@ -37,6 +40,10 @@ spec:
                 name: {{ include "payd.fullname" . }}-backend-secrets
           {{- with .Values.backend.resources }}
           resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.backend.healthCheck.startupProbe }}
+          startupProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           {{- with .Values.backend.healthCheck.livenessProbe }}

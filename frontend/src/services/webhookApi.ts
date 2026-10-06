@@ -1,8 +1,7 @@
 import axios from 'axios';
+import { API_ORIGIN } from '../config/api';
 
-const RAW_API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api/v1';
-const API_ROOT = RAW_API_URL.replace(/\/api\/v1\/?$/, '').replace(/\/api\/?$/, '');
-const WEBHOOKS_URL = `${API_ROOT}/webhooks`;
+const WEBHOOKS_URL = `${API_ORIGIN}/webhooks`;
 
 function authHeaders() {
   const token = localStorage.getItem('payd_auth_token');

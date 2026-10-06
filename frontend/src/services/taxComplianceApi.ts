@@ -1,6 +1,5 @@
 import axios from 'axios';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
+import { API_V1_BASE_URL } from '../config/api';
 
 function authHeaders() {
   const token = localStorage.getItem('payd_auth_token');
@@ -149,7 +148,7 @@ export const getAvailableCountries = (): string[] => {
 export const getTaxRules = async (): Promise<TaxRule[]> => {
   try {
     const { data } = await axios.get<{ success: boolean; data: TaxRule[] }>(
-      `${API_BASE_URL}/taxes/rules`,
+      `${API_V1_BASE_URL}/taxes/rules`,
       { headers: authHeaders() }
     );
     return data.data || [];
@@ -161,7 +160,7 @@ export const getTaxRules = async (): Promise<TaxRule[]> => {
 
 export const createTaxRule = async (rule: TaxRule): Promise<TaxRule> => {
   const { data } = await axios.post<{ success: boolean; data: TaxRule }>(
-    `${API_BASE_URL}/taxes/rules`,
+    `${API_V1_BASE_URL}/taxes/rules`,
     rule,
     { headers: authHeaders() }
   );
@@ -170,7 +169,7 @@ export const createTaxRule = async (rule: TaxRule): Promise<TaxRule> => {
 
 export const updateTaxRule = async (id: number, rule: Partial<TaxRule>): Promise<TaxRule> => {
   const { data } = await axios.put<{ success: boolean; data: TaxRule }>(
-    `${API_BASE_URL}/taxes/rules/${id}`,
+    `${API_V1_BASE_URL}/taxes/rules/${id}`,
     rule,
     { headers: authHeaders() }
   );
@@ -178,7 +177,7 @@ export const updateTaxRule = async (id: number, rule: Partial<TaxRule>): Promise
 };
 
 export const deleteTaxRule = async (id: number): Promise<void> => {
-  await axios.delete(`${API_BASE_URL}/taxes/rules/${id}`, {
+  await axios.delete(`${API_V1_BASE_URL}/taxes/rules/${id}`, {
     headers: authHeaders(),
   });
 };
@@ -244,7 +243,7 @@ export const exportTaxSummary = async (
 ): Promise<TaxSummaryReport> => {
   try {
     const { data } = await axios.get<{ success: boolean; data: TaxSummaryReport }>(
-      `${API_BASE_URL}/taxes/reports`,
+      `${API_V1_BASE_URL}/taxes/reports`,
       {
         params: { country, startDate, endDate },
         headers: authHeaders(),

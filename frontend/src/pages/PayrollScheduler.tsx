@@ -24,6 +24,7 @@ import {
   ScheduleRecord,
 } from '../services/scheduleApi';
 import { BulkPaymentStatusTracker } from '../components/BulkPaymentStatusTracker';
+import { API_ORIGIN } from '../config/api';
 
 interface EmployeePreference {
   id: string;
@@ -304,7 +305,7 @@ export default function PayrollScheduler() {
 
       // Trigger Webhook Event (Internal simulation)
       try {
-        await fetch('http://localhost:3001/api/webhooks/test-trigger', {
+        await fetch(`${API_ORIGIN}/webhooks/test-trigger`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

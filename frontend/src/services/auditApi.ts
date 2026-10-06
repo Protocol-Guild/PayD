@@ -1,6 +1,5 @@
 import axios from 'axios';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+import { API_V1_BASE_URL } from '../config/api';
 
 export interface AuditRecord {
   id: number;
@@ -36,7 +35,7 @@ export interface AuditListFilters {
 export const fetchAuditLogs = async (
   filters: AuditListFilters = {}
 ): Promise<AuditListResponse> => {
-  const { data } = await axios.get<AuditListResponse>(`${API_BASE_URL}/audit`, {
+  const { data } = await axios.get<AuditListResponse>(`${API_V1_BASE_URL}/audit`, {
     params: filters,
   });
   return data;
@@ -56,7 +55,7 @@ export interface Employee {
 export const fetchEmployees = async (): Promise<{ data: Employee[]; total: number }> => {
   try {
     const { data } = await axios.get<{ data: Employee[]; total: number }>(
-      `${API_BASE_URL}/employees`
+      `${API_V1_BASE_URL}/employees`
     );
     return data;
   } catch (error) {

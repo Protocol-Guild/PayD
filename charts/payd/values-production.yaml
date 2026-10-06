@@ -32,6 +32,7 @@ backend:
     DB_USER: ""       # Set via --set or external secret
     DB_PASSWORD: ""   # Set via --set or external secret
     JWT_SECRET: ""    # Set via --set or external secret
+    JWT_REFRESH_SECRET: ""  # Required: supply through a private values file or --set-file
     STELLAR_SECRET_KEY: ""  # Set via --set or external secret
     ANCHOR_API_KEY: ""      # Set via --set or external secret
     SDS_API_KEY: ""         # Set via --set or external secret

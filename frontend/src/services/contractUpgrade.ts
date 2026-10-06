@@ -8,11 +8,13 @@
  * No in-module state — every call is a pure async function.
  */
 
+import { API_V1_BASE_URL } from '../config/api';
+
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const API_BASE = '/api/v1/contracts';
+const API_BASE = `${API_V1_BASE_URL}/contracts`;
 
 // ---------------------------------------------------------------------------
 // Types (mirror backend service types)

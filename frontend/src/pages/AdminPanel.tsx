@@ -12,9 +12,7 @@ import {
 import { useNotification } from '../hooks/useNotification';
 import { useWallet } from '../hooks/useWallet';
 import ContractUpgradeTab from '../components/ContractUpgradeTab';
-
-/** Centralized API base so URL changes happen in one place. */
-const API_BASE = '/api/v1';
+import { API_V1_BASE_URL } from '../config/api';
 
 const LOGS_PER_PAGE = 20;
 
@@ -150,7 +148,7 @@ export default function AdminPanel() {
   async function loadLogs(page: number) {
     setLogsLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/freeze/logs?page=${page}&limit=${LOGS_PER_PAGE}`);
+      const res = await fetch(`${API_V1_BASE_URL}/freeze/logs?page=${page}&limit=${LOGS_PER_PAGE}`);
       const data = (await res.json()) as LogsApiResponse;
       if (data.success) {
         setLogs(data.data);
@@ -171,7 +169,7 @@ export default function AdminPanel() {
     setClawbackLogsLoading(true);
     try {
       const res = await fetch(
-        `${API_BASE}/assets/clawback/logs?page=${page}&limit=${LOGS_PER_PAGE}`
+        `${API_V1_BASE_URL}/assets/clawback/logs?page=${page}&limit=${LOGS_PER_PAGE}`
       );
       const data = (await res.json()) as { success: boolean; data: ClawbackLog[]; total: number };
       if (data.success) {
@@ -196,7 +194,7 @@ export default function AdminPanel() {
     }
     setAccountLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/freeze/account/${action}`, {
+      const res = await fetch(`${API_V1_BASE_URL}/freeze/account/${action}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -225,7 +223,7 @@ export default function AdminPanel() {
     }
     setGlobalLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/freeze/global/${action}`, {
+      const res = await fetch(`${API_V1_BASE_URL}/freeze/global/${action}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -259,7 +257,7 @@ export default function AdminPanel() {
         assetIssuer: statusIssuer,
       });
       const res = await fetch(
-        `${API_BASE}/freeze/status/${encodeURIComponent(statusTarget)}?${params}`
+        `${API_V1_BASE_URL}/freeze/status/${encodeURIComponent(statusTarget)}?${params}`
       );
       const data = (await res.json()) as StatusResult & { error?: string };
       if (!res.ok) throw new Error(data.error ?? 'Status check failed');
@@ -286,7 +284,7 @@ export default function AdminPanel() {
     }
     setClawbackLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/assets/clawback`, {
+      const res = await fetch(`${API_V1_BASE_URL}/assets/clawback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
