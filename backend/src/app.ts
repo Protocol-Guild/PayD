@@ -9,6 +9,7 @@ import logger from './utils/logger.js';
 import passport from './config/passport.js';
 import { apiVersionMiddleware } from './middlewares/apiVersionMiddleware.js';
 import { requestIdMiddleware } from './middleware/requestId.js';
+import { requestTimeoutMiddleware } from './middleware/requestTimeout.js';
 import { auditLoggerMiddleware } from './middleware/auditLogger.js';
 import { tieredOrganizationRateLimit } from './middleware/advancedRateLimiting.js';
 import { rateLimitHeaders } from './middleware/rateLimitHeaders.js';
@@ -58,6 +59,7 @@ const app = express();
 
 // Middleware — request ID first for correlation across all layers
 app.use(requestIdMiddleware);
+app.use(requestTimeoutMiddleware);
 
 // Standard X-RateLimit-* response headers on every response, normalized from
 // whichever rate limiter (tiered/advanced, organization, or smart) ran for
@@ -186,8 +188,12 @@ app.use((req, res) => {
 });
 
 // Error handler
-app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   logger.error('Unhandled error', { err, requestId: (req as any).requestId });
+  if (res.headersSent) {
+    next(err);
+    return;
+  }
   res.status(500).json({
     error: 'Internal Server Error',
     message: config.nodeEnv === 'development' ? err.message : 'An error occurred',
