@@ -1,4 +1,5 @@
 import { Request, Response, Router } from 'express';
+import { z } from 'zod';
 import { payrollQueryService } from '../services/payroll-query.service.js';
 import logger from '../utils/logger.js';
 import { authenticateJWT } from '../middlewares/auth.js';
@@ -8,8 +9,63 @@ import {
   validateActiveTenant,
   logTenantAccess,
 } from '../middleware/enhancedTenantIsolation.js';
+import { validateRequest } from '../middleware/validateRequest.js';
 
 const router = Router();
+
+const emptyBodySchema = z.object({}).strict().optional();
+const nonEmptyQueryStringSchema = z.string().min(1);
+const positiveIntegerQuerySchema = z.string().regex(/^[1-9][0-9]*$/, 'must be a positive integer');
+const parseableDateQuerySchema = z.string().refine(
+  (value) => Number.isFinite(Date.parse(value)),
+  'must be a valid date',
+);
+const paginationQueryFields = {
+  page: positiveIntegerQuerySchema.optional(),
+  limit: positiveIntegerQuerySchema.optional(),
+};
+const dateRangeQueryFields = {
+  startDate: parseableDateQuerySchema.optional(),
+  endDate: parseableDateQuerySchema.optional(),
+};
+const transactionsQuerySchema = z.object({
+  orgPublicKey: nonEmptyQueryStringSchema,
+  employeeId: nonEmptyQueryStringSchema.optional(),
+  batchId: nonEmptyQueryStringSchema.optional(),
+  assetCode: nonEmptyQueryStringSchema.optional(),
+  assetIssuer: nonEmptyQueryStringSchema.optional(),
+  ...dateRangeQueryFields,
+  ...paginationQueryFields,
+  sortBy: z.enum(['timestamp', 'amount', 'employeeId']).optional(),
+  sortOrder: z.enum(['asc', 'desc']).optional(),
+});
+const employeePayrollQuerySchema = z.object({
+  orgPublicKey: nonEmptyQueryStringSchema,
+  ...dateRangeQueryFields,
+  ...paginationQueryFields,
+});
+const dateRangeQuerySchema = z.object({
+  orgPublicKey: nonEmptyQueryStringSchema,
+  ...dateRangeQueryFields,
+});
+const batchQuerySchema = z.object({
+  orgPublicKey: nonEmptyQueryStringSchema,
+  ...paginationQueryFields,
+});
+const aggregationQuerySchema = z.object({
+  orgPublicKey: nonEmptyQueryStringSchema,
+  ...dateRangeQueryFields,
+  assetCode: nonEmptyQueryStringSchema.optional(),
+  assetIssuer: nonEmptyQueryStringSchema.optional(),
+});
+const memoSearchQuerySchema = z.object({
+  orgPublicKey: nonEmptyQueryStringSchema,
+  pattern: nonEmptyQueryStringSchema,
+  ...paginationQueryFields,
+});
+const employeeIdParamsSchema = z.object({ employeeId: z.string().min(1) });
+const batchIdParamsSchema = z.object({ batchId: z.string().min(1) });
+const txHashParamsSchema = z.object({ txHash: z.string().min(1) });
 
 function asString(value: unknown): string | undefined {
   if (typeof value === 'string') return value;
@@ -44,7 +100,7 @@ router.use(isolateOrganization);
  * - sortBy: Sort field (timestamp, amount, employeeId)
  * - sortOrder: Sort order (asc, desc)
  */
-router.get('/transactions', async (req: Request, res: Response) => {
+router.get('/transactions', validateRequest({ query: transactionsQuerySchema }), async (req: Request, res: Response) => {
   try {
     const {
       orgPublicKey,
@@ -100,7 +156,7 @@ router.get('/transactions', async (req: Request, res: Response) => {
  * Get payroll for a specific employee
  * GET /api/payroll/employees/:employeeId
  */
-router.get('/employees/:employeeId', async (req: Request, res: Response) => {
+router.get('/employees/:employeeId', validateRequest({ params: employeeIdParamsSchema, query: employeePayrollQuerySchema }), async (req: Request, res: Response) => {
   try {
     const { employeeId } = req.params;
     const { orgPublicKey, startDate, endDate, page, limit } = req.query;
@@ -138,7 +194,7 @@ router.get('/employees/:employeeId', async (req: Request, res: Response) => {
  * Get employee payroll summary
  * GET /api/payroll/employees/:employeeId/summary
  */
-router.get('/employees/:employeeId/summary', async (req: Request, res: Response) => {
+router.get('/employees/:employeeId/summary', validateRequest({ params: employeeIdParamsSchema, query: dateRangeQuerySchema }), async (req: Request, res: Response) => {
   try {
     const { employeeId } = req.params;
     const { orgPublicKey, startDate, endDate } = req.query;
@@ -174,7 +230,7 @@ router.get('/employees/:employeeId/summary', async (req: Request, res: Response)
  * Get payroll batch details
  * GET /api/payroll/batches/:batchId
  */
-router.get('/batches/:batchId', async (req: Request, res: Response) => {
+router.get('/batches/:batchId', validateRequest({ params: batchIdParamsSchema, query: batchQuerySchema }), async (req: Request, res: Response) => {
   try {
     const { batchId } = req.params;
     const { orgPublicKey, page, limit } = req.query;
@@ -210,7 +266,7 @@ router.get('/batches/:batchId', async (req: Request, res: Response) => {
  * Get payroll aggregation statistics
  * GET /api/payroll/aggregation
  */
-router.get('/aggregation', async (req: Request, res: Response) => {
+router.get('/aggregation', validateRequest({ query: aggregationQuerySchema }), async (req: Request, res: Response) => {
   try {
     const { orgPublicKey, startDate, endDate, assetCode, assetIssuer } = req.query;
 
@@ -246,7 +302,7 @@ router.get('/aggregation', async (req: Request, res: Response) => {
  * Get organization-wide audit report
  * GET /api/payroll/audit
  */
-router.get('/audit', async (req: Request, res: Response) => {
+router.get('/audit', validateRequest({ query: dateRangeQuerySchema }), async (req: Request, res: Response) => {
   try {
     const { orgPublicKey, startDate, endDate } = req.query;
 
@@ -280,7 +336,7 @@ router.get('/audit', async (req: Request, res: Response) => {
  * Search transactions by memo pattern
  * GET /api/payroll/search/memo
  */
-router.get('/search/memo', async (req: Request, res: Response) => {
+router.get('/search/memo', validateRequest({ query: memoSearchQuerySchema }), async (req: Request, res: Response) => {
   try {
     const { orgPublicKey, pattern, page, limit } = req.query;
 
@@ -316,7 +372,7 @@ router.get('/search/memo', async (req: Request, res: Response) => {
  * Get transaction details by hash
  * GET /api/payroll/transactions/:txHash
  */
-router.get('/transactions/:txHash', async (req: Request, res: Response) => {
+router.get('/transactions/:txHash', validateRequest({ params: txHashParamsSchema }), async (req: Request, res: Response) => {
   try {
     const { txHash } = req.params;
 
@@ -390,7 +446,7 @@ router.get('/status/health', async (req: Request, res: Response) => {
  * Clear cache (admin endpoint)
  * POST /api/payroll/cache/clear
  */
-router.post('/cache/clear', (req: Request, res: Response) => {
+router.post('/cache/clear', validateRequest({ body: emptyBodySchema }), (req: Request, res: Response) => {
   try {
     payrollQueryService.clearCache();
 

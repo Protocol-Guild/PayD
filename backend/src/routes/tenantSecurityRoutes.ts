@@ -1,16 +1,46 @@
 import express from 'express';
+import { z } from 'zod';
 import { tenantSecurityService } from '../services/tenantSecurityService.js';
 import authenticateJWT from '../middlewares/auth.js';
 import { pool } from '../config/database.js';
 import logger from '../utils/logger.js';
+import { validateRequest } from '../middleware/validateRequest.js';
 
 const router = express.Router();
+
+const eventParamsSchema = z.object({
+  eventId: z.string().regex(/^[1-9][0-9]*$/, 'eventId must be a positive integer'),
+});
+const organizationParamsSchema = z.object({
+  organizationId: z.string().regex(/^[1-9][0-9]*$/, 'organizationId must be a positive integer'),
+});
+const resolutionBodySchema = z.object({
+  resolutionNotes: z.string().min(1),
+});
+const positiveIntegerQuerySchema = z.string().regex(/^[1-9][0-9]*$/, 'must be a positive integer');
+const nonNegativeIntegerQuerySchema = z.string().regex(/^(?:0|[1-9][0-9]*)$/, 'must be a non-negative integer');
+const parseableDateQuerySchema = z.string().refine(
+  (value) => Number.isFinite(Date.parse(value)),
+  'must be a valid date',
+);
+const eventsQuerySchema = z.object({
+  eventType: z.string().min(1).optional(),
+  severity: z.string().min(1).optional(),
+  isResolved: z.enum(['true', 'false']).optional(),
+  startDate: parseableDateQuerySchema.optional(),
+  endDate: parseableDateQuerySchema.optional(),
+  limit: positiveIntegerQuerySchema.optional(),
+  offset: nonNegativeIntegerQuerySchema.optional(),
+});
+const limitQuerySchema = z.object({
+  limit: positiveIntegerQuerySchema.optional(),
+});
 
 /**
  * GET /api/tenant-security/summary/:organizationId
  * Get security summary for an organization
  */
-router.get('/summary/:organizationId', authenticateJWT, async (req, res) => {
+router.get('/summary/:organizationId', authenticateJWT, validateRequest({ params: organizationParamsSchema }), async (req, res) => {
   try {
     const organizationId = parseInt(req.params.organizationId, 10);
 
@@ -33,7 +63,7 @@ router.get('/summary/:organizationId', authenticateJWT, async (req, res) => {
  * GET /api/tenant-security/events/:organizationId
  * Get security events with filtering
  */
-router.get('/events/:organizationId', authenticateJWT, async (req, res) => {
+router.get('/events/:organizationId', authenticateJWT, validateRequest({ params: organizationParamsSchema, query: eventsQuerySchema }), async (req, res) => {
   try {
     const organizationId = parseInt(req.params.organizationId, 10);
     const {
@@ -75,7 +105,7 @@ router.get('/events/:organizationId', authenticateJWT, async (req, res) => {
  * POST /api/tenant-security/events/:eventId/resolve
  * Resolve a security event
  */
-router.post('/events/:eventId/resolve', authenticateJWT, async (req, res) => {
+router.post('/events/:eventId/resolve', authenticateJWT, validateRequest({ params: eventParamsSchema, body: resolutionBodySchema }), async (req, res) => {
   try {
     const eventId = parseInt(req.params.eventId, 10);
     const { resolutionNotes } = req.body;
@@ -114,7 +144,7 @@ router.post('/events/:eventId/resolve', authenticateJWT, async (req, res) => {
  * POST /api/tenant-security/detect-anomalies/:organizationId
  * Manually trigger anomaly detection
  */
-router.post('/detect-anomalies/:organizationId', authenticateJWT, async (req, res) => {
+router.post('/detect-anomalies/:organizationId', authenticateJWT, validateRequest({ params: organizationParamsSchema }), async (req, res) => {
   try {
     const organizationId = parseInt(req.params.organizationId, 10);
 
@@ -138,7 +168,7 @@ router.post('/detect-anomalies/:organizationId', authenticateJWT, async (req, re
  * GET /api/tenant-security/anomalies/:organizationId
  * Get detected anomalies for an organization
  */
-router.get('/anomalies/:organizationId', authenticateJWT, async (req, res) => {
+router.get('/anomalies/:organizationId', authenticateJWT, validateRequest({ params: organizationParamsSchema, query: limitQuerySchema }), async (req, res) => {
   try {
     const organizationId = parseInt(req.params.organizationId, 10);
     const limit = parseInt(req.query.limit as string, 10) || 20;
@@ -208,7 +238,7 @@ router.get('/organizations', authenticateJWT, async (req, res) => {
  * GET /api/tenant-security/access-logs/:organizationId
  * Get recent access logs for an organization
  */
-router.get('/access-logs/:organizationId', authenticateJWT, async (req, res) => {
+router.get('/access-logs/:organizationId', authenticateJWT, validateRequest({ params: organizationParamsSchema, query: limitQuerySchema }), async (req, res) => {
   try {
     const organizationId = parseInt(req.params.organizationId, 10);
     const limit = parseInt(req.query.limit as string, 10) || 50;

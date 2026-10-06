@@ -1,16 +1,43 @@
 import express from 'express';
+import { z } from 'zod';
 import { auditAnalyticsService } from '../services/auditAnalyticsService.js';
 import authenticateJWT from '../middlewares/auth.js';
 import { pool } from '../config/database.js';
 import logger from '../utils/logger.js';
+import { validateRequest } from '../middleware/validateRequest.js';
 
 const router = express.Router();
+
+const recordMetricBodySchema = z.object({
+  metricType: z.string().min(1),
+  metricValue: z.number(),
+  dimension: z.string().min(1).optional(),
+  dimensionValue: z.string().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+});
+const organizationParamsSchema = z.object({
+  organizationId: z.string().regex(/^[1-9][0-9]*$/, 'organizationId must be a positive integer'),
+});
+const parseableDateQuerySchema = z.string().refine(
+  (value) => Number.isFinite(Date.parse(value)),
+  'must be a valid date',
+);
+const dateRangeQuerySchema = z.object({
+  startDate: parseableDateQuerySchema.optional(),
+  endDate: parseableDateQuerySchema.optional(),
+});
+const trendsQuerySchema = dateRangeQuerySchema.extend({
+  interval: z.enum(['hour', 'day', 'week']).optional(),
+});
+const limitQuerySchema = z.object({
+  limit: z.string().regex(/^[1-9][0-9]*$/, 'limit must be a positive integer').optional(),
+});
 
 /**
  * GET /api/audit-analytics/summary/:organizationId
  * Get audit summary for an organization
  */
-router.get('/summary/:organizationId', authenticateJWT, async (req, res) => {
+router.get('/summary/:organizationId', authenticateJWT, validateRequest({ params: organizationParamsSchema, query: dateRangeQuerySchema }), async (req, res) => {
   try {
     const organizationId = parseInt(req.params.organizationId, 10);
     const startDate = req.query.startDate
@@ -42,7 +69,7 @@ router.get('/summary/:organizationId', authenticateJWT, async (req, res) => {
  * GET /api/audit-analytics/trends/:organizationId
  * Get audit trends over time
  */
-router.get('/trends/:organizationId', authenticateJWT, async (req, res) => {
+router.get('/trends/:organizationId', authenticateJWT, validateRequest({ params: organizationParamsSchema, query: trendsQuerySchema }), async (req, res) => {
   try {
     const organizationId = parseInt(req.params.organizationId, 10);
     const startDate = req.query.startDate
@@ -76,7 +103,7 @@ router.get('/trends/:organizationId', authenticateJWT, async (req, res) => {
  * GET /api/audit-analytics/endpoints/:organizationId
  * Get top endpoints by usage
  */
-router.get('/endpoints/:organizationId', authenticateJWT, async (req, res) => {
+router.get('/endpoints/:organizationId', authenticateJWT, validateRequest({ params: organizationParamsSchema, query: limitQuerySchema }), async (req, res) => {
   try {
     const organizationId = parseInt(req.params.organizationId, 10);
     const limit = parseInt(req.query.limit as string, 10) || 10;
@@ -120,7 +147,7 @@ router.get('/endpoints/:organizationId', authenticateJWT, async (req, res) => {
  * GET /api/audit-analytics/errors/:organizationId
  * Get recent errors
  */
-router.get('/errors/:organizationId', authenticateJWT, async (req, res) => {
+router.get('/errors/:organizationId', authenticateJWT, validateRequest({ params: organizationParamsSchema, query: limitQuerySchema }), async (req, res) => {
   try {
     const organizationId = parseInt(req.params.organizationId, 10);
     const limit = parseInt(req.query.limit as string, 10) || 20;
@@ -167,7 +194,7 @@ router.get('/errors/:organizationId', authenticateJWT, async (req, res) => {
  * POST /api/audit-analytics/record
  * Record a custom analytics metric
  */
-router.post('/record', authenticateJWT, async (req, res) => {
+router.post('/record', authenticateJWT, validateRequest({ body: recordMetricBodySchema }), async (req, res) => {
   try {
     const { metricType, metricValue, dimension, dimensionValue, metadata } = req.body;
 
@@ -209,7 +236,7 @@ router.post('/record', authenticateJWT, async (req, res) => {
  * DELETE /api/audit-analytics/cache/:organizationId
  * Clear audit cache for an organization
  */
-router.delete('/cache/:organizationId', authenticateJWT, async (req, res) => {
+router.delete('/cache/:organizationId', authenticateJWT, validateRequest({ params: organizationParamsSchema }), async (req, res) => {
   try {
     const organizationId = parseInt(req.params.organizationId, 10);
 

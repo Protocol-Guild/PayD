@@ -1,49 +1,44 @@
+// Modified 2026-10-05: reject non-decimal route IDs before numeric coercion.
 import { Router } from 'express';
+import { z } from 'zod';
 import { ScheduleController } from '../controllers/scheduleController.js';
 import { authenticateJWT } from '../middlewares/auth.js';
 import { authorizeRoles, isolateOrganization } from '../middlewares/rbac.js';
 import { idempotencyMiddleware } from '../middleware/idempotencyMiddleware.js';
+import { validateRequest } from '../middleware/validateRequest.js';
+import { createScheduleSchema, scheduleQuerySchema } from '../schemas/scheduleSchema.js';
 
 const router = Router();
+const scheduleIdParamsSchema = z.object({
+  id: z
+    .string()
+    .regex(/^[0-9]+$/, 'ID must contain only decimal digits')
+    .pipe(z.coerce.number().int().positive()),
+});
 
-// Apply authentication to all schedule routes
 router.use(authenticateJWT);
 router.use(isolateOrganization);
 
-/**
- * @route POST /api/schedules
- * @desc Create a new payroll schedule
- * @access Private - Requires authentication
- * @body {CreateScheduleRequest} Schedule configuration
- * @returns {CreateScheduleResponse} Created schedule with ID and next run timestamp
- */
 router.post(
   '/',
   authorizeRoles('EMPLOYER'),
+  validateRequest({ body: createScheduleSchema }),
   idempotencyMiddleware(),
   ScheduleController.createSchedule
 );
 
-/**
- * @route GET /api/schedules
- * @desc Get all schedules for the authenticated user's organization
- * @access Private - Requires authentication
- * @query {string} status - Optional filter by status (active, completed, cancelled)
- * @query {number} page - Optional page number for pagination
- * @query {number} limit - Optional items per page
- * @returns {GetSchedulesResponse} List of schedules with pagination metadata
- */
-router.get('/', authorizeRoles('EMPLOYER'), ScheduleController.getSchedules);
+router.get(
+  '/',
+  authorizeRoles('EMPLOYER'),
+  validateRequest({ query: scheduleQuerySchema }),
+  ScheduleController.getSchedules
+);
 
-/**
- * @route DELETE /api/schedules/:id
- * @desc Cancel a pending schedule
- * @access Private - Requires authentication and schedule ownership
- * @param {number} id - Schedule ID
- * @returns {204} No content on success
- * @returns {404} Schedule not found
- * @returns {403} User doesn't own this schedule
- */
-router.delete('/:id', authorizeRoles('EMPLOYER'), ScheduleController.deleteSchedule);
+router.delete(
+  '/:id',
+  authorizeRoles('EMPLOYER'),
+  validateRequest({ params: scheduleIdParamsSchema }),
+  ScheduleController.deleteSchedule
+);
 
 export default router;
