@@ -3,7 +3,25 @@
     "payroll": "Nómina",
     "employees": "Empleados",
     "debugger": "depurador",
-    "settings": "Configuración"
+    "settings": "Configuración",
+    "dashboard": "Panel",
+    "forecast": "Pronóstico",
+    "reports": "Informes",
+    "taxCompliance": "Cumplimiento fiscal",
+    "crossAsset": "Entre activos",
+    "history": "Historial",
+    "employeePortal": "Portal del empleado",
+    "securityCenter": "Centro de seguridad",
+    "helpCenter": "Centro de ayuda",
+    "network": "Red",
+    "stellarTestnet": "Red de prueba Stellar",
+    "myPortal": "Mi portal",
+    "cashFlow": "Flujo de caja",
+    "bulkPayments": "Pagos masivos",
+    "admin": "Administración",
+    "help": "Ayuda",
+    "toggleMenu": "Alternar menú",
+    "closeMenu": "Cerrar menú"
   },
   "home": {
     "titleLine1Prefix": "Automatiza tu",
@@ -38,7 +56,8 @@
     "frequencyWeekly": "Semanal",
     "frequencyMonthly": "Mensual",
     "commencementDate": "Fecha de inicio",
-    "submit": "Iniciar flujo de nómina"
+    "submit": "Iniciar flujo de nómina",
+    "walletAddress": "Dirección de billetera"
   },
   "employees": {
     "title": "Directorio de {{highlight}}",
@@ -55,10 +74,45 @@
       "placeholderEmail": "wilfred@example.com",
       "placeholderRole": "Desarrollador principal",
       "placeholderWallet": "GD6F...4R2T",
-      "statusActive": "Activo"
+      "statusActive": "Activo",
+      "name": "Nombre",
+      "salary": "Salario"
     },
     "importPrompt": "¿Necesitas migrar tu sistema de nómina heredado?",
-    "importCta": "Importar desde CSV (Próximamente)"
+    "importCta": "Importar desde CSV (Próximamente)",
+    "empty": "No se encontraron empleados",
+    "status": {
+      "active": "Activo",
+      "inactive": "Inactivo"
+    },
+    "actions": {
+      "edit": "Editar",
+      "remove": "Eliminar"
+    },
+    "mobile": {
+      "wallet": "Billetera",
+      "salary": "Salario"
+    },
+    "importFromCsv": "Importar desde CSV",
+    "addEmployeesFromCsv": "Añadir empleados desde CSV",
+    "cancel": "Cancelar",
+    "addModal": {
+      "title": "Añadir empleado",
+      "namePlaceholder": "Nombre",
+      "emailPlaceholder": "Correo electrónico",
+      "walletPlaceholder": "Billetera",
+      "positionPlaceholder": "Puesto",
+      "salaryPlaceholder": "Salario",
+      "add": "Añadir"
+    },
+    "editModal": {
+      "title": "Editar salario",
+      "save": "Guardar"
+    },
+    "deleteModal": {
+      "title": "Confirmar eliminación",
+      "body": "¿Seguro que quieres eliminar a este empleado?"
+    }
   },
   "debugger": {
     "title": "{{highlight}} de contratos",
@@ -130,7 +184,12 @@
     "authenticated": "Autenticado",
     "connect": "Conectar",
     "wallet": "Billetera",
-    "exit": "Salir"
+    "exit": "Salir",
+    "connecting": "Conectando...",
+    "socialActive": "Acceso social activo",
+    "sessionActive": "Sesión activa",
+    "stellar": "Stellar",
+    "signIn": "Iniciar sesión"
   },
   "wallet": {
     "modalTitle": "Conectar a PayD"
@@ -204,5 +263,861 @@
     "loginDescription": "Introduce el codigo de 6 digitos de tu app de autenticacion para terminar de iniciar sesion.",
     "loginButton": "Verificar y continuar",
     "loginRecoveryHint": "Perdiste tu dispositivo? Introduce uno de tus codigos de recuperacion."
+  },
+  "helpCenter": {
+    "faqs": "Preguntas frecuentes",
+    "addEmployeeQuestion": "¿Cómo añado un empleado?",
+    "addEmployeeAnswer": "Abre la página Empleados y usa Añadir empleado para introducir sus datos y su dirección de billetera.",
+    "resetPasswordQuestion": "¿Cómo restablezco mi contraseña?",
+    "resetPasswordAnswer": "Usa la recuperación de cuenta desde la pantalla de inicio de sesión o contacta al administrador de tu organización.",
+    "stellarConcepts": "Conceptos de Stellar",
+    "trustlineQuestion": "¿Qué es una línea de confianza?",
+    "trustlineAnswer": "Una línea de confianza permite que una cuenta Stellar mantenga un activo emitido específico.",
+    "anchorQuestion": "¿Qué es un ancla de Stellar?",
+    "anchorAnswer": "Un ancla conecta los activos de Stellar con las redes financieras tradicionales y las monedas locales.",
+    "troubleshooting": "Solución de problemas",
+    "payrollFailedQuestion": "¿Por qué falló mi transacción de nómina?",
+    "payrollFailedAnswer": "Comprueba el estado de la transacción, los fondos de la cuenta, las líneas de confianza y los detalles de red antes de reintentar.",
+    "employeeMissingQuestion": "¿Por qué falta un empleado?",
+    "employeeMissingAnswer": "Confirma que el empleado esté activo y pertenezca a la organización que estás viendo.",
+    "titlePrefix": "Centro de",
+    "titleHighlight": "Ayuda",
+    "subtitle": "Guías, respuestas y solución de problemas",
+    "searchPlaceholder": "Buscar temas de ayuda…",
+    "noResults": "No se encontraron temas de ayuda coincidentes."
+  },
+  "forecasting": {
+    "errors": {
+      "loadFailed": "No se pudieron cargar los datos del pronóstico.",
+      "updateFailed": "No se pudo actualizar la configuración de liquidez.",
+      "refreshFailed": "No se pudo actualizar el pronóstico."
+    },
+    "alertShortfall": "Alerta de liquidez {{severity}}: déficit de {{amount}} {{asset}}",
+    "settingsUpdated": "Configuración de liquidez actualizada.",
+    "title": "Pronóstico de liquidez",
+    "subtitle": "Proyecta la liquidez de nómina y configura alertas de financiación.",
+    "months": "Meses a futuro",
+    "refresh": "Actualizar",
+    "status": {
+      "green": "Normal",
+      "yellow": "Advertencia",
+      "red": "Crítico"
+    },
+    "liquidityStatus": "Estado de liquidez",
+    "liquidityAvailable": "Disponible: {{available}} {{asset}} · Necesario (próximas 2 ejecuciones): {{required}} {{asset}}",
+    "configureLiquidity": "Configurar liquidez",
+    "projectedMonthlyPayroll": "Nómina mensual proyectada",
+    "liquiditySettings": "Configuración de liquidez",
+    "distributionAccount": "Cuenta de distribución",
+    "assetIssuer": "Emisor del activo",
+    "assetCode": "Código del activo",
+    "benefitsRate": "Tasa de beneficios (%)",
+    "yellowBuffer": "Margen de aviso (%)",
+    "alertEmails": "Correos de alerta",
+    "save": "Guardar configuración",
+    "saved": "Guardado"
+  },
+  "customReportBuilder": {
+    "exporting": "Exportando {{count}} registros con columnas: {{columns}}",
+    "title": "Generador de informes personalizados",
+    "subtitle": "Elige un intervalo de fechas y las columnas del informe.",
+    "dateRange": "Intervalo de fechas",
+    "startDate": "Fecha de inicio",
+    "endDate": "Fecha de fin",
+    "status": {
+      "paid": "Pagado",
+      "pending": "Pendiente"
+    },
+    "columnsTitle": "Columnas",
+    "exportData": "Exportar datos",
+    "livePreview": "Vista previa",
+    "recordsFound": "{{count}} registros encontrados",
+    "noData": "No hay datos en este intervalo de fechas.",
+    "selectColumn": "Selecciona al menos una columna",
+    "columns": {
+      "workerId": "ID del trabajador",
+      "amount": "Importe",
+      "asset": "Activo",
+      "setupDate": "Fecha de configuración",
+      "payoutDate": "Fecha de pago",
+      "status": "Estado"
+    }
+  },
+  "employeePortal": {
+    "titlePrefix": "Mi",
+    "titleHighlight": "Portal",
+    "subtitle": "Consulta tus pagos de salario, saldos e historial de transacciones",
+    "common": {
+      "type": "Tipo",
+      "amount": "Importe",
+      "refresh": "Actualizar",
+      "tryAgain": "Inténtalo de nuevo."
+    },
+    "errors": {
+      "loadPendingClaims": "No se pudieron cargar los cobros pendientes",
+      "refreshPendingClaims": "No se pudieron actualizar los cobros pendientes"
+    },
+    "deductions": {
+      "title": "Desglose de deducciones",
+      "grossPay": "Pago bruto",
+      "totalDeductions": "Deducciones totales",
+      "netPay": "Pago neto",
+      "deduction": "Deducción",
+      "destination": "Destino",
+      "wallet": "Billetera",
+      "emptyTitle": "No hay deducciones configuradas",
+      "emptyBody": "Por ahora, tu pago neto es igual a tu pago bruto."
+    },
+    "balance": {
+      "total": "Saldo total",
+      "updated": "Actualizado {{time}}",
+      "localCurrency": "Moneda local:"
+    },
+    "stats": {
+      "totalReceived": "Total recibido",
+      "cashOut": "Retirar",
+      "withdrawLocal": "Retirar a moneda local",
+      "transactions": "Transacciones",
+      "lastPayment": "Último pago"
+    },
+    "status": {
+      "completed": "Completado",
+      "pending": "Pendiente",
+      "failed": "Fallido"
+    },
+    "type": {
+      "salary": "Salario",
+      "bonus": "Bono",
+      "reimbursement": "Reembolso"
+    },
+    "trustline": {
+      "establishedTitle": "Línea de confianza {{assetCode}} establecida",
+      "establishedBody": "Ya puedes recibir la nómina en este activo.",
+      "failedTitle": "No se pudo establecer la línea de confianza",
+      "setupRequired": "Configuración necesaria",
+      "explanation": "Para recibir pagos en determinados activos, primero debes establecer una línea de confianza con el emisor. Es una función de seguridad estándar de Stellar.",
+      "assetTrustline": "Línea de confianza de activo Stellar",
+      "establish": "Establecer línea de confianza"
+    },
+    "claim": {
+      "successTitle": "¡Cobro realizado!",
+      "successBody": "Los fondos se han transferido a tu billetera.",
+      "failedTitle": "Error al cobrar",
+      "failedBody": "Se produjo un error de contrato. Revisa los detalles a continuación.",
+      "pendingTitle": "Cobros pendientes",
+      "help": "Si tienes un cobro pendiente, añade la línea de confianza en tu billetera y después reclama el saldo.",
+      "created": "Creado {{date}}",
+      "balanceId": "ID de saldo: {{id}}",
+      "claimFunds": "Reclamar fondos"
+    },
+    "history": {
+      "title": "Historial de pagos",
+      "searchPlaceholder": "Buscar hash de transacción, memo…",
+      "allStatus": "Todos los estados",
+      "allTypes": "Todos los tipos",
+      "date": "Fecha",
+      "description": "Descripción",
+      "status": "Estado",
+      "hash": "Hash",
+      "verify": "Verificar",
+      "emptyTitle": "No se encontraron transacciones",
+      "emptyBody": "Ajusta los filtros o vuelve a intentarlo más tarde.",
+      "viewOnExplorer": "Ver en Stellar Expert",
+      "explorer": "Explorador"
+    }
+  },
+  "cashFlowForecast": {
+    "errors": {
+      "missingInputs": "Indica la cuenta de distribución y el emisor del activo",
+      "loadFailed": "No se pudo cargar el pronóstico de flujo de caja"
+    },
+    "updated": "Pronóstico de flujo de caja actualizado",
+    "title": "Pronóstico de flujo de caja",
+    "subtitle": "Analiza los datos históricos de nómina y proyecta las necesidades futuras de flujo de caja",
+    "distributionAccount": "Cuenta de distribución",
+    "assetIssuer": "Emisor del activo",
+    "daysPlaceholder": "Días (90)",
+    "loading": "Cargando...",
+    "refresh": "Actualizar",
+    "currentBalance": "Saldo actual",
+    "projectedOutflow": "Salida proyectada",
+    "scheduledPayments": "{{count}} pagos programados",
+    "projectedBalance": "Saldo proyectado",
+    "afterProjections": "Después de todas las proyecciones",
+    "trend": "Tendencia",
+    "vsHistorical": "{{percent}}% frente al histórico",
+    "budgetAlerts": "Alertas de presupuesto ({{count}})",
+    "shortfall": "Déficit: {{amount}} {{asset}}",
+    "cashFlowProjection": "Proyección de flujo de caja",
+    "historicalVsProjected": "Histórico frente a proyectado",
+    "historical": "Histórico",
+    "projected": "Proyectado",
+    "historicalAverages": "Promedios históricos",
+    "weeklyAverage": "Promedio semanal",
+    "biweeklyAverage": "Promedio quincenal",
+    "monthlyAverage": "Promedio mensual",
+    "emptyPrompt": "Introduce la cuenta de distribución y el emisor del activo para cargar el pronóstico"
+  },
+  "taxCompliance": {
+    "title": "Asistente de cumplimiento fiscal",
+    "subtitle": "Configura reglas fiscales y genera informes de cumplimiento para tu organización",
+    "steps": {
+      "selectCountry": "Paso 1: Seleccionar país",
+      "configuration": "Paso 2: Configuración fiscal",
+      "preview": "Paso 3: Calculadora de vista previa",
+      "report": "Paso 4: Generar informe",
+      "export": "Paso 5: Exportar resumen"
+    },
+    "searchCountries": "Buscar países...",
+    "noCountries": "No se encontraron países que coincidan con \"{{query}}\"",
+    "configuration": "Configuración de cumplimiento fiscal",
+    "activeRules": "Reglas fiscales activas ({{count}})",
+    "configureForCountry": "Configura identificadores y tasas fiscales para el cumplimiento en {{country}}",
+    "defaultGrossPay": "Pago bruto predeterminado (por empleado)",
+    "numberOfEmployees": "Número de empleados",
+    "previewSummary": "Resumen de vista previa fiscal",
+    "grossPay": "Pago bruto",
+    "estimatedTax": "Impuesto estimado",
+    "netPay": "Pago neto",
+    "defaultRateNote": "* Basado en una tasa fiscal predeterminada del 25 %. Los cálculos reales usarán las tasas configuradas.",
+    "reportStartDate": "Fecha inicial del informe",
+    "reportEndDate": "Fecha final del informe",
+    "reportPreview": "Vista previa del informe",
+    "employee": "Empleado",
+    "taxAmount": "Importe del impuesto",
+    "moreEmployees": "Y {{count}} empleados más...",
+    "reportGenerated": "¡Informe generado correctamente!",
+    "reportReady": "Tu informe de cumplimiento fiscal para {{country}} está listo para exportar",
+    "totalEmployees": "Total de empleados",
+    "totalGross": "Bruto total",
+    "taxCollected": "Impuestos recaudados",
+    "totalNet": "Neto total",
+    "downloadCsv": "Descargar informe CSV",
+    "exportHint": "Exportar como CSV para la presentación ante el gobierno local",
+    "cancel": "Cancelar",
+    "back": "Atrás",
+    "validateContinue": "Validar y continuar",
+    "calculating": "Calculando...",
+    "calculatePreview": "Calcular vista previa",
+    "generateReport": "Generar informe",
+    "continue": "Continuar"
+  },
+  "contractError": {
+    "title": "Error al invocar el contrato",
+    "suggestedAction": "Acción sugerida",
+    "rawTransactionResult": "Resultado bruto de la transacción (XDR)",
+    "copyXdr": "Copiar XDR",
+    "copy": "Copiar",
+    "notAvailable": "N/D",
+    "details": {
+      "1": {
+        "message": "No autorizado: La cuenta que realiza la llamada no tiene permiso para esta acción.",
+        "action": "Comprueba que estás firmando con la cuenta correcta del administrador o empleado."
+      },
+      "2": {
+        "message": "Estado no válido: El contrato no está en el estado esperado (por ejemplo, ya se ha reclamado).",
+        "action": "Actualiza la página para consultar el estado más reciente de esta asignación."
+      },
+      "3": {
+        "message": "Fondos insuficientes: El contrato o la cuenta de origen no tiene el saldo necesario.",
+        "action": "Asegúrate de que la cuenta de origen tenga fondos suficientes e inténtalo de nuevo."
+      },
+      "4": {
+        "message": "Plazo vencido: La ventana de tiempo para esta operación se ha cerrado.",
+        "action": "Comprueba las fechas de inicio del desbloqueo y de finalización de este calendario de adquisición."
+      },
+      "5": {
+        "message": "Ya inicializado: Este contrato ya se ha configurado.",
+        "action": "Si necesitas cambiar la configuración, puede que debas desplegar un contrato nuevo."
+      },
+      "6": {
+        "message": "Periodo de bloqueo no finalizado: Los tokens siguen bloqueados y aún no se pueden reclamar.",
+        "action": "Espera a que termine el periodo de bloqueo antes de intentar reclamarlos."
+      },
+      "Contract": {
+        "message": "Error de lógica del contrato: El código del contrato ha generado un error personalizado.",
+        "action": "Revisa el código de error del contrato o ponte en contacto con su desarrollador."
+      },
+      "WasmConfig": {
+        "message": "Error de configuración de WASM: La ejecución del contrato ha fallado debido a una configuración de WASM no válida.",
+        "action": "Esto suele indicar un fallo en el binario del contrato o en la configuración del entorno de ejecución."
+      },
+      "Context": {
+        "message": "Error de contexto de ejecución: No se ha podido configurar el entorno interno del contrato.",
+        "action": "Comprueba que hayas proporcionado todos los datos y parámetros necesarios del contrato."
+      },
+      "Storage": {
+        "message": "Error de almacenamiento: No se ha podido acceder al almacenamiento persistente del contrato.",
+        "action": "Comprueba que el estado del contrato exista en la cadena y no se haya archivado."
+      },
+      "Object": {
+        "message": "Error de objeto del entorno: Referencia de objeto no válida o tipos incompatibles.",
+        "action": "Asegúrate de que todos los argumentos de la llamada al contrato tengan el formato ScVal correcto."
+      },
+      "Crypto": {
+        "message": "Fallo criptográfico: No se ha podido verificar una firma o un hash dentro del contrato.",
+        "action": "Asegúrate de que todas las firmas de autorización sean válidas y cubran los datos correctos de la transacción."
+      },
+      "Events": {
+        "message": "Fallo al emitir eventos: El contrato ha superado el límite de eventos permitidos.",
+        "action": "Intenta reducir la cantidad de datos procesados en una sola llamada."
+      },
+      "Budget": {
+        "message": "Presupuesto de recursos superado: La operación ha superado los límites de CPU o memoria.",
+        "action": "Aumenta los límites de recursos de la transacción (CPU o memoria) e inténtalo de nuevo."
+      },
+      "Auth": {
+        "message": "Error de autenticación del contrato: No se han cumplido los requisitos de autorización de Soroban.",
+        "action": "Comprueba que todos los firmantes necesarios hayan aprobado esta invocación concreta del contrato."
+      },
+      "UnknownContract": {
+        "message": "Código de error personalizado del contrato: {{code}}",
+        "action": "Consulta la documentación del contrato para este código de error concreto."
+      },
+      "UnknownHost": {
+        "message": "Error del entorno de ejecución: {{code}}",
+        "action": "Se ha producido un error interno de la red Stellar durante la ejecución."
+      },
+      "NO_XDR": {
+        "message": "No se ha proporcionado un resultado XDR para analizar.",
+        "action": "Consulta los registros de red para obtener más información."
+      },
+      "UNKNOWN_FORMAT": {
+        "message": "La transacción ha fallado, pero el resultado XDR no se ha podido interpretar como un error estándar.",
+        "action": "Consulta el XDR bruto para obtener más información o ponte en contacto con soporte."
+      },
+      "UNPARSEABLE_XDR": {
+        "message": "No se ha podido decodificar el resultado XDR de la transacción.",
+        "action": "Puede que el resultado no sea un objeto de error de Soroban válido."
+      }
+    },
+    "genericAction": "Comprueba los parámetros de la transacción e inténtalo de nuevo."
+  },
+  "schedulingWizard": {
+    "steps": {
+      "schedule": "Paso 1: Configurar programación",
+      "currencyPreferences": "Paso 2: Preferencias de moneda",
+      "previewConfirm": "Paso 3: Vista previa y confirmación"
+    },
+    "loading": "Cargando datos de la organización...",
+    "currencyIntro": "Configura la moneda de pago predeterminada para cada empleado.",
+    "table": {
+      "employee": "Empleado",
+      "scheduledAmount": "Importe programado",
+      "receiveIn": "Recibir en",
+      "noEmployees": "No se encontraron empleados en la organización."
+    },
+    "currencies": {
+      "usdcStellar": "USDC (Stellar)",
+      "xlm": "XLM",
+      "eurc": "EURC"
+    },
+    "frequencyLabel": "Frecuencia",
+    "frequency": {
+      "weekly": "Semanal",
+      "biweekly": "Quincenal",
+      "monthly": "Mensual"
+    },
+    "dayOfWeek": "Día de la semana",
+    "weekdays": {
+      "sunday": "Domingo",
+      "monday": "Lunes",
+      "tuesday": "Martes",
+      "wednesday": "Miércoles",
+      "thursday": "Jueves",
+      "friday": "Viernes",
+      "saturday": "Sábado"
+    },
+    "dayOfMonth": "Día del mes",
+    "runTime": "Hora de ejecución",
+    "scheduleOverview": "Resumen de la programación",
+    "time": "Hora",
+    "upcomingRuns": "Próximas ejecuciones",
+    "cancel": "Cancelar",
+    "back": "Atrás",
+    "continue": "Continuar",
+    "confirmSchedule": "Confirmar programación"
+  },
+  "csvUploader": {
+    "missingRequiredColumns": "Faltan columnas obligatorias: {{columns}}",
+    "missingRequiredField": "Falta el campo obligatorio: {{column}}",
+    "pleaseUploadCsv": "Sube un archivo CSV",
+    "dragDrop": "Arrastra y suelta tu archivo CSV",
+    "browse": "o haz clic para buscar",
+    "requiredColumns": "Columnas obligatorias: {{columns}}",
+    "file": "Archivo: {{fileName}}",
+    "validRows": "{{count}} filas válidas",
+    "rowsWithErrors": "{{count}} filas con errores",
+    "preview": "Vista previa",
+    "row": "Fila",
+    "status": "Estado",
+    "errors": "Errores",
+    "ok": "Correcto"
+  },
+  "bulkPaymentStatusTracker": {
+    "title": "Seguimiento del estado de pagos masivos",
+    "refresh": "Actualizar",
+    "loadingRuns": "Cargando ejecuciones de nómina masiva...",
+    "emptyRuns": "No se encontraron lotes de nómina.",
+    "loadingRecipientStatuses": "Cargando estados de destinatarios...",
+    "notAvailable": "N/D",
+    "employeeFallback": "Empleado #{{id}}",
+    "headers": {
+      "batch": "Lote",
+      "status": "Estado",
+      "employees": "Empleados",
+      "total": "Total",
+      "confirmations": "Confirmaciones",
+      "txHash": "Hash de transacción",
+      "actions": "Acciones"
+    },
+    "labels": {
+      "batch": "Lote: {{batchId}}",
+      "employees": "Empleados:",
+      "total": "Total:",
+      "confirmations": "Confirmaciones:",
+      "txHash": "Hash de transacción:",
+      "successful": "Exitosos:",
+      "failed": "Fallidos:",
+      "failedRecipients": "Destinatarios fallidos:"
+    },
+    "actions": {
+      "hideDetails": "Ocultar detalles",
+      "showDetails": "Mostrar detalles",
+      "hide": "Ocultar",
+      "details": "Detalles",
+      "retrying": "Reintentando...",
+      "retryFailed": "Reintentar fallidos"
+    },
+    "status": {
+      "draft": "Borrador",
+      "pending": "Pendiente",
+      "processing": "Procesando",
+      "completed": "Completado",
+      "failed": "Fallido",
+      "confirmed": "Confirmado"
+    },
+    "errors": {
+      "loadRuns": "No se pudieron cargar las ejecuciones masivas",
+      "loadTitle": "Error al cargar pagos masivos",
+      "loadRecipientStatus": "No se pudo cargar el estado por destinatario",
+      "loadDetailsTitle": "No se pudieron cargar los detalles del lote",
+      "walletRequiredTitle": "Billetera necesaria",
+      "walletRequiredBody": "Conecta una billetera antes de reintentar los destinatarios fallidos.",
+      "contractUnavailable": "El ID del contrato de pagos masivos no está disponible.",
+      "retryFailed": "Error al reintentar"
+    },
+    "notifications": {
+      "retrySubmittedTitle": "Reintento enviado",
+      "retrySubmittedBody": "El lote {{batchId}} se volvió a ejecutar. TX: {{txHash}}"
+    }
+  },
+  "themeToggle": {
+    "switchToLight": "Cambiar al modo claro",
+    "switchToDark": "Cambiar al modo oscuro"
+  },
+  "appLayout": {
+    "beta": "BETA"
+  },
+  "certificate": {
+    "missingInformation": "Falta información",
+    "transactionHashRequired": "Se requiere el hash de la transacción",
+    "identityUnavailable": "No se pudo determinar el empleado y la organización. Proporciona employeeId y organizationId.",
+    "downloadedTitle": "Certificado descargado",
+    "downloadedBody": "El certificado de pago se descargó correctamente",
+    "downloadFailed": "Error de descarga",
+    "downloadFailedBody": "No se pudo descargar el certificado",
+    "downloadTitle": "Descargar certificado de comprobante de pago",
+    "generating": "Generando...",
+    "loading": "Cargando...",
+    "label": "Certificado"
+  },
+  "dashboardTopBar": {
+    "organization": "Organización",
+    "availableBalance": "Saldo disponible"
+  },
+  "employerLayout": {
+    "toggleSidebar": "Alternar barra lateral",
+    "license": "© {{year}} PayD — Licenciado bajo Apache 2.0",
+    "networkStatus": "Nodo de Stellar Testnet · {{version}}"
+  },
+  "login": {
+    "welcomeBack": "Bienvenido de nuevo",
+    "subtitle": "Conecta tu cuenta para administrar tu sistema de nómina",
+    "continueGoogle": "Continuar con Google",
+    "continueGithub": "Continuar con GitHub",
+    "securityNote": "Seguro · Cifrado · Sin custodia"
+  },
+  "authCallback": {
+    "authenticating": "Autenticando..."
+  },
+  "employeeEntry": {
+    "defaultRole": "Empleado",
+    "addedTitle": "¡{{name}} se añadió correctamente!",
+    "walletGenerated": "Se generó una nueva billetera Stellar para este empleado.",
+    "addedWithWallet": "¡Empleado {{name}} añadido correctamente! Se creó una billetera para esta persona.",
+    "addedMessage": "¡Empleado {{name}} añadido correctamente!",
+    "backToDirectory": "Volver al directorio",
+    "title": "Añadir nuevo empleado",
+    "simulatedEmailLabel": "[NOTIFICACIÓN DE CORREO SIMULADA AL EMPLEADO]",
+    "simulatedEmailGreeting": "Hola {{name}}, tu empleador te ha añadido a la nómina.",
+    "simulatedEmailWalletBody": "Se ha creado una billetera Stellar predeterminada para que recibas saldos reclamables.",
+    "secretKeyLabel": "Tu clave secreta:",
+    "secretKeyWarning": "Guarda esta clave secreta de forma segura para reclamar tu salario futuro.",
+    "successTitle": "Correcto",
+    "fullName": "Nombre completo",
+    "email": "Correo electrónico",
+    "walletAddressOptional": "Dirección de billetera Stellar (opcional)",
+    "walletNote": "Si no se proporciona una billetera, se creará un saldo reclamable usando una billetera nueva generada para el empleado.",
+    "walletPlaceholder": "Deja en blanco para generar una billetera",
+    "role": "Rol",
+    "roles": {
+      "contractor": "Contratista",
+      "fullTime": "Tiempo completo",
+      "partTime": "Tiempo parcial"
+    },
+    "preferredCurrency": "Moneda preferida",
+    "addEmployee": "Añadir empleado"
+  },
+  "walletQr": {
+    "copied": "¡{{label}} copiado al portapapeles!",
+    "title": "Tu dirección de billetera Stellar",
+    "walletAddress": "Dirección de billetera",
+    "copyAddress": "Copiar dirección",
+    "secretKeySecure": "Clave secreta (¡guárdala de forma segura!)",
+    "secretKey": "Clave secreta",
+    "copySecretKey": "Copiar clave secreta",
+    "revealSecretKey": "Haz clic para mostrar la clave secreta",
+    "trustlineGuide": "Guía de configuración de líneas de confianza",
+    "trustlineIntro": "Para recibir pagos en distintas monedas, debes configurar líneas de confianza. Sigue estos pasos:",
+    "steps": {
+      "fund": {
+        "title": "Fondea tu billetera",
+        "description": "Añade XLM a tu billetera. Necesitas al menos 1 XLM para crear una línea de confianza."
+      },
+      "asset": {
+        "title": "Elige tu activo",
+        "description": "Decide qué activo quieres recibir (USDC, EURC o XLM). Cada activo requiere una línea de confianza independiente."
+      },
+      "create": {
+        "title": "Crea la línea de confianza",
+        "description": "Ve a la configuración de activos de tu billetera y añade una línea de confianza para el activo elegido usando la dirección de su emisor."
+      },
+      "verify": {
+        "title": "Verifica la línea de confianza",
+        "description": "Después de crearla, verifica que aparezca en la lista de activos de tu billetera. Ya puedes recibir pagos en ese activo."
+      }
+    },
+    "supportedAssets": "Activos compatibles",
+    "issuer": "Emisor",
+    "nativeAsset": "Activo nativo",
+    "assetIssuer": "Emisor de {{asset}}",
+    "shareQr": "Comparte este código QR con {{name}} para que pueda recibir pagos directamente en su billetera."
+  },
+  "vesting": {
+    "form": {
+      "title": "Crear nueva concesión con consolidación",
+      "employeeAddress": "Dirección de billetera del empleado (G...)",
+      "totalAmount": "Importe total de la concesión",
+      "durationYears": "Duración (años)",
+      "startDate": "Fecha de inicio",
+      "cliffDate": "Fecha de carencia",
+      "simulating": "Simulando...",
+      "initialize": "Inicializar depósito de consolidación"
+    },
+    "list": {
+      "empty": "No se encontraron concesiones de consolidación activas.",
+      "summary": "Total: {{total}} XLM | Consolidado: {{vested}} XLM",
+      "claim": "Reclamar",
+      "cliff": "Carencia",
+      "start": "Inicio"
+    },
+    "notifications": {
+      "simReadyTitle": "Simulación de concesión lista",
+      "simReadyBody": "Revisa los detalles de la transacción antes de confirmar.",
+      "simFailedTitle": "Falló la simulación de la concesión",
+      "simFailedBody": "Comprueba los parámetros del contrato.",
+      "claimTitle": "Reclamación iniciada",
+      "claimBody": "Simulando la transacción de reclamación en cadena...",
+      "createdTitle": "¡Concesión de consolidación creada!",
+      "createdBody": "La transacción se ha transmitido a la red."
+    },
+    "page": {
+      "titlePrefix": "Consolidación",
+      "titleHighlight": "en depósito",
+      "subtitle": "Administra los calendarios de consolidación de tokens de empleados",
+      "confirmCreate": "Confirmar y crear concesión"
+    }
+  },
+  "withdrawalFlow": {
+    "selectMethod": "Seleccionar método de retiro",
+    "selectMethodDescription": "Elige un servicio ancla para convertir tu ORGUSD a {{currency}}.",
+    "loadingAnchors": "Cargando anclas...",
+    "noAnchors": "No hay anclas de retiro disponibles",
+    "varies": "Varía",
+    "back": "Atrás",
+    "amountOrgusd": "Importe (ORGUSD)",
+    "destinationType": "Tipo de destino",
+    "bankAccount": "Cuenta bancaria",
+    "mobileMoney": "Dinero móvil",
+    "placeholders": {
+      "accountNumber": "Número de cuenta",
+      "bankName": "Nombre del banco",
+      "phoneNumber": "Número de teléfono",
+      "provider": "Proveedor (p. ej., M-Pesa, MTN)"
+    },
+    "continue": "Continuar",
+    "confirmWithdrawal": "Confirmar retiro",
+    "amount": "Importe",
+    "anchor": "Ancla",
+    "receive": "Recibir",
+    "destination": "Destino",
+    "processing": "Procesando...",
+    "processingTitle": "Procesando retiro",
+    "processingBody": "Completa el retiro en el sitio web del ancla.",
+    "openAnchor": "Abrir sitio web del ancla",
+    "status": "Estado",
+    "transactionId": "ID de transacción",
+    "cancelWithdrawal": "Cancelar retiro",
+    "complete": "Retiro completado",
+    "done": "Listo",
+    "failed": "Error en el retiro",
+    "failureFallback": "Se produjo un error con tu retiro.",
+    "tryAgain": "Intentar de nuevo",
+    "close": "Cerrar",
+    "cashOut": "Retirar",
+    "fee": "Comisión:",
+    "minimum": "Mín.:",
+    "withdrawVia": "Retirar mediante {{anchor}}",
+    "available": "Disponible: {{amount}}",
+    "successProcessed": "Tu retiro de {{amount}} se procesó correctamente."
+  },
+  "crossAssetPayment": {
+    "waitingForSubmission": "Esperando el envío...",
+    "pathfindingFailed": "Falló la búsqueda de ruta",
+    "pathfindingFailedBody": "No se pudieron obtener las rutas de conversión.",
+    "updateStatus": "Actualización: {{status}}",
+    "paymentConfirmed": "Pago confirmado",
+    "paymentConfirmedBody": "Tu pago entre activos se completó correctamente.",
+    "walletRequired": "Billetera necesaria",
+    "walletRequiredBody": "Conecta tu billetera antes de enviar el pago entre activos.",
+    "noPath": "No hay ruta seleccionada",
+    "noPathBody": "Selecciona una ruta de conversión antes de enviar.",
+    "invalidAmount": "Importe no válido",
+    "invalidAmountBody": "Introduce un importe de pago válido.",
+    "contractUnavailable": "El ID del contrato de pago entre activos no está disponible.",
+    "waitingForSettlement": "Enviado. Esperando actualizaciones de liquidación en vivo...",
+    "paymentSubmitted": "Pago enviado",
+    "paymentSubmittedBody": "Hash de transacción en cadena: {{hash}}",
+    "invocationFallback": "Se produjo un error inesperado al invocar el contrato.",
+    "paymentFailed": "Error en el pago",
+    "paymentFailedBody": "Se produjo un error de contrato. Revisa los detalles a continuación.",
+    "title": "Liquidación de pagos entre activos",
+    "subtitle": "Búsqueda de rutas en vivo, simulación Soroban y envío de contrato firmado por la billetera.",
+    "connectWallet": "Conectar billetera",
+    "sendAsset": "Activo a enviar",
+    "receiveAsset": "Activo a recibir",
+    "amountToSend": "Importe a enviar",
+    "receiverAddress": "Dirección del destinatario",
+    "receiverPlaceholder": "G... billetera del destinatario",
+    "connectWalletToSwap": "Conecta la billetera para intercambiar",
+    "simulateSubmit": "Simular + enviar pago",
+    "availablePaths": "Rutas de conversión disponibles",
+    "fetchingPaths": "Obteniendo rutas de conversión...",
+    "settlementPreview": "Vista previa de liquidación",
+    "expectedDelivery": "Entrega esperada",
+    "fee": "Comisión",
+    "slippage": "Deslizamiento",
+    "contractStatus": "Estado del contrato",
+    "authentication": "Autenticación",
+    "signerReady": "Billetera conectada y firmante listo",
+    "initiation": "Inicio",
+    "simulatedSubmitted": "Llamada al contrato simulada y enviada",
+    "settlement": "Liquidación",
+    "transactionHash": "Hash de transacción",
+    "changePrompt": "Cambia el par de activos y el importe para solicitar opciones de ruta al proxy del backend.",
+    "pathFeeSlippage": "Comisión: {{fee}} {{asset}} | Deslizamiento: {{slippage}} %",
+    "rateLabel": "tasa"
+  },
+  "payrollResidual": {
+    "scheduleConfigured": "¡Programación de nómina configurada!",
+    "refId": "ID de referencia: {{id}}",
+    "createFailed": "No se pudo crear la programación",
+    "tryAgainLater": "Inténtalo de nuevo más tarde.",
+    "paymentConfirmed": "¡Pago confirmado!",
+    "tx": "TX: {{id}}",
+    "missingRequired": "Faltan campos obligatorios",
+    "missingRequiredBody": "Indica el nombre del empleado, el importe y la dirección de billetera.",
+    "trustlineMissing": "¡Falta la línea de confianza!",
+    "trustlineMissingBody": "{{name}} no tiene una línea de confianza USDC. Puedes continuar, pero el pago quedará retenido como saldo reclamable.",
+    "claimFailed": "No se pudo crear el saldo reclamable",
+    "invocationFailed": "Falló la invocación del contrato",
+    "broadcastSuccess": "¡Transmisión correcta!",
+    "broadcastSuccessBody": "Saldo reclamable creado para {{name}}",
+    "broadcastFailed": "Falló la transmisión",
+    "broadcastFailedBody": "Se produjo un error de contrato. Revisa los detalles a continuación.",
+    "scheduleCancelled": "Programación cancelada",
+    "scheduleCancelledBody": "La automatización se detuvo.",
+    "cancellationFailed": "Falló la cancelación",
+    "cancellationFailedBody": "No se pudo contactar con el servidor.",
+    "openWizard": "Abrir asistente de programación",
+    "automationActive": "Automatización activa",
+    "nextRun": "Próxima ejecución programada",
+    "employeePlaceholder": "p. ej., Satoshi Nakamoto",
+    "simulating": "Simulando...",
+    "confirmBroadcast": "Confirmar y transmitir a la red",
+    "preflight": "Validación previa",
+    "trustlineMissingLabel": "Falta la línea de confianza",
+    "trustlineWarning": "El empleado no tiene una línea de confianza USDC. El pago quedará retenido como saldo reclamable.",
+    "preflightIntro": "Todas las transacciones se simulan mediante Stellar Horizon antes del envío. Esto detecta errores habituales como:",
+    "preflightItems": {
+      "balance": "Saldo XLM insuficiente para comisiones",
+      "sequence": "Números de secuencia no válidos",
+      "trustlines": "Faltan líneas de confianza para tokens",
+      "eligibility": "Estado de elegibilidad de la cuenta"
+    },
+    "scheduledAutomations": "Automatizaciones programadas",
+    "noSchedules": "No se encontraron programaciones de nómina activas en la base de datos.",
+    "nextRunLabel": "Próxima ejecución",
+    "recipients": "Destinatarios",
+    "cancelAutomation": "Cancelar automatización",
+    "recentClaims": "Saldos reclamables manuales recientes",
+    "noClaims": "No hay saldos reclamables manuales recientes.",
+    "cancel": "Cancelar",
+    "at": "a las",
+    "amountLabel": "Importe:",
+    "scheduledLabel": "Programado:",
+    "toLabel": "A:",
+    "frequency": {
+      "weekly": "Semanal",
+      "biweekly": "Quincenal",
+      "monthly": "Mensual"
+    },
+    "scheduledToRun": "Programado para ejecutarse",
+    "broadcasting": "Transmitiendo...",
+    "distribution": "Distribución",
+    "employees": "Empleados"
+  },
+  "revenueSplit": {
+    "loadFailed": "No se pudo cargar el panel",
+    "loadFailedTitle": "Falló la carga del reparto de ingresos",
+    "contractUnavailable": "El ID del contrato de reparto de ingresos no está disponible.",
+    "walletRequired": "Billetera necesaria",
+    "walletRequiredBody": "Conecta una billetera antes de actualizar las asignaciones.",
+    "invalidRecipient": "Destinatario no válido",
+    "invalidRecipientBody": "Cada destinatario de asignación debe ser una dirección Stellar válida.",
+    "invalidTotal": "Total de asignación no válido",
+    "invalidTotalBody": "El total de asignación debe ser 100 %. Total actual: {{total}} %.",
+    "updated": "Asignaciones actualizadas",
+    "updatedBody": "Transacción de actualización en cadena enviada: {{hash}}",
+    "updateFailed": "No se pudieron actualizar las asignaciones",
+    "updateFailedTitle": "Falló la actualización de asignaciones",
+    "titlePrefix": "Reparto de ingresos",
+    "titleHighlight": "Panel",
+    "subtitle": "Asignaciones respaldadas por contrato e historial de distribuciones",
+    "connectWallet": "Conectar billetera",
+    "loading": "Cargando panel de reparto de ingresos...",
+    "currentSplits": "Repartos de asignación actuales",
+    "noAllocations": "No se cargaron datos de asignación.",
+    "editAllocations": "Editar asignaciones",
+    "addRecipient": "Añadir destinatario",
+    "recipientPlaceholder": "Dirección Stellar del destinatario",
+    "remove": "Eliminar",
+    "totalMust100": "La asignación total debe ser exactamente 100 %.",
+    "submitting": "Enviando...",
+    "submitUpdate": "Enviar actualización en cadena",
+    "liveBalances": "Saldos de destinatarios en vivo",
+    "noDistributions": "Aún no hay distribuciones de destinatarios.",
+    "history": "Eventos históricos de distribución",
+    "noEvents": "No se encontraron eventos de distribución indexados por el backend.",
+    "date": "Fecha",
+    "recipient": "Destinatario",
+    "action": "Acción",
+    "amount": "Importe",
+    "tx": "Tx",
+    "notAvailable": "N/D",
+    "recipientLabel": "Destinatario:",
+    "amountLabel": "Importe:",
+    "connected": "Conectado: {{address}}",
+    "total": "Total: {{total}} %",
+    "totalDistributed": "Total distribuido:",
+    "viewTransaction": "Ver transacción: {{hash}}"
+  },
+  "transactionHistory": {
+    "loadFailed": "No se pudo cargar el historial de transacciones",
+    "loadMoreFailed": "No se pudo cargar más historial",
+    "titlePrefix": "Historial de",
+    "titleHighlight": "transacciones",
+    "subtitle": "Cronología unificada de eventos clásicos y de contrato",
+    "searchPlaceholder": "Buscar hash de transacción / actor",
+    "allStatuses": "Todos los estados",
+    "confirmed": "Confirmado",
+    "pending": "Pendiente",
+    "failed": "Fallido",
+    "employeePlaceholder": "Empleado",
+    "assetPlaceholder": "Activo (USDC, XLM...)",
+    "empty": "No se encontraron registros para los filtros actuales.",
+    "loading": "Cargando...",
+    "loadMore": "Cargar más",
+    "filters": "Filtros",
+    "actor": "Actor:",
+    "amountLabel": "Importe:",
+    "status": {
+      "confirmed": "Confirmado",
+      "pending": "Pendiente",
+      "failed": "Fallido",
+      "indexed": "Indexado"
+    }
+  },
+  "bulkPaymentTracker": {
+    "status": {
+      "confirmed": "Confirmado",
+      "pending": "Pendiente",
+      "partial": "Parcial",
+      "failed": "Fallido"
+    },
+    "perRecipient": "Desglose por destinatario",
+    "recipientCount_one": "{{count}} destinatario",
+    "recipientCount_other": "{{count}} destinatarios",
+    "employee": "Empleado",
+    "amount": "Importe",
+    "statusLabel": "Estado",
+    "txHash": "Hash de transacción",
+    "details": "Detalles",
+    "retryFailedBatch": "Reintentar lote fallido",
+    "retryBatch": "Reintentar lote {{id}}",
+    "retry": "Reintentar",
+    "collapseRow": "Contraer fila",
+    "expandRow": "Expandir fila",
+    "titlePrefix": "Pago masivo",
+    "titleHighlight": "Seguimiento de estado",
+    "subtitle": "Confirmación en cadena en tiempo real para lotes de nómina",
+    "live": "En vivo",
+    "offline": "Sin conexión",
+    "filterStatus": "Filtrar por estado",
+    "allStatuses": "Todos los estados",
+    "refresh": "Actualizar",
+    "refreshAria": "Actualizar lista de lotes",
+    "totalBatches": "Total de lotes",
+    "inProgress": "En curso",
+    "recipients": "Destinatarios",
+    "volumePage": "Volumen (página)",
+    "date": "Fecha",
+    "employees": "Empleados",
+    "totalAmount": "Importe total",
+    "confirmations": "Conf.",
+    "actions": "Acciones",
+    "empty": "No se encontraron ejecuciones por lotes",
+    "emptyFiltered": "No hay lotes con el estado \"{{status}}\". Prueba otro filtro.",
+    "emptyDefault": "Las ejecuciones de nómina por lotes aparecerán aquí después de enviar el primer pago masivo.",
+    "previousPage": "Página anterior",
+    "page": "Página {{page}}",
+    "nextPage": "Página siguiente"
+  },
+  "countdownTimer": {
+    "days": "Días",
+    "hours": "Hrs",
+    "minutes": "Min",
+    "seconds": "Seg"
   }
 }

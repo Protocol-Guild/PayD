@@ -3,7 +3,25 @@
     "payroll": "Payroll",
     "employees": "Employees",
     "debugger": "debugger",
-    "settings": "Settings"
+    "settings": "Settings",
+    "dashboard": "Dashboard",
+    "forecast": "Forecast",
+    "reports": "Reports",
+    "taxCompliance": "Tax Compliance",
+    "crossAsset": "Cross-Asset",
+    "history": "History",
+    "employeePortal": "Employee Portal",
+    "securityCenter": "Security Center",
+    "helpCenter": "Help Center",
+    "network": "Network",
+    "stellarTestnet": "Stellar Testnet",
+    "myPortal": "My Portal",
+    "cashFlow": "Cash Flow",
+    "bulkPayments": "Bulk Payments",
+    "admin": "Admin",
+    "help": "Help",
+    "toggleMenu": "Toggle menu",
+    "closeMenu": "Close menu"
   },
   "home": {
     "titleLine1Prefix": "Automate your",
@@ -38,7 +56,8 @@
     "frequencyWeekly": "Weekly",
     "frequencyMonthly": "Monthly",
     "commencementDate": "Commencement Date",
-    "submit": "Initialize Payroll Stream"
+    "submit": "Initialize Payroll Stream",
+    "walletAddress": "Wallet Address"
   },
   "employees": {
     "title": "Workforce {{highlight}}",
@@ -55,10 +74,45 @@
       "placeholderEmail": "wilfred@example.com",
       "placeholderRole": "Lead Developer",
       "placeholderWallet": "GD6F...4R2T",
-      "statusActive": "Active"
+      "statusActive": "Active",
+      "name": "Name",
+      "salary": "Salary"
     },
     "importPrompt": "Need to migrate your legacy payroll system?",
-    "importCta": "Import from CSV (Coming Soon)"
+    "importCta": "Import from CSV (Coming Soon)",
+    "empty": "No employees found",
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "actions": {
+      "edit": "Edit",
+      "remove": "Remove"
+    },
+    "mobile": {
+      "wallet": "Wallet",
+      "salary": "Salary"
+    },
+    "importFromCsv": "Import from CSV",
+    "addEmployeesFromCsv": "Add Employees from CSV",
+    "cancel": "Cancel",
+    "addModal": {
+      "title": "Add Employee",
+      "namePlaceholder": "Name",
+      "emailPlaceholder": "Email",
+      "walletPlaceholder": "Wallet",
+      "positionPlaceholder": "Position",
+      "salaryPlaceholder": "Salary",
+      "add": "Add"
+    },
+    "editModal": {
+      "title": "Edit Salary",
+      "save": "Save"
+    },
+    "deleteModal": {
+      "title": "Confirm Removal",
+      "body": "Are you sure you want to remove this employee?"
+    }
   },
   "debugger": {
     "title": "Contract {{highlight}}",
@@ -130,7 +184,12 @@
     "authenticated": "Authenticated",
     "connect": "Connect",
     "wallet": "Wallet",
-    "exit": "Exit"
+    "exit": "Exit",
+    "connecting": "Connecting...",
+    "socialActive": "Social Active",
+    "sessionActive": "Session Active",
+    "stellar": "Stellar",
+    "signIn": "Sign In"
   },
   "wallet": {
     "modalTitle": "Connect to PayD"
@@ -204,5 +263,861 @@
     "loginDescription": "Enter the 6-digit code from your authenticator app to finish signing in.",
     "loginButton": "Verify and continue",
     "loginRecoveryHint": "Lost your device? Enter one of your recovery codes instead."
+  },
+  "helpCenter": {
+    "faqs": "FAQs",
+    "addEmployeeQuestion": "How do I add an employee?",
+    "addEmployeeAnswer": "Open the Employees page and use Add Employee to enter their details and wallet address.",
+    "resetPasswordQuestion": "How do I reset my password?",
+    "resetPasswordAnswer": "Use the account recovery flow from the sign-in screen or contact your organization administrator.",
+    "stellarConcepts": "Stellar Concepts",
+    "trustlineQuestion": "What is a trustline?",
+    "trustlineAnswer": "A trustline lets a Stellar account hold a specific issued asset.",
+    "anchorQuestion": "What is a Stellar anchor?",
+    "anchorAnswer": "An anchor connects Stellar assets with traditional financial rails and local currencies.",
+    "troubleshooting": "Troubleshooting",
+    "payrollFailedQuestion": "Why did my payroll transaction fail?",
+    "payrollFailedAnswer": "Check the transaction status, account funding, trustlines, and network details before retrying.",
+    "employeeMissingQuestion": "Why is an employee missing?",
+    "employeeMissingAnswer": "Confirm the employee is active and belongs to the organization you are viewing.",
+    "titlePrefix": "Help",
+    "titleHighlight": "Center",
+    "subtitle": "Guides, answers, and troubleshooting",
+    "searchPlaceholder": "Search help topics…",
+    "noResults": "No matching help topics found."
+  },
+  "forecasting": {
+    "errors": {
+      "loadFailed": "Failed to load forecast data.",
+      "updateFailed": "Failed to update liquidity settings.",
+      "refreshFailed": "Failed to refresh forecast."
+    },
+    "alertShortfall": "{{severity}} liquidity alert: {{amount}} {{asset}} shortfall",
+    "settingsUpdated": "Liquidity settings updated.",
+    "title": "Liquidity Forecast",
+    "subtitle": "Project payroll liquidity and configure funding alerts.",
+    "months": "Months forward",
+    "refresh": "Refresh",
+    "status": {
+      "green": "Healthy",
+      "yellow": "Warning",
+      "red": "Critical"
+    },
+    "liquidityStatus": "Liquidity Status",
+    "liquidityAvailable": "Available: {{available}} {{asset}} · Required (next 2 runs): {{required}} {{asset}}",
+    "configureLiquidity": "Configure Liquidity",
+    "projectedMonthlyPayroll": "Projected Monthly Payroll",
+    "liquiditySettings": "Liquidity Settings",
+    "distributionAccount": "Distribution Account",
+    "assetIssuer": "Asset Issuer",
+    "assetCode": "Asset Code",
+    "benefitsRate": "Benefits Rate (%)",
+    "yellowBuffer": "Warning Buffer (%)",
+    "alertEmails": "Alert Emails",
+    "save": "Save Settings",
+    "saved": "Saved"
+  },
+  "customReportBuilder": {
+    "exporting": "Exporting {{count}} records with columns: {{columns}}",
+    "title": "Custom Report Builder",
+    "subtitle": "Choose a date range and columns for your report.",
+    "dateRange": "Date Range",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "status": {
+      "paid": "Paid",
+      "pending": "Pending"
+    },
+    "columnsTitle": "Columns",
+    "exportData": "Export Data",
+    "livePreview": "Live Preview",
+    "recordsFound": "{{count}} records found",
+    "noData": "No data in this date range.",
+    "selectColumn": "Select at least one column",
+    "columns": {
+      "workerId": "Worker ID",
+      "amount": "Amount",
+      "asset": "Asset",
+      "setupDate": "Setup Date",
+      "payoutDate": "Payout Date",
+      "status": "Status"
+    }
+  },
+  "employeePortal": {
+    "titlePrefix": "My",
+    "titleHighlight": "Portal",
+    "subtitle": "View your salary payments, balances, and transaction history",
+    "common": {
+      "type": "Type",
+      "amount": "Amount",
+      "refresh": "Refresh",
+      "tryAgain": "Please try again."
+    },
+    "errors": {
+      "loadPendingClaims": "Failed to load pending claims",
+      "refreshPendingClaims": "Failed to refresh pending claims"
+    },
+    "deductions": {
+      "title": "Deductions Breakdown",
+      "grossPay": "Gross Pay",
+      "totalDeductions": "Total Deductions",
+      "netPay": "Net Pay",
+      "deduction": "Deduction",
+      "destination": "Destination",
+      "wallet": "Wallet",
+      "emptyTitle": "No deductions configured",
+      "emptyBody": "Your net pay equals your gross pay for now."
+    },
+    "balance": {
+      "total": "Total Balance",
+      "updated": "Updated {{time}}",
+      "localCurrency": "Local Currency:"
+    },
+    "stats": {
+      "totalReceived": "Total Received",
+      "cashOut": "Cash Out",
+      "withdrawLocal": "Withdraw to Local Currency",
+      "transactions": "Transactions",
+      "lastPayment": "Last Payment"
+    },
+    "status": {
+      "completed": "Completed",
+      "pending": "Pending",
+      "failed": "Failed"
+    },
+    "type": {
+      "salary": "Salary",
+      "bonus": "Bonus",
+      "reimbursement": "Reimbursement"
+    },
+    "trustline": {
+      "establishedTitle": "{{assetCode}} Trustline Established",
+      "establishedBody": "You can now receive payroll in this asset.",
+      "failedTitle": "Failed to establish trustline",
+      "setupRequired": "Setup Required",
+      "explanation": "To receive payments in certain assets, you must first establish a trustline with the issuer. This is a standard Stellar security feature.",
+      "assetTrustline": "Stellar Asset Trustline",
+      "establish": "Establish Trustline"
+    },
+    "claim": {
+      "successTitle": "Claim successful!",
+      "successBody": "The funds have been transferred to your wallet.",
+      "failedTitle": "Claim failed",
+      "failedBody": "A contract error occurred. Please review the details below.",
+      "pendingTitle": "Pending Claims",
+      "help": "If you have a pending claim, add the trustline in your wallet and then claim the balance.",
+      "created": "Created {{date}}",
+      "balanceId": "Balance ID: {{id}}",
+      "claimFunds": "Claim Funds"
+    },
+    "history": {
+      "title": "Payment History",
+      "searchPlaceholder": "Search tx hash, memo…",
+      "allStatus": "All Status",
+      "allTypes": "All Types",
+      "date": "Date",
+      "description": "Description",
+      "status": "Status",
+      "hash": "Hash",
+      "verify": "Verify",
+      "emptyTitle": "No transactions found",
+      "emptyBody": "Try adjusting your filters or check back later.",
+      "viewOnExplorer": "View on Stellar Expert",
+      "explorer": "Explorer"
+    }
+  },
+  "cashFlowForecast": {
+    "errors": {
+      "missingInputs": "Please provide distribution account and asset issuer",
+      "loadFailed": "Failed to load cash flow forecast"
+    },
+    "updated": "Cash flow forecast updated",
+    "title": "Cash Flow Forecast",
+    "subtitle": "Analyze historical payroll data and project future cash flow requirements",
+    "distributionAccount": "Distribution Account",
+    "assetIssuer": "Asset Issuer",
+    "daysPlaceholder": "Days (90)",
+    "loading": "Loading...",
+    "refresh": "Refresh",
+    "currentBalance": "Current Balance",
+    "projectedOutflow": "Projected Outflow",
+    "scheduledPayments": "{{count}} scheduled payments",
+    "projectedBalance": "Projected Balance",
+    "afterProjections": "After all projections",
+    "trend": "Trend",
+    "vsHistorical": "{{percent}}% vs historical",
+    "budgetAlerts": "Budget Alerts ({{count}})",
+    "shortfall": "Shortfall: {{amount}} {{asset}}",
+    "cashFlowProjection": "Cash Flow Projection",
+    "historicalVsProjected": "Historical vs Projected",
+    "historical": "Historical",
+    "projected": "Projected",
+    "historicalAverages": "Historical Averages",
+    "weeklyAverage": "Weekly Average",
+    "biweeklyAverage": "Biweekly Average",
+    "monthlyAverage": "Monthly Average",
+    "emptyPrompt": "Enter distribution account and asset issuer to load forecast"
+  },
+  "taxCompliance": {
+    "title": "Tax Compliance Wizard",
+    "subtitle": "Configure tax rules and generate compliance reports for your organization",
+    "steps": {
+      "selectCountry": "Step 1: Select Country",
+      "configuration": "Step 2: Tax Configuration",
+      "preview": "Step 3: Preview Calculator",
+      "report": "Step 4: Generate Report",
+      "export": "Step 5: Export Summary"
+    },
+    "searchCountries": "Search countries...",
+    "noCountries": "No countries found matching \"{{query}}\"",
+    "configuration": "Tax compliance configuration",
+    "activeRules": "Active Tax Rules ({{count}})",
+    "configureForCountry": "Configure tax identifiers and rates for {{country}} compliance",
+    "defaultGrossPay": "Default Gross Pay (per employee)",
+    "numberOfEmployees": "Number of Employees",
+    "previewSummary": "Tax Preview Summary",
+    "grossPay": "Gross Pay",
+    "estimatedTax": "Est. Tax",
+    "netPay": "Net Pay",
+    "defaultRateNote": "* Based on default 25% tax rate. Actual calculations will use configured rates.",
+    "reportStartDate": "Report Start Date",
+    "reportEndDate": "Report End Date",
+    "reportPreview": "Report Preview",
+    "employee": "Employee",
+    "taxAmount": "Tax Amount",
+    "moreEmployees": "And {{count}} more employees...",
+    "reportGenerated": "Report Generated Successfully!",
+    "reportReady": "Your tax compliance report for {{country}} is ready for export",
+    "totalEmployees": "Total Employees",
+    "totalGross": "Total Gross",
+    "taxCollected": "Tax Collected",
+    "totalNet": "Total Net",
+    "downloadCsv": "Download CSV Report",
+    "exportHint": "Export as CSV for local government filing",
+    "cancel": "Cancel",
+    "back": "Back",
+    "validateContinue": "Validate & Continue",
+    "calculating": "Calculating...",
+    "calculatePreview": "Calculate Preview",
+    "generateReport": "Generate Report",
+    "continue": "Continue"
+  },
+  "contractError": {
+    "title": "Contract Invocation Failed",
+    "suggestedAction": "Suggested Action",
+    "rawTransactionResult": "Raw Transaction Result (XDR)",
+    "copyXdr": "Copy XDR",
+    "copy": "Copy",
+    "notAvailable": "N/A",
+    "details": {
+      "1": {
+        "message": "Unauthorized: The caller does not have permission for this action.",
+        "action": "Verify you are signing with the correct administrator or employee account."
+      },
+      "2": {
+        "message": "Invalid State: The contract is not in the expected state (e.g., already claimed).",
+        "action": "Refresh the page to see the latest status of this grant."
+      },
+      "3": {
+        "message": "Insufficient Funds: The contract or source account lacks required balance.",
+        "action": "Ensure the source account has enough funds and try again."
+      },
+      "4": {
+        "message": "Deadline Passed: The time-locked window for this operation has closed.",
+        "action": "Check the cliff and end dates for this vesting schedule."
+      },
+      "5": {
+        "message": "Already Initialized: This contract has already been configured.",
+        "action": "If you need to change settings, you may need a new contract deployment."
+      },
+      "6": {
+        "message": "Cliff Not Reached: Tokens are still in the cliff period and cannot be claimed.",
+        "action": "Wait until the cliff date has passed before attempting to claim."
+      },
+      "Contract": {
+        "message": "Contract Logic Error: A custom error was thrown by the contract code.",
+        "action": "Review the contract error code or contact the contract developer."
+      },
+      "WasmConfig": {
+        "message": "WASM Config Error: The contract execution failed due to invalid WASM configuration.",
+        "action": "This usually indicates a bug in the contract binary or host configuration."
+      },
+      "Context": {
+        "message": "Execution Context Error: Failed to setup the internal contract environment.",
+        "action": "Check if you have provided all required contract data and parameters."
+      },
+      "Storage": {
+        "message": "Resource Storage Error: Error accessing contract persistent storage.",
+        "action": "Verify the contract state exists on-chain and has not been archived."
+      },
+      "Object": {
+        "message": "Host Object Error: Invalid host object handle or type mismatch.",
+        "action": "Ensure all arguments passed to the contract call are correctly formatted ScVal types."
+      },
+      "Crypto": {
+        "message": "Cryptographic Failure: Failed to verify signature or hash inside the contract.",
+        "action": "Ensure all auth signatures are valid and cover the correct transaction footprint."
+      },
+      "Events": {
+        "message": "Event Emission Failure: Contract exceeded the limit of allowed events.",
+        "action": "Try to reduce the amount of data being processed in a single call."
+      },
+      "Budget": {
+        "message": "Resource Budget Exceeded: The operation exceeded CPU or Memory limits.",
+        "action": "Increase the transaction resource limits (CPU/Memory) and retry."
+      },
+      "Auth": {
+        "message": "Contract Authentication Error: Failed to satisfy Soroban authorization requirements.",
+        "action": "Verify that all required signers have approved the specific contract invocation."
+      },
+      "UnknownContract": {
+        "message": "Custom contract error code: {{code}}",
+        "action": "Refer to contract documentation for this specific error code."
+      },
+      "UnknownHost": {
+        "message": "Host error: {{code}}",
+        "action": "An internal Stellar network error occurred during execution."
+      },
+      "NO_XDR": {
+        "message": "No result XDR provided for parsing.",
+        "action": "Check network logs for more details."
+      },
+      "UNKNOWN_FORMAT": {
+        "message": "The transaction failed but the result XDR could not be parsed as a standard error.",
+        "action": "Check the raw XDR for more details or contact support."
+      },
+      "UNPARSEABLE_XDR": {
+        "message": "Failed to decode the transaction result XDR.",
+        "action": "The result may not be a valid Soroban error object."
+      }
+    },
+    "genericAction": "Please check the transaction parameters and try again."
+  },
+  "schedulingWizard": {
+    "steps": {
+      "schedule": "Step 1: Set Schedule",
+      "currencyPreferences": "Step 2: Currency Preferences",
+      "previewConfirm": "Step 3: Preview & Confirm"
+    },
+    "loading": "Loading Organizational Data...",
+    "currencyIntro": "Set default currency payout outputs for each employee.",
+    "table": {
+      "employee": "Employee",
+      "scheduledAmount": "Scheduled Amount",
+      "receiveIn": "Receive In",
+      "noEmployees": "No employees found in organization."
+    },
+    "currencies": {
+      "usdcStellar": "USDC (Stellar)",
+      "xlm": "XLM",
+      "eurc": "EURC"
+    },
+    "frequencyLabel": "Frequency",
+    "frequency": {
+      "weekly": "Weekly",
+      "biweekly": "Biweekly",
+      "monthly": "Monthly"
+    },
+    "dayOfWeek": "Day of Week",
+    "weekdays": {
+      "sunday": "Sunday",
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday"
+    },
+    "dayOfMonth": "Day of Month",
+    "runTime": "Run Time",
+    "scheduleOverview": "Schedule Overview",
+    "time": "Time",
+    "upcomingRuns": "Upcoming Runs",
+    "cancel": "Cancel",
+    "back": "Back",
+    "continue": "Continue",
+    "confirmSchedule": "Confirm Schedule"
+  },
+  "csvUploader": {
+    "missingRequiredColumns": "Missing required columns: {{columns}}",
+    "missingRequiredField": "Missing required field: {{column}}",
+    "pleaseUploadCsv": "Please upload a CSV file",
+    "dragDrop": "Drag and drop your CSV file",
+    "browse": "or click to browse",
+    "requiredColumns": "Required columns: {{columns}}",
+    "file": "File: {{fileName}}",
+    "validRows": "{{count}} valid rows",
+    "rowsWithErrors": "{{count}} rows with errors",
+    "preview": "Preview",
+    "row": "Row",
+    "status": "Status",
+    "errors": "Errors",
+    "ok": "OK"
+  },
+  "bulkPaymentStatusTracker": {
+    "title": "Bulk Payment Status Tracker",
+    "refresh": "Refresh",
+    "loadingRuns": "Loading bulk payroll runs...",
+    "emptyRuns": "No payroll batch runs found.",
+    "loadingRecipientStatuses": "Loading recipient statuses...",
+    "notAvailable": "N/A",
+    "employeeFallback": "Employee #{{id}}",
+    "headers": {
+      "batch": "Batch",
+      "status": "Status",
+      "employees": "Employees",
+      "total": "Total",
+      "confirmations": "Confirmations",
+      "txHash": "Tx Hash",
+      "actions": "Actions"
+    },
+    "labels": {
+      "batch": "Batch: {{batchId}}",
+      "employees": "Employees:",
+      "total": "Total:",
+      "confirmations": "Confirmations:",
+      "txHash": "Tx Hash:",
+      "successful": "Successful:",
+      "failed": "Failed:",
+      "failedRecipients": "Failed Recipients:"
+    },
+    "actions": {
+      "hideDetails": "Hide Details",
+      "showDetails": "Show Details",
+      "hide": "Hide",
+      "details": "Details",
+      "retrying": "Retrying...",
+      "retryFailed": "Retry Failed"
+    },
+    "status": {
+      "draft": "Draft",
+      "pending": "Pending",
+      "processing": "Processing",
+      "completed": "Completed",
+      "failed": "Failed",
+      "confirmed": "Confirmed"
+    },
+    "errors": {
+      "loadRuns": "Failed to load bulk runs",
+      "loadTitle": "Bulk payment load failed",
+      "loadRecipientStatus": "Failed to load per-recipient status",
+      "loadDetailsTitle": "Failed to load batch details",
+      "walletRequiredTitle": "Wallet required",
+      "walletRequiredBody": "Connect a wallet before retrying failed recipients.",
+      "contractUnavailable": "Bulk payment contract ID is unavailable.",
+      "retryFailed": "Retry failed"
+    },
+    "notifications": {
+      "retrySubmittedTitle": "Retry submitted",
+      "retrySubmittedBody": "Batch {{batchId}} was re-invoked. TX: {{txHash}}"
+    }
+  },
+  "themeToggle": {
+    "switchToLight": "Switch to light mode",
+    "switchToDark": "Switch to dark mode"
+  },
+  "appLayout": {
+    "beta": "BETA"
+  },
+  "certificate": {
+    "missingInformation": "Missing Information",
+    "transactionHashRequired": "Transaction hash is required",
+    "identityUnavailable": "Unable to determine employee and organization. Please provide employeeId and organizationId.",
+    "downloadedTitle": "Certificate Downloaded",
+    "downloadedBody": "Payment certificate has been downloaded successfully",
+    "downloadFailed": "Download Failed",
+    "downloadFailedBody": "Failed to download certificate",
+    "downloadTitle": "Download Proof of Payment Certificate",
+    "generating": "Generating...",
+    "loading": "Loading...",
+    "label": "Certificate"
+  },
+  "dashboardTopBar": {
+    "organization": "Organization",
+    "availableBalance": "Available Balance"
+  },
+  "employerLayout": {
+    "toggleSidebar": "Toggle Sidebar",
+    "license": "© {{year}} PayD — Licensed under Apache 2.0",
+    "networkStatus": "Stellar Testnet Node · {{version}}"
+  },
+  "login": {
+    "welcomeBack": "Welcome back",
+    "subtitle": "Connect your account to manage your payroll system",
+    "continueGoogle": "Continue with Google",
+    "continueGithub": "Continue with GitHub",
+    "securityNote": "Secure · Encrypted · Non-Custodial"
+  },
+  "authCallback": {
+    "authenticating": "Authenticating..."
+  },
+  "employeeEntry": {
+    "defaultRole": "Employee",
+    "addedTitle": "{{name}} added successfully!",
+    "walletGenerated": "A new Stellar wallet was generated for this employee.",
+    "addedWithWallet": "Employee {{name}} added successfully! A wallet was created for them.",
+    "addedMessage": "Employee {{name}} added successfully!",
+    "backToDirectory": "Back to Directory",
+    "title": "Add New Employee",
+    "simulatedEmailLabel": "[SIMULATED EMAIL NOTIFICATION TO EMPLOYEE]",
+    "simulatedEmailGreeting": "Hello {{name}}, your employer has added you to the payroll.",
+    "simulatedEmailWalletBody": "A default Stellar wallet has been created for you to receive claimable balances.",
+    "secretKeyLabel": "Your Secret Key:",
+    "secretKeyWarning": "Please save this secret key securely to claim your future salary.",
+    "successTitle": "Success",
+    "fullName": "Full Name",
+    "email": "Email Address",
+    "walletAddressOptional": "Stellar Wallet Address (Optional)",
+    "walletNote": "If no wallet is provided, a claimable balance will be created using a new wallet generated for them.",
+    "walletPlaceholder": "Leave blank to generate a wallet",
+    "role": "Role",
+    "roles": {
+      "contractor": "Contractor",
+      "fullTime": "Full Time",
+      "partTime": "Part Time"
+    },
+    "preferredCurrency": "Preferred Currency",
+    "addEmployee": "Add Employee"
+  },
+  "walletQr": {
+    "copied": "{{label}} copied to clipboard!",
+    "title": "Your Stellar Wallet Address",
+    "walletAddress": "Wallet Address",
+    "copyAddress": "Copy Address",
+    "secretKeySecure": "Secret Key (Save Securely!)",
+    "secretKey": "Secret key",
+    "copySecretKey": "Copy Secret Key",
+    "revealSecretKey": "Click to reveal secret key",
+    "trustlineGuide": "Trustline Setup Guide",
+    "trustlineIntro": "To receive payments in different currencies, you need to set up trustlines. Follow these steps:",
+    "steps": {
+      "fund": {
+        "title": "Fund Your Wallet",
+        "description": "Add XLM to your wallet. You need at least 1 XLM to create a trustline."
+      },
+      "asset": {
+        "title": "Choose Your Asset",
+        "description": "Decide which asset you want to receive (USDC, EURC, or XLM). Each asset requires a separate trustline."
+      },
+      "create": {
+        "title": "Create Trustline",
+        "description": "Navigate to your wallet's asset settings and add a trustline for the chosen asset using its issuer address."
+      },
+      "verify": {
+        "title": "Verify Trustline",
+        "description": "After creation, verify the trustline appears in your wallet's asset list. You can now receive payments in that asset."
+      }
+    },
+    "supportedAssets": "Supported Assets",
+    "issuer": "Issuer",
+    "nativeAsset": "Native Asset",
+    "assetIssuer": "{{asset}} issuer",
+    "shareQr": "Share this QR code with {{name}} so they can receive payments directly to their wallet."
+  },
+  "vesting": {
+    "form": {
+      "title": "Create New Vesting Grant",
+      "employeeAddress": "Employee Wallet Address (G...)",
+      "totalAmount": "Total Grant Amount",
+      "durationYears": "Duration (Years)",
+      "startDate": "Start Date",
+      "cliffDate": "Cliff Date",
+      "simulating": "Simulating...",
+      "initialize": "Initialize Vesting Escrow"
+    },
+    "list": {
+      "empty": "No active vesting grants found.",
+      "summary": "Total: {{total}} XLM | Vested: {{vested}} XLM",
+      "claim": "Claim",
+      "cliff": "Cliff",
+      "start": "Start"
+    },
+    "notifications": {
+      "simReadyTitle": "Grant simulation ready",
+      "simReadyBody": "Review the transaction details before confirming.",
+      "simFailedTitle": "Grant simulation failed",
+      "simFailedBody": "Please check the contract parameters.",
+      "claimTitle": "Claim Initialized",
+      "claimBody": "Simulating on-chain claim transaction...",
+      "createdTitle": "Vesting grant created!",
+      "createdBody": "The transaction has been broadcast to the network."
+    },
+    "page": {
+      "titlePrefix": "Vesting",
+      "titleHighlight": "Escrow",
+      "subtitle": "Manage employee token vesting schedules",
+      "confirmCreate": "Confirm & Create Grant"
+    }
+  },
+  "withdrawalFlow": {
+    "selectMethod": "Select Withdrawal Method",
+    "selectMethodDescription": "Choose an anchor service to convert your ORGUSD to {{currency}}.",
+    "loadingAnchors": "Loading anchors...",
+    "noAnchors": "No withdrawal anchors available",
+    "varies": "Varies",
+    "back": "Back",
+    "amountOrgusd": "Amount (ORGUSD)",
+    "destinationType": "Destination Type",
+    "bankAccount": "Bank Account",
+    "mobileMoney": "Mobile Money",
+    "placeholders": {
+      "accountNumber": "Account Number",
+      "bankName": "Bank Name",
+      "phoneNumber": "Phone Number",
+      "provider": "Provider (e.g., M-Pesa, MTN)"
+    },
+    "continue": "Continue",
+    "confirmWithdrawal": "Confirm Withdrawal",
+    "amount": "Amount",
+    "anchor": "Anchor",
+    "receive": "Receive",
+    "destination": "Destination",
+    "processing": "Processing...",
+    "processingTitle": "Processing Withdrawal",
+    "processingBody": "Please complete the withdrawal on the anchor's website.",
+    "openAnchor": "Open Anchor Website",
+    "status": "Status",
+    "transactionId": "Transaction ID",
+    "cancelWithdrawal": "Cancel Withdrawal",
+    "complete": "Withdrawal Complete",
+    "done": "Done",
+    "failed": "Withdrawal Failed",
+    "failureFallback": "Something went wrong with your withdrawal.",
+    "tryAgain": "Try Again",
+    "close": "Close",
+    "cashOut": "Cash Out",
+    "fee": "Fee:",
+    "minimum": "Min:",
+    "withdrawVia": "Withdraw via {{anchor}}",
+    "available": "Available: {{amount}}",
+    "successProcessed": "Your withdrawal of {{amount}} has been processed successfully."
+  },
+  "crossAssetPayment": {
+    "waitingForSubmission": "Waiting for submission...",
+    "pathfindingFailed": "Pathfinding failed",
+    "pathfindingFailedBody": "Failed to fetch conversion paths.",
+    "updateStatus": "Update: {{status}}",
+    "paymentConfirmed": "Payment Confirmed",
+    "paymentConfirmedBody": "Your cross-asset payment was successful.",
+    "walletRequired": "Wallet required",
+    "walletRequiredBody": "Connect your wallet before submitting cross-asset payment.",
+    "noPath": "No path selected",
+    "noPathBody": "Select a conversion path before submitting.",
+    "invalidAmount": "Invalid amount",
+    "invalidAmountBody": "Enter a valid payment amount.",
+    "contractUnavailable": "Cross-asset contract ID is unavailable.",
+    "waitingForSettlement": "Submitted. Waiting for live settlement updates...",
+    "paymentSubmitted": "Payment submitted",
+    "paymentSubmittedBody": "On-chain transaction hash: {{hash}}",
+    "invocationFallback": "An unexpected error occurred during contract invocation.",
+    "paymentFailed": "Payment failed",
+    "paymentFailedBody": "A contract error occurred. Please review the details below.",
+    "title": "Cross-Asset Payment Settlement",
+    "subtitle": "Live pathfinding, Soroban simulation, and wallet-signed contract submission.",
+    "connectWallet": "Connect Wallet",
+    "sendAsset": "Send Asset",
+    "receiveAsset": "Receive Asset",
+    "amountToSend": "Amount to Send",
+    "receiverAddress": "Receiver Address",
+    "receiverPlaceholder": "G... recipient wallet",
+    "connectWalletToSwap": "Connect Wallet to Swap",
+    "simulateSubmit": "Simulate + Submit Payment",
+    "availablePaths": "Available Conversion Paths",
+    "fetchingPaths": "Fetching conversion paths...",
+    "settlementPreview": "Settlement Preview",
+    "expectedDelivery": "Expected Delivery",
+    "fee": "Fee",
+    "slippage": "Slippage",
+    "contractStatus": "Contract Status",
+    "authentication": "Authentication",
+    "signerReady": "Wallet connected and signer ready",
+    "initiation": "Initiation",
+    "simulatedSubmitted": "Contract call simulated and submitted",
+    "settlement": "Settlement",
+    "transactionHash": "Transaction Hash",
+    "changePrompt": "Change asset pair and amount to request path options from backend proxy.",
+    "pathFeeSlippage": "Fee: {{fee}} {{asset}} | Slippage: {{slippage}}%",
+    "rateLabel": "rate"
+  },
+  "payrollResidual": {
+    "scheduleConfigured": "Payroll schedule configured!",
+    "refId": "Ref ID: {{id}}",
+    "createFailed": "Failed to create schedule",
+    "tryAgainLater": "Please try again later.",
+    "paymentConfirmed": "Payment confirmed!",
+    "tx": "TX: {{id}}",
+    "missingRequired": "Missing required fields",
+    "missingRequiredBody": "Please provide employee name, amount, and wallet address.",
+    "trustlineMissing": "Trustline missing!",
+    "trustlineMissingBody": "{{name}} does not have a USDC trustline. You can proceed, but the payment will be held as a claimable balance.",
+    "claimFailed": "Failed to create claimable balance",
+    "invocationFailed": "Contract invocation failed",
+    "broadcastSuccess": "Broadcast successful!",
+    "broadcastSuccessBody": "Claimable balance created for {{name}}",
+    "broadcastFailed": "Broadcast failed",
+    "broadcastFailedBody": "A contract error occurred. Please review the details below.",
+    "scheduleCancelled": "Schedule cancelled",
+    "scheduleCancelledBody": "The automation has been halted.",
+    "cancellationFailed": "Cancellation failed",
+    "cancellationFailedBody": "Unable to reach the server.",
+    "openWizard": "Open scheduling wizard",
+    "automationActive": "Automation Active",
+    "nextRun": "Next Scheduled Run",
+    "employeePlaceholder": "e.g. Satoshi Nakamoto",
+    "simulating": "Simulating...",
+    "confirmBroadcast": "Confirm & Broadcast to Network",
+    "preflight": "Pre-flight Validation",
+    "trustlineMissingLabel": "Trustline Missing",
+    "trustlineWarning": "Employee does not have a USDC trustline. Payment will be held as a claimable balance.",
+    "preflightIntro": "All transactions are simulated via Stellar Horizon before submission. This catches common errors like:",
+    "preflightItems": {
+      "balance": "Insufficient XLM balance for fees",
+      "sequence": "Invalid sequence numbers",
+      "trustlines": "Missing trustlines for tokens",
+      "eligibility": "Account eligibility status"
+    },
+    "scheduledAutomations": "Scheduled Automations",
+    "noSchedules": "No active payroll schedules found in the database.",
+    "nextRunLabel": "Next Run",
+    "recipients": "Recipients",
+    "cancelAutomation": "Cancel Automation",
+    "recentClaims": "Recent Manual Claims",
+    "noClaims": "No recent manual claimable balances.",
+    "cancel": "Cancel",
+    "at": "at",
+    "amountLabel": "Amount:",
+    "scheduledLabel": "Scheduled:",
+    "toLabel": "To:",
+    "frequency": {
+      "weekly": "Weekly",
+      "biweekly": "Biweekly",
+      "monthly": "Monthly"
+    },
+    "scheduledToRun": "Scheduled to run",
+    "broadcasting": "Broadcasting...",
+    "distribution": "Distribution",
+    "employees": "Employees"
+  },
+  "revenueSplit": {
+    "loadFailed": "Failed to load dashboard",
+    "loadFailedTitle": "Revenue split load failed",
+    "contractUnavailable": "Revenue split contract ID is unavailable.",
+    "walletRequired": "Wallet required",
+    "walletRequiredBody": "Connect a wallet before updating allocations.",
+    "invalidRecipient": "Invalid recipient",
+    "invalidRecipientBody": "Each allocation recipient must be a valid Stellar address.",
+    "invalidTotal": "Invalid allocation total",
+    "invalidTotalBody": "Allocation total must equal 100%. Current total: {{total}}%.",
+    "updated": "Allocations updated",
+    "updatedBody": "Submitted on-chain update transaction: {{hash}}",
+    "updateFailed": "Failed to update allocations",
+    "updateFailedTitle": "Allocation update failed",
+    "titlePrefix": "Revenue Split",
+    "titleHighlight": "Dashboard",
+    "subtitle": "Contract-backed allocations and distribution history",
+    "connectWallet": "Connect Wallet",
+    "loading": "Loading revenue split dashboard...",
+    "currentSplits": "Current Allocation Splits",
+    "noAllocations": "No allocation data loaded.",
+    "editAllocations": "Edit Allocations",
+    "addRecipient": "Add Recipient",
+    "recipientPlaceholder": "Recipient Stellar Address",
+    "remove": "Remove",
+    "totalMust100": "Total allocation must be exactly 100%.",
+    "submitting": "Submitting...",
+    "submitUpdate": "Submit On-Chain Update",
+    "liveBalances": "Live Recipient Balances",
+    "noDistributions": "No recipient distributions available yet.",
+    "history": "Historical Distribution Events",
+    "noEvents": "No backend indexed distribution events found.",
+    "date": "Date",
+    "recipient": "Recipient",
+    "action": "Action",
+    "amount": "Amount",
+    "tx": "Tx",
+    "notAvailable": "N/A",
+    "recipientLabel": "Recipient:",
+    "amountLabel": "Amount:",
+    "connected": "Connected: {{address}}",
+    "total": "Total: {{total}}%",
+    "totalDistributed": "Total Distributed:",
+    "viewTransaction": "View Transaction: {{hash}}"
+  },
+  "transactionHistory": {
+    "loadFailed": "Failed to load transaction history",
+    "loadMoreFailed": "Failed to load more history",
+    "titlePrefix": "Transaction",
+    "titleHighlight": "History",
+    "subtitle": "Unified classic + contract event timeline",
+    "searchPlaceholder": "Search tx hash / actor",
+    "allStatuses": "All Statuses",
+    "confirmed": "Confirmed",
+    "pending": "Pending",
+    "failed": "Failed",
+    "employeePlaceholder": "Employee",
+    "assetPlaceholder": "Asset (USDC, XLM...)",
+    "empty": "No records found for current filters.",
+    "loading": "Loading...",
+    "loadMore": "Load More",
+    "filters": "Filters",
+    "actor": "Actor:",
+    "amountLabel": "Amount:",
+    "status": {
+      "confirmed": "Confirmed",
+      "pending": "Pending",
+      "failed": "Failed",
+      "indexed": "Indexed"
+    }
+  },
+  "bulkPaymentTracker": {
+    "status": {
+      "confirmed": "Confirmed",
+      "pending": "Pending",
+      "partial": "Partial",
+      "failed": "Failed"
+    },
+    "perRecipient": "Per-Recipient Breakdown",
+    "recipientCount_one": "{{count}} recipient",
+    "recipientCount_other": "{{count}} recipients",
+    "employee": "Employee",
+    "amount": "Amount",
+    "statusLabel": "Status",
+    "txHash": "Tx Hash",
+    "details": "Details",
+    "retryFailedBatch": "Retry failed batch",
+    "retryBatch": "Retry batch {{id}}",
+    "retry": "Retry",
+    "collapseRow": "Collapse row",
+    "expandRow": "Expand row",
+    "titlePrefix": "Bulk Payment",
+    "titleHighlight": "Status Tracker",
+    "subtitle": "Real-time on-chain confirmation for batch payroll runs",
+    "live": "Live",
+    "offline": "Offline",
+    "filterStatus": "Filter by status",
+    "allStatuses": "All Statuses",
+    "refresh": "Refresh",
+    "refreshAria": "Refresh batch list",
+    "totalBatches": "Total Batches",
+    "inProgress": "In Progress",
+    "recipients": "Recipients",
+    "volumePage": "Volume (page)",
+    "date": "Date",
+    "employees": "Employees",
+    "totalAmount": "Total Amount",
+    "confirmations": "Confs",
+    "actions": "Actions",
+    "empty": "No batch runs found",
+    "emptyFiltered": "No batches with status \"{{status}}\". Try a different filter.",
+    "emptyDefault": "Payroll batch runs will appear here once the first bulk payment is submitted.",
+    "previousPage": "Previous page",
+    "page": "Page {{page}}",
+    "nextPage": "Next page"
+  },
+  "countdownTimer": {
+    "days": "Days",
+    "hours": "Hrs",
+    "minutes": "Min",
+    "seconds": "Sec"
   }
 }
