@@ -3,9 +3,14 @@ import { Outlet } from 'react-router-dom';
 import { DashboardSidebar } from './DashboardSidebar';
 import { DashboardTopBar } from './DashboardTopBar';
 import { Menu, X } from 'lucide-react';
+import { hasActiveAccessToken } from '../utils/authSession';
+import RequireAuth from './RequireAuth';
 
 export const EmployerLayout: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  if (!hasActiveAccessToken()) {
+    return <RequireAuth />;
+  }
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
