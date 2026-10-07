@@ -1,5 +1,9 @@
+// Modified 2026-10-05: cache tenant configuration reads at the service boundary.
+import { randomUUID } from 'node:crypto';
 import { Pool } from 'pg';
 import { pool } from '../config/database.js';
+import { RedisClient } from './rateLimitService.js';
+import logger from '../utils/logger.js';
 
 export interface TenantConfig {
   id: number;
@@ -42,10 +46,127 @@ export class TenantConfigService {
     this.pool = dbPool;
   }
 
+  private static readonly CONFIG_CACHE_TTL_SECONDS = 30 * 60;
+
+  private configGenerationKey(organizationId: number, configKey: string): string {
+    return `cache:organization-settings:${organizationId}:key:${configKey}:generation`;
+  }
+
+  private allConfigsGenerationKey(organizationId: number): string {
+    return `cache:organization-settings:${organizationId}:all:generation`;
+  }
+
+  private async getOrCreateCacheGeneration(
+    generationKey: string,
+    metadata: Record<string, unknown>
+  ): Promise<string | null> {
+    const redis = RedisClient.getInstance();
+    if (!redis) {
+      logger.info('Cache miss', {
+        cache: 'organization-settings',
+        ...metadata,
+        reason: 'redis_not_configured',
+      });
+      return null;
+    }
+
+    try {
+      let generation = await redis.get(generationKey);
+      if (generation === null) {
+        const candidate = randomUUID();
+        const created = await redis.set(generationKey, candidate, 'NX');
+        generation = created === 'OK' ? candidate : await redis.get(generationKey);
+      }
+      return generation;
+    } catch (error) {
+      logger.warn('Organization settings cache generation read failed', {
+        ...metadata,
+        error,
+      });
+      return null;
+    }
+  }
+
+  private async configCacheKey(
+    organizationId: number,
+    configKey: string
+  ): Promise<string | null> {
+    const generation = await this.getOrCreateCacheGeneration(
+      this.configGenerationKey(organizationId, configKey),
+      { organizationId, configKey }
+    );
+    return generation === null
+      ? null
+      : `cache:organization-settings:${organizationId}:key:${configKey}:${generation}`;
+  }
+
+  private async allConfigsCacheKey(organizationId: number): Promise<string | null> {
+    const generation = await this.getOrCreateCacheGeneration(
+      this.allConfigsGenerationKey(organizationId),
+      { organizationId, configKey: '*' }
+    );
+    return generation === null
+      ? null
+      : `cache:organization-settings:${organizationId}:all:${generation}`;
+  }
+
+  private async readCache<T>(
+    key: string,
+    metadata: Record<string, unknown>
+  ): Promise<{ hit: boolean; value: T | null }> {
+    const redis = RedisClient.getInstance();
+    if (!redis) {
+      logger.info('Cache miss', {
+        cache: 'organization-settings',
+        ...metadata,
+        reason: 'redis_not_configured',
+      });
+      return { hit: false, value: null };
+    }
+
+    try {
+      const cached = await redis.get(key);
+      if (cached !== null) {
+        logger.info('Cache hit', { cache: 'organization-settings', ...metadata });
+        return { hit: true, value: JSON.parse(cached) as T };
+      }
+      logger.info('Cache miss', { cache: 'organization-settings', ...metadata });
+    } catch (error) {
+      logger.warn('Organization settings cache read failed', { ...metadata, error });
+    }
+
+    return { hit: false, value: null };
+  }
+
+  private async writeCache(
+    key: string,
+    value: unknown,
+    metadata: Record<string, unknown>
+  ): Promise<void> {
+    const redis = RedisClient.getInstance();
+    if (!redis) return;
+
+    try {
+      await redis.setex(
+        key,
+        TenantConfigService.CONFIG_CACHE_TTL_SECONDS,
+        JSON.stringify(value)
+      );
+    } catch (error) {
+      logger.warn('Organization settings cache write failed', { ...metadata, error });
+    }
+  }
+
   /**
    * Get a specific configuration by key
    */
   async getConfig(organizationId: number, configKey: string): Promise<any | null> {
+    const cacheKey = await this.configCacheKey(organizationId, configKey);
+    if (cacheKey !== null) {
+      const cached = await this.readCache<any>(cacheKey, { organizationId, configKey });
+      if (cached.hit) return cached.value;
+    }
+
     const query = `
       SELECT config_value
       FROM tenant_configurations
@@ -53,13 +174,26 @@ export class TenantConfigService {
     `;
 
     const result = await this.pool.query(query, [organizationId, configKey]);
-    return result.rows[0]?.config_value || null;
+    const value = result.rows[0]?.config_value ?? null;
+    if (value !== null && cacheKey !== null) {
+      await this.writeCache(cacheKey, value, { organizationId, configKey });
+    }
+    return value;
   }
 
   /**
    * Get all configurations for a tenant
    */
   async getAllConfigs(organizationId: number): Promise<Record<string, any>> {
+    const cacheKey = await this.allConfigsCacheKey(organizationId);
+    if (cacheKey !== null) {
+      const cached = await this.readCache<Record<string, any>>(cacheKey, {
+        organizationId,
+        configKey: '*',
+      });
+      if (cached.hit) return cached.value ?? {};
+    }
+
     const query = `
       SELECT config_key, config_value
       FROM tenant_configurations
@@ -74,7 +208,30 @@ export class TenantConfigService {
       configs[row.config_key] = row.config_value;
     });
 
+    if (cacheKey !== null) {
+      await this.writeCache(cacheKey, configs, { organizationId, configKey: '*' });
+    }
     return configs;
+  }
+
+  private async invalidateConfigCache(organizationId: number, configKey: string): Promise<void> {
+    try {
+      const redis = RedisClient.getInstance();
+      if (redis) {
+        await redis.mset(
+          this.configGenerationKey(organizationId, configKey),
+          randomUUID(),
+          this.allConfigsGenerationKey(organizationId),
+          randomUUID()
+        );
+        if (configKey === 'rate_limit_overrides') {
+          await redis.del(`rate_limits:org:${organizationId}`);
+        }
+      }
+    } catch (error) {
+      // The database write has already succeeded; cache failure must not undo its result.
+      logger.warn('Organization settings cache invalidation failed', { organizationId, configKey, error });
+    }
   }
 
   /**
@@ -104,6 +261,7 @@ export class TenantConfigService {
       description,
     ]);
 
+    await this.invalidateConfigCache(organizationId, configKey);
     return result.rows[0];
   }
 
@@ -118,6 +276,7 @@ export class TenantConfigService {
     `;
 
     const result = await this.pool.query(query, [organizationId, configKey]);
+    await this.invalidateConfigCache(organizationId, configKey);
     return result.rowCount !== null && result.rowCount > 0;
   }
 
@@ -196,7 +355,6 @@ export class TenantConfigService {
     const updated = { ...current, ...settings };
     return this.setConfig(organizationId, 'branding', updated);
   }
-}
 
   // ─── Rate limit overrides (Part 49) ─────────────────────────────────────────
 

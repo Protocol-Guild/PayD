@@ -1,3 +1,4 @@
+// Modified 2026-10-05: keep unbound handlers safe; tenant-config caching lives in the service.
 import { Request, Response } from 'express';
 import { ForecastingService } from '../services/forecasting/forecastingService.js';
 import tenantConfigService from '../services/tenantConfigService.js';
@@ -38,6 +39,7 @@ export class ForecastController {
       }
 
       const settings = await tenantConfigService.getConfig(organizationId, 'liquidity_settings');
+
       res.status(200).json({ success: true, data: settings || null });
     } catch (error: any) {
       res.status(500).json({
@@ -84,6 +86,7 @@ export class ForecastController {
       };
 
       await tenantConfigService.setConfig(organizationId, 'liquidity_settings', payload);
+
       res.status(200).json({ success: true, data: payload });
     } catch (error: any) {
       res.status(500).json({
