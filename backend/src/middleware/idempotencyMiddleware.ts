@@ -22,7 +22,8 @@ export interface IdempotencyMiddlewareOptions {
  * Reads the `Idempotency-Key` header. On first request, stores the key in
  * in_progress state and proceeds. On replay (key exists with completed/failed
  * status), returns the cached response. On concurrent duplicate (key exists
- * in_progress from another request), returns 409 Conflict.
+ * in_progress from another request), waits briefly for the first request's
+ * terminal cached response and replays it; bounded timeout returns 409 Conflict.
  *
  * Must be applied AFTER authentication middleware (needs req.tenantId or
  * req.user.organizationId for tenant scoping).
@@ -61,10 +62,11 @@ export function idempotencyMiddleware(options: IdempotencyMiddlewareOptions = {}
 
     try {
       // Attempt to claim the key.
-      const existing = await idempotencyService.claimKey(organizationId, idempotencyKey, ttlMs);
+      const claim = await idempotencyService.claimKey(organizationId, idempotencyKey, ttlMs);
 
-      if (existing) {
-        // Replay: return the stored response
+      if (claim.kind === 'replay') {
+        const existing = claim.record;
+
         logger.info('Idempotency replay', {
           organizationId,
           idempotencyKey,
@@ -76,7 +78,11 @@ export function idempotencyMiddleware(options: IdempotencyMiddlewareOptions = {}
         return;
       }
 
-      // New request — intercept the response to store the result.
+      // New request — intercept the response to store the result. The exact
+      // per-generation UUID AND expiry identify this claim, so a stale request
+      // cannot overwrite a row recycled by a later request.
+      const leaseExpiresAt = claim.expiresAt;
+      const leaseToken = claim.leaseToken;
       const originalJson = res.json.bind(res);
 
       res.json = function (body: unknown) {
@@ -87,7 +93,15 @@ export function idempotencyMiddleware(options: IdempotencyMiddlewareOptions = {}
         // 5xx errors are not stored so retries can attempt again.
         if (statusCode < 500) {
           idempotencyService
-            .completeKey(organizationId, idempotencyKey, statusCode, body)
+            .completeKey(organizationId, idempotencyKey, leaseExpiresAt, leaseToken, statusCode, body)
+            .then((stored) => {
+              if (!stored) {
+                logger.warn('Skipped stale idempotency completion', {
+                  organizationId,
+                  idempotencyKey,
+                });
+              }
+            })
             .catch((err) => {
               logger.error('Failed to store idempotency result', {
                 organizationId,
@@ -96,9 +110,17 @@ export function idempotencyMiddleware(options: IdempotencyMiddlewareOptions = {}
               });
             });
         } else {
-          // Server errors: mark as failed so retries work
+          // Server errors: mark as failed so retries work.
           idempotencyService
-            .failKey(organizationId, idempotencyKey, statusCode, body)
+            .failKey(organizationId, idempotencyKey, leaseExpiresAt, leaseToken, statusCode, body)
+            .then((stored) => {
+              if (!stored) {
+                logger.warn('Skipped stale idempotency failure', {
+                  organizationId,
+                  idempotencyKey,
+                });
+              }
+            })
             .catch((err) => {
               logger.error('Failed to mark idempotency key as failed', {
                 organizationId,
@@ -119,7 +141,32 @@ export function idempotencyMiddleware(options: IdempotencyMiddlewareOptions = {}
       next();
     } catch (error) {
       if (error instanceof IdempotencyConflictError) {
-        logger.warn('Concurrent duplicate detected', {
+        logger.info('Concurrent duplicate waiting for replay', {
+          organizationId,
+          idempotencyKey,
+        });
+
+        try {
+          const replay = await idempotencyService.waitForReplay(organizationId, idempotencyKey);
+          if (replay) {
+            logger.info('Concurrent duplicate replayed terminal response', {
+              organizationId,
+              idempotencyKey,
+              originalStatus: replay.responseStatus,
+            });
+            res.setHeader('Idempotency-Replayed', 'true');
+            res.status(replay.responseStatus ?? 200).json(replay.responseBody);
+            return;
+          }
+        } catch (waitError) {
+          logger.error('Failed while waiting for idempotency replay', {
+            organizationId,
+            idempotencyKey,
+            error: waitError,
+          });
+        }
+
+        logger.warn('Concurrent duplicate replay wait timed out', {
           organizationId,
           idempotencyKey,
         });
@@ -135,8 +182,14 @@ export function idempotencyMiddleware(options: IdempotencyMiddlewareOptions = {}
         idempotencyKey,
         error,
       });
-      // On other errors, proceed without idempotency (fail open)
-      next();
+      // Ownership is unknown when the claim fails. Do not execute a payment
+      // without a confirmed idempotency lease; retry with the same key instead.
+      res.setHeader('Retry-After', '1');
+      res.status(503).json({
+        error: 'Service Unavailable',
+        message: 'Unable to verify the Idempotency-Key. Retry later with the same key.',
+      });
+      return;
     }
   };
 }

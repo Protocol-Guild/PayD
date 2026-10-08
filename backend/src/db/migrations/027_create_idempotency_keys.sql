@@ -10,16 +10,21 @@ CREATE TABLE IF NOT EXISTS idempotency_keys (
                         CHECK (status IN ('in_progress', 'completed', 'failed')),
     response_status INTEGER,
     response_body   JSONB,
+    -- A random UUID identifies a specific claim generation. Expiration alone
+    -- is NOT unique: a failed key can be reclaimed within the same millisecond.
+    lease_token     UUID,
     created_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     expires_at      TIMESTAMPTZ  NOT NULL,
     UNIQUE (organization_id, idempotency_key)
 );
 
+-- Existing installations of this table may predate per-generation tokens.
+-- Legacy completed results can still replay; every NEW claim sets its token.
+ALTER TABLE idempotency_keys ADD COLUMN IF NOT EXISTS lease_token UUID;
+
 CREATE INDEX IF NOT EXISTS idx_idempotency_keys_lookup
     ON idempotency_keys (organization_id, idempotency_key, expires_at);
 
--- Auto-cleanup of expired keys (TTL enforced by expires_at comparison).
--- Runs at table level; the application also checks expires_at on read.
+-- Support efficient TTL cleanup scans; expiration is enforced by queries.
 CREATE INDEX IF NOT EXISTS idx_idempotency_keys_expires
-    ON idempotency_keys (expires_at)
-    WHERE expires_at < NOW();
+    ON idempotency_keys (expires_at);

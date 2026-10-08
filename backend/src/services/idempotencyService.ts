@@ -1,7 +1,11 @@
+import { randomUUID } from 'node:crypto';
 import { query } from '../config/database.js';
 import logger from '../utils/logger.js';
 
 const DEFAULT_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const DEFAULT_REPLAY_WAIT_MS = 5_000;
+const INITIAL_REPLAY_POLL_MS = 25;
+const MAX_REPLAY_POLL_MS = 100;
 
 export class IdempotencyConflictError extends Error {
   constructor(organizationId: number, idempotencyKey: string) {
@@ -23,60 +27,79 @@ export interface IdempotencyRecord {
   expiresAt: Date;
 }
 
+export interface IdempotencyLease {
+  kind: 'claimed';
+  expiresAt: Date;
+  /** Unique for each claim, including same-millisecond failed/expired recycling. */
+  leaseToken: string;
+}
+
+export interface IdempotencyReplay {
+  kind: 'replay';
+  record: IdempotencyRecord;
+}
+
+export type IdempotencyClaimResult = IdempotencyLease | IdempotencyReplay;
+
 /**
  * Store an idempotency key with a lock (in_progress status).
- * Returns the existing record if the key already exists and is not expired.
- * Returns null if the key is newly created.
- * Throws IdempotencyConflictError if the key is in_progress (concurrent duplicate).
+ * Returns a lease when this request owns the key.
+ * Returns a replay record when a completed key already exists.
+ * Failed server-error attempts are immediately recyclable by a later request.
+ * Throws IdempotencyConflictError if another request is in progress.
  */
 export async function claimKey(
   organizationId: number,
   idempotencyKey: string,
   ttlMs: number = DEFAULT_TTL_MS
-): Promise<IdempotencyRecord | null> {
+): Promise<IdempotencyClaimResult> {
   const expiresAt = new Date(Date.now() + ttlMs);
+  // Two generations can have identical expiresAt when a failed request is
+  // reclaimed within one JS clock tick. A random token fences the old owner.
+  const leaseToken = randomUUID();
 
   try {
-    // Step 1: Try to insert a fresh in_progress row (skip expired rows
-    // via the WHERE clause so they fall through to the conflict path).
+    // Step 1: Atomically reserve a fresh key. The unique constraint is the
+    // concurrency primitive: concurrent inserts for the same tenant/key are
+    // serialized by PostgreSQL, and losers return rowCount 0 instead of
+    // surfacing a unique-violation that the middleware could fail open on.
     const insertResult = await query(
-      `INSERT INTO idempotency_keys (organization_id, idempotency_key, status, expires_at)
-       SELECT $1, $2, 'in_progress', $3
-       WHERE NOT EXISTS (
-         SELECT 1 FROM idempotency_keys
-         WHERE organization_id = $1 AND idempotency_key = $2 AND expires_at > NOW()
-       )`,
-      [organizationId, idempotencyKey, expiresAt]
+      `INSERT INTO idempotency_keys (organization_id, idempotency_key, status, expires_at, lease_token)
+       VALUES ($1, $2, 'in_progress', $3, $4)
+       ON CONFLICT (organization_id, idempotency_key) DO NOTHING
+       RETURNING id`,
+      [organizationId, idempotencyKey, expiresAt, leaseToken]
     );
 
     if ((insertResult.rowCount ?? 0) > 0) {
-      return null;
+      return { kind: 'claimed', expiresAt, leaseToken };
     }
 
-    // Step 2: Key already exists (or was just expired). Try to claim an
-    // in_progress row. This UPDATE succeeds only when no other request
-    // currently holds the lock — the WHERE status = 'in_progress' guard
-    // ensures we don't steal a row that another concurrent request already
-    // claimed via the same UPDATE.
+    // Step 2: Recycle an expired record or a failed server-error attempt
+    // atomically. Failed responses are not sticky idempotency results: a later
+    // retry must be allowed to execute instead of replaying a transient 5xx.
     const updateResult = await query(
       `UPDATE idempotency_keys
-       SET status = 'in_progress', expires_at = $3
+       SET status = 'in_progress',
+           response_status = NULL,
+           response_body = NULL,
+           created_at = NOW(),
+           expires_at = $3,
+           lease_token = $4
        WHERE organization_id = $1
          AND idempotency_key = $2
-         AND expires_at <= NOW()
-         AND status = 'in_progress'
-       RETURNING id, organization_id, idempotency_key, status, response_status, response_body, created_at, expires_at`,
-      [organizationId, idempotencyKey, expiresAt]
+         AND (expires_at <= NOW() OR status = 'failed')
+       RETURNING id`,
+      [organizationId, idempotencyKey, expiresAt, leaseToken]
     );
 
     if ((updateResult.rowCount ?? 0) > 0) {
-      // Successfully claimed an expired in_progress row — treat as a fresh claim.
-      return null;
+      return { kind: 'claimed', expiresAt, leaseToken };
     }
 
     // Step 3: Key exists and is NOT expired. Fetch its current state to
-    // distinguish between a replay (completed/failed) and a concurrent
-    // duplicate (in_progress from another in-flight request).
+    // distinguish a completed replay from a concurrent in-progress request.
+    // A failed row can appear here only if it became failed after Step 2.
     const existingResult = await query(
       `SELECT id, organization_id, idempotency_key, status, response_status, response_body, created_at, expires_at
        FROM idempotency_keys
@@ -101,8 +124,14 @@ export async function claimKey(
       expiresAt: row.expires_at,
     };
 
-    if (record.status === 'completed' || record.status === 'failed') {
-      return record;
+    if (record.status === 'completed') {
+      return { kind: 'replay', record };
+    }
+
+    if (record.status === 'failed') {
+      // The row became failed after the recycle attempt above. Retry the
+      // atomic claim path so a transient 5xx cannot become a sticky replay.
+      return claimKey(organizationId, idempotencyKey, ttlMs);
     }
 
     // status is in_progress — another request holds the lock.
@@ -111,6 +140,70 @@ export async function claimKey(
     if (error instanceof IdempotencyConflictError) throw error;
     logger.error('Failed to claim idempotency key', { organizationId, idempotencyKey, error });
     throw error;
+  }
+}
+
+/**
+ * Wait for another request holding the key to publish its terminal cached response.
+ *
+ * Returns a completed cached record when it becomes available. Returns null
+ * when the key disappears/expires, the first request fails, or it remains in
+ * progress past the bounded wait. Failed 5xx attempts are deliberately
+ * non-sticky so a later request can atomically claim and execute them again.
+ * Polling backs off to keep duplicate bursts from hammering PostgreSQL.
+ */
+export async function waitForReplay(
+  organizationId: number,
+  idempotencyKey: string,
+  timeoutMs: number = DEFAULT_REPLAY_WAIT_MS,
+  initialPollMs: number = INITIAL_REPLAY_POLL_MS,
+  maxPollMs: number = MAX_REPLAY_POLL_MS
+): Promise<IdempotencyRecord | null> {
+  const deadline = Date.now() + Math.max(0, timeoutMs);
+  let pollMs = Math.max(0, initialPollMs);
+  const maxBackoffMs = Math.max(1, maxPollMs);
+
+  while (true) {
+    const result = await query(
+      `SELECT id, organization_id, idempotency_key, status, response_status, response_body, created_at, expires_at
+       FROM idempotency_keys
+       WHERE organization_id = $1 AND idempotency_key = $2 AND expires_at > NOW()`,
+      [organizationId, idempotencyKey]
+    );
+
+    const row = result.rows[0];
+    if (!row) return null;
+
+    if (row.status === 'completed') {
+      return {
+        id: row.id,
+        organizationId: row.organization_id,
+        idempotencyKey: row.idempotency_key,
+        status: row.status,
+        responseStatus: row.response_status,
+        responseBody: row.response_body,
+        createdAt: row.created_at,
+        expiresAt: row.expires_at,
+      };
+    }
+
+    if (row.status === 'failed') {
+      return null;
+    }
+
+    const remainingMs = deadline - Date.now();
+    if (remainingMs <= 0) return null;
+
+    const sleepMs = Math.min(pollMs, remainingMs);
+    if (sleepMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, sleepMs));
+    }
+
+    if (pollMs === 0) {
+      pollMs = 1;
+    } else {
+      pollMs = Math.min(pollMs * 2, maxBackoffMs);
+    }
   }
 }
 
@@ -130,37 +223,55 @@ export async function isInFlight(organizationId: number, idempotencyKey: string)
 }
 
 /**
- * Complete an idempotency key by storing the response.
+ * Complete an idempotency key by storing the response for the owning lease.
+ * Returns false when the lease expired or a newer request recycled the key.
  */
 export async function completeKey(
   organizationId: number,
   idempotencyKey: string,
+  leaseExpiresAt: Date,
+  leaseToken: string,
   responseStatus: number,
   responseBody: unknown
-): Promise<void> {
-  await query(
+): Promise<boolean> {
+  const result = await query(
     `UPDATE idempotency_keys
-     SET status = 'completed', response_status = $3, response_body = $4
-     WHERE organization_id = $1 AND idempotency_key = $2`,
-    [organizationId, idempotencyKey, responseStatus, JSON.stringify(responseBody)]
+     SET status = 'completed', response_status = $5, response_body = $6
+     WHERE organization_id = $1
+       AND idempotency_key = $2
+       AND status = 'in_progress'
+       AND expires_at = $3
+       AND lease_token = $4
+       AND expires_at > NOW()`,
+    [organizationId, idempotencyKey, leaseExpiresAt, leaseToken, responseStatus, JSON.stringify(responseBody)]
   );
+  return (result.rowCount ?? 0) > 0;
 }
 
 /**
- * Mark an idempotency key as failed (for error responses).
+ * Mark an idempotency key as failed for the owning lease.
+ * Returns false when the lease expired or a newer request recycled the key.
  */
 export async function failKey(
   organizationId: number,
   idempotencyKey: string,
+  leaseExpiresAt: Date,
+  leaseToken: string,
   responseStatus: number,
   responseBody: unknown
-): Promise<void> {
-  await query(
+): Promise<boolean> {
+  const result = await query(
     `UPDATE idempotency_keys
-     SET status = 'failed', response_status = $3, response_body = $4
-     WHERE organization_id = $1 AND idempotency_key = $2`,
-    [organizationId, idempotencyKey, responseStatus, JSON.stringify(responseBody)]
+     SET status = 'failed', response_status = $5, response_body = $6
+     WHERE organization_id = $1
+       AND idempotency_key = $2
+       AND status = 'in_progress'
+       AND expires_at = $3
+       AND lease_token = $4
+       AND expires_at > NOW()`,
+    [organizationId, idempotencyKey, leaseExpiresAt, leaseToken, responseStatus, JSON.stringify(responseBody)]
   );
+  return (result.rowCount ?? 0) > 0;
 }
 
 /**
