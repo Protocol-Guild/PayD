@@ -31,6 +31,7 @@ const WithdrawalFlow: React.FC<WithdrawalFlowProps> = ({
 }) => {
   const {
     state,
+    isEstimateAvailable,
     setStep,
     selectAnchor,
     setAmount,
@@ -55,8 +56,7 @@ const WithdrawalFlow: React.FC<WithdrawalFlowProps> = ({
   };
 
   const handleConfirmWithdrawal = async () => {
-    await initiateWithdrawal(destinationType, destinationDetails);
-    if (state.step !== 'failed') {
+    if (await initiateWithdrawal(destinationType, destinationDetails)) {
       onSuccess();
     }
   };
@@ -141,7 +141,9 @@ const WithdrawalFlow: React.FC<WithdrawalFlowProps> = ({
                   Available: {formatCurrency(balance, 'USD')}
                 </span>
                 <span className="text-[var(--muted)]">
-                  ≈ {formatCurrency(state.estimatedReceive, selectedCurrency)}
+                  {isEstimateAvailable
+                    ? `≈ ${formatCurrency(state.estimatedReceive, selectedCurrency)}`
+                    : 'Estimate unavailable'}
                 </span>
               </div>
             </div>
@@ -221,7 +223,8 @@ const WithdrawalFlow: React.FC<WithdrawalFlowProps> = ({
             <button
               onClick={handleAmountSubmit}
               disabled={
-                !state.amount || parseFloat(state.amount) <= 0 || parseFloat(state.amount) > balance
+                !isEstimateAvailable || !state.amount || !Number.isFinite(Number(state.amount)) ||
+                Number(state.amount) <= 0 || Number(state.amount) > balance
               }
               className="w-full p-3 rounded-lg bg-[var(--accent)] text-[var(--bg)] font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -257,7 +260,9 @@ const WithdrawalFlow: React.FC<WithdrawalFlowProps> = ({
               <div className="flex justify-between">
                 <span className="text-[var(--muted)]">Receive</span>
                 <span className="font-medium text-[var(--accent)]">
-                  ≈ {formatCurrency(state.estimatedReceive, selectedCurrency)}
+                  {isEstimateAvailable
+                    ? `≈ ${formatCurrency(state.estimatedReceive, selectedCurrency)}`
+                    : 'Estimate unavailable'}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -268,7 +273,7 @@ const WithdrawalFlow: React.FC<WithdrawalFlowProps> = ({
 
             <button
               onClick={() => void handleConfirmWithdrawal()}
-              disabled={state.isLoading}
+              disabled={state.isLoading || !isEstimateAvailable}
               className="w-full p-3 rounded-lg bg-[var(--accent)] text-[var(--bg)] font-medium hover:opacity-90 disabled:opacity-50"
             >
               {state.isLoading ? (
