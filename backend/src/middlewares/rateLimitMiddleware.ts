@@ -7,6 +7,7 @@ export interface RateLimitOptions {
   identifier?: (req: Request) => string;
   skip?: (req: Request) => boolean;
   handler?: (req: Request, res: Response) => void;
+  failClosedOnError?: boolean;
 }
 
 function defaultIdentifier(req: Request): string {
@@ -29,7 +30,13 @@ function defaultHandler(_req: Request, res: Response, result: any): void {
 }
 
 export function rateLimitMiddleware(options: RateLimitOptions = {}) {
-  const { tier = 'api', identifier = defaultIdentifier, skip, handler } = options;
+  const {
+    tier = 'api',
+    identifier = defaultIdentifier,
+    skip,
+    handler,
+    failClosedOnError = false,
+  } = options;
 
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     if (skip && skip(req)) {
@@ -40,7 +47,12 @@ export function rateLimitMiddleware(options: RateLimitOptions = {}) {
     const tierConfig = rateLimitService.getTierConfig(tier);
 
     try {
-      const result = await rateLimitService.checkRateLimit(clientIdentifier, tier);
+      const result = await rateLimitService.checkRateLimit(
+        clientIdentifier,
+        tier,
+        undefined,
+        failClosedOnError
+      );
 
       res.setHeader('X-RateLimit-Limit', result.limit);
       res.setHeader('X-RateLimit-Remaining', result.remaining);
@@ -78,6 +90,15 @@ export function rateLimitMiddleware(options: RateLimitOptions = {}) {
       next();
     } catch (error) {
       logger.error('Rate limit middleware error', { error });
+      if (failClosedOnError) {
+        res.setHeader('Retry-After', 60);
+        res.status(503).json({
+          error: 'Service Unavailable',
+          message: 'Request limit service is temporarily unavailable. Please try again later.',
+          retryAfter: 60,
+        });
+        return;
+      }
       next();
     }
   };
@@ -85,6 +106,49 @@ export function rateLimitMiddleware(options: RateLimitOptions = {}) {
 
 export function authRateLimit(options: Omit<RateLimitOptions, 'tier'> = {}) {
   return rateLimitMiddleware({ ...options, tier: 'auth' });
+}
+
+/**
+ * Source-side login limiter.
+ *
+ * This stays independent from account throttling so rotating submitted wallet
+ * identifiers cannot bypass brute-force protection from one request source.
+ */
+export function loginSourceRateLimit(
+  options: Omit<RateLimitOptions, 'tier' | 'identifier' | 'failClosedOnError'> = {}
+) {
+  return rateLimitMiddleware({
+    ...options,
+    tier: 'auth',
+    failClosedOnError: true,
+    identifier: (req: Request) => `login-source:${defaultIdentifier(req)}`,
+  });
+}
+
+/**
+ * Account-side login limiter keyed by normalized wallet address when present.
+ *
+ * Invalid or missing wallet identifiers fall back to a source-derived bucket;
+ * the independent source limiter still runs first on every login request.
+ */
+export function loginRateLimit(
+  options: Omit<RateLimitOptions, 'tier' | 'identifier' | 'failClosedOnError'> = {}
+) {
+  return rateLimitMiddleware({
+    ...options,
+    tier: 'auth',
+    failClosedOnError: true,
+    identifier: (req: Request) => {
+      const walletAddress = req.body?.walletAddress;
+      if (typeof walletAddress === 'string') {
+        const normalizedWallet = walletAddress.trim().toUpperCase();
+        if (normalizedWallet) {
+          return `login:${normalizedWallet}`;
+        }
+      }
+      return `login-invalid:${defaultIdentifier(req)}`;
+    },
+  });
 }
 
 export function apiRateLimit(options: Omit<RateLimitOptions, 'tier'> = {}) {
