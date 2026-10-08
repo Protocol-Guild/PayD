@@ -69,6 +69,33 @@ describe('EmployeeService', () => {
       );
     });
 
+    it('preserves total and filters when a requested employee page is past the end', async () => {
+      (mockPool.query as jest.Mock)
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [{ total_count: '17' }] });
+
+      const result = await employeeService.findAll(
+        42,
+        { page: 5, limit: 10, department: 'IT', search: 'Jane' } as any
+      );
+
+      expect(result.data).toEqual([]);
+      expect(result.pagination).toEqual({ total: 17, page: 5, limit: 10, totalPages: 2 });
+      expect(mockPool.query).toHaveBeenCalledTimes(2);
+
+      const [pageSql, pageArgs] = (mockPool.query as jest.Mock).mock.calls[0];
+      const [countSql, countArgs] = (mockPool.query as jest.Mock).mock.calls[1];
+      expect(pageSql).toContain('count(*) OVER() as total_count');
+      expect(countSql).toContain('SELECT COUNT(*) AS total_count');
+      expect(countSql).not.toContain('LIMIT');
+      expect(countSql).toContain('organization_id = $');
+      expect(countSql).toContain('department = $');
+      expect(countSql).toContain('first_name ILIKE $');
+      expect(countArgs).toEqual([42, 'IT', '%Jane%']);
+      expect(pageSql).toContain('LIMIT $4 OFFSET $5');
+      expect(pageArgs).toEqual([42, 'IT', '%Jane%', 10, 40]);
+    });
+
     it('should filter by department', async () => {
       (mockPool.query as jest.Mock).mockResolvedValueOnce({
         rows: [],
