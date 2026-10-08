@@ -6,31 +6,81 @@ import { scheduleService } from './scheduleService.js';
 import type { Schedule, ExecutionResult, PaymentRecipient } from '../types/schedule.js';
 import { Operation, Asset, Memo, Keypair } from '@stellar/stellar-sdk';
 import os from 'node:os';
+import { randomUUID } from 'node:crypto';
+import type { PoolClient } from 'pg';
+
+const LEADER_ELECTION_INTERVAL = '*/15 * * * * *';
+// Two int32 advisory-lock keys: ASCII-ish PAYD / SCHD namespaces.
+const SCHEDULER_LOCK_NAMESPACE = 0x50415944;
+const SCHEDULER_LOCK_KEY = 0x53434844;
+const CLAIM_HEARTBEAT_MS = 60_000;
 
 export class ScheduleExecutor {
   private cronJob: ScheduledTask | null = null;
   private readonly podId: string;
+  private runInProgress = false;
 
   constructor() {
     this.podId = `${os.hostname()}-${process.pid}`;
   }
 
   /**
-   * Initialize the cron job to run every minute
-   * Sets up node-cron job with error handling and logging
+   * Probe scheduler leadership every 15 seconds.
+   *
+   * The advisory lock is session-scoped, so PostgreSQL releases it automatically
+   * if the leader pod dies or loses its database connection. Keeping the lock on
+   * a dedicated client for the full scheduler pass guarantees that at most one
+   * pod enters processDueSchedules at a time.
    */
   initialize(): void {
-    // Cron expression: run every minute
-    this.cronJob = cron.schedule('* * * * *', async () => {
+    this.cronJob = cron.schedule(LEADER_ELECTION_INTERVAL, async () => {
+      if (this.runInProgress) {
+        return;
+      }
+
+      this.runInProgress = true;
+      let leaderClient: PoolClient | null = null;
+      let hasLeadership = false;
+      let destroyLeaderConnection = false;
+
       try {
-        console.log('[ScheduleExecutor] Running scheduled task check...');
+        leaderClient = await pool.connect();
+        const election = await leaderClient.query<{ acquired: boolean }>(
+          'SELECT pg_try_advisory_lock($1, $2) AS acquired',
+          [SCHEDULER_LOCK_NAMESPACE, SCHEDULER_LOCK_KEY]
+        );
+
+        hasLeadership = election.rows[0]?.acquired === true;
+        if (!hasLeadership) {
+          return;
+        }
+
         await this.processDueSchedules();
       } catch (error) {
-        console.error('[ScheduleExecutor] Error in cron job execution:', error);
+        console.error('[ScheduleExecutor] Error in leader scheduler execution:', error);
+      } finally {
+        if (leaderClient) {
+          if (hasLeadership) {
+            try {
+              const unlock = await leaderClient.query<{ unlocked: boolean }>(
+                'SELECT pg_advisory_unlock($1, $2) AS unlocked',
+                [SCHEDULER_LOCK_NAMESPACE, SCHEDULER_LOCK_KEY]
+              );
+              destroyLeaderConnection = unlock.rows[0]?.unlocked !== true;
+            } catch (error) {
+              destroyLeaderConnection = true;
+              console.error('[ScheduleExecutor] Failed to release scheduler leadership:', error);
+            }
+          }
+
+          leaderClient.release(destroyLeaderConnection);
+        }
+
+        this.runInProgress = false;
       }
     });
 
-    console.log('[ScheduleExecutor] Cron job initialized - running every minute');
+    console.log('[ScheduleExecutor] Cron job initialized - checking leadership every 15 seconds');
   }
 
   /**
@@ -52,7 +102,11 @@ export class ScheduleExecutor {
     // Reclaim rows from crashed pods before attempting our own claim
     await this.releaseStaleClaims();
 
+    // Reuse of a hostname+PID is not reuse of row ownership. A unique token
+    // fences late completion or cleanup after another scheduler pass claims it.
+    const claimOwner = `${this.podId.slice(0, 80)}:${randomUUID()}`;
     const client = await pool.connect();
+    let heartbeat: ReturnType<typeof setInterval> | null = null;
     try {
       await client.query('BEGIN');
 
@@ -87,12 +141,24 @@ export class ScheduleExecutor {
           updated_at as "updatedAt"
       `;
 
-      const result = await client.query(claimQuery, [this.podId]);
+      const result = await client.query(claimQuery, [claimOwner]);
       await client.query('COMMIT');
 
       const claimedSchedules = result.rows;
 
       if (claimedSchedules.length > 0) {
+        // Processing is serial. Refresh ALL claimed rows, including rows that
+        // are queued but not yet running; renewal cannot touch a newer owner.
+        const ids = claimedSchedules.map((row: { id: number }) => row.id);
+        heartbeat = setInterval(() => {
+          void pool.query(
+            `UPDATE schedules SET locked_at = NOW()
+             WHERE locked_by = $1 AND id = ANY($2::integer[])`,
+            [claimOwner, ids]
+          ).catch((error: unknown) => {
+            console.error('[ScheduleExecutor] Row-claim renewal failed:', error);
+          });
+        }, CLAIM_HEARTBEAT_MS);
         console.log(`[ScheduleExecutor] Claimed ${claimedSchedules.length} due schedule(s)`);
       }
 
@@ -117,7 +183,7 @@ export class ScheduleExecutor {
 
           const executionResult = await this.executeSchedule(schedule);
 
-          await this.recordExecution(schedule.id, executionResult);
+          await this.recordExecution(schedule.id, executionResult, claimOwner);
 
           if (executionResult.success) {
             successCount++;
@@ -143,7 +209,7 @@ export class ScheduleExecutor {
                 message: error instanceof Error ? error.message : 'System error in executor',
                 details: error as any,
               },
-            });
+            }, claimOwner);
           } catch (recordError) {
             console.error(
               `[ScheduleExecutor] Failed to record execution error for schedule ID ${scheduleRow.id}:`,
@@ -152,7 +218,7 @@ export class ScheduleExecutor {
           }
         } finally {
           // Always release the claim so the row is available for the next cycle
-          await this.releaseClaim(scheduleRow.id);
+          await this.releaseClaim(scheduleRow.id, claimOwner);
         }
       }
 
@@ -165,6 +231,7 @@ export class ScheduleExecutor {
       await client.query('ROLLBACK').catch(() => {});
       throw error;
     } finally {
+      if (heartbeat) clearInterval(heartbeat);
       client.release();
     }
   }
@@ -172,11 +239,11 @@ export class ScheduleExecutor {
   /**
    * Release the row-level claim after execution (success or failure).
    */
-  private async releaseClaim(scheduleId: number): Promise<void> {
+  private async releaseClaim(scheduleId: number, claimOwner: string): Promise<void> {
     try {
       await pool.query(
-        'UPDATE schedules SET locked_by = NULL, locked_at = NULL WHERE id = $1',
-        [scheduleId]
+        'UPDATE schedules SET locked_by = NULL, locked_at = NULL WHERE id = $1 AND locked_by = $2',
+        [scheduleId, claimOwner]
       );
     } catch (error) {
       console.error(`[ScheduleExecutor] Failed to release claim for schedule ID ${scheduleId}:`, error);
@@ -298,7 +365,7 @@ export class ScheduleExecutor {
    * @param scheduleId - The schedule ID
    * @param result - The execution result
    */
-  async recordExecution(scheduleId: number, result: ExecutionResult): Promise<void> {
+  async recordExecution(scheduleId: number, result: ExecutionResult, claimOwner: string): Promise<void> {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
@@ -334,12 +401,12 @@ export class ScheduleExecutor {
       await client.query(insertQuery, insertValues);
 
       // Update schedule state using ScheduleService
-      await scheduleService.updateAfterExecution(scheduleId, result);
+      await scheduleService.updateAfterExecution(scheduleId, result, claimOwner);
 
       // Clear the lock now that execution is recorded
       await client.query(
-        'UPDATE schedules SET locked_by = NULL, locked_at = NULL WHERE id = $1',
-        [scheduleId]
+        'UPDATE schedules SET locked_by = NULL, locked_at = NULL WHERE id = $1 AND locked_by = $2',
+        [scheduleId, claimOwner]
       );
 
       await client.query('COMMIT');
