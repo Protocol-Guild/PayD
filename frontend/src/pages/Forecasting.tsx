@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   CartesianGrid,
   Line,
@@ -67,36 +67,51 @@ export default function Forecasting() {
   const { notifyError, notifySuccess } = useNotification();
   const { socket, connected, subscribeToOrganization, unsubscribeFromOrganization } = useSocket();
 
+  // All forecast producers share one generation so stale manual refresh/save
+  // results cannot replace a newer parameter load or its organization room.
+  const forecastRequest = useRef(0);
+
   useEffect(() => {
+    let cancelled = false;
+    const requestId = ++forecastRequest.current;
+    const isCurrent = () => !cancelled && forecastRequest.current === requestId;
+
     const load = async () => {
       setIsLoading(true);
       try {
         const s = await getLiquiditySettings();
+        if (!isCurrent()) return;
         setSettings(s);
         if (s) setSettingsDraft(s);
 
         const f = await getForecast(monthsForward);
+        if (!isCurrent()) return;
         setForecast(f);
-
-        if (connected && f?.organizationId) {
-          subscribeToOrganization(f.organizationId);
-        }
       } catch (e: unknown) {
-        notifyError(getErrorMessage(e) || 'Failed to load forecast');
+        if (isCurrent()) notifyError(getErrorMessage(e) || 'Failed to load forecast');
       } finally {
-        setIsLoading(false);
+        if (isCurrent()) setIsLoading(false);
       }
     };
 
     void load();
 
     return () => {
-      if (forecast?.organizationId && connected) {
-        unsubscribeFromOrganization(forecast.organizationId);
-      }
+      cancelled = true;
+      // Invalidate Refresh/Save too when params change or the page unmounts.
+      forecastRequest.current += 1;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [monthsForward, connected]);
+  }, [monthsForward, connected, notifyError]);
+
+  const organizationId = forecast?.organizationId;
+
+  useEffect(() => {
+    if (!connected || organizationId == null) return;
+
+    subscribeToOrganization(organizationId);
+    // Capture the ID we actually subscribed to, including Refresh/Save changes.
+    return () => unsubscribeFromOrganization(organizationId);
+  }, [connected, organizationId, subscribeToOrganization, unsubscribeFromOrganization]);
 
   useEffect(() => {
     if (!socket) return;
@@ -118,16 +133,36 @@ export default function Forecasting() {
 
   const liquidity = forecast?.liquidity;
 
+  const refreshForecast = async () => {
+    const requestId = ++forecastRequest.current;
+    const isCurrent = () => forecastRequest.current === requestId;
+    setIsLoading(true);
+    try {
+      const f = await getForecast(monthsForward);
+      if (isCurrent()) setForecast(f);
+    } catch (e: unknown) {
+      if (isCurrent()) notifyError(getErrorMessage(e) || 'Failed to refresh');
+    } finally {
+      if (isCurrent()) setIsLoading(false);
+    }
+  };
+
   const saveSettings = async () => {
+    const requestId = ++forecastRequest.current;
+    const isCurrent = () => forecastRequest.current === requestId;
+    setIsLoading(true);
     try {
       const updated = await updateLiquiditySettings(settingsDraft);
+      if (!isCurrent()) return;
       setSettings(updated);
       notifySuccess('Liquidity settings updated');
 
       const f = await getForecast(monthsForward);
-      setForecast(f);
+      if (isCurrent()) setForecast(f);
     } catch (e: unknown) {
-      notifyError(getErrorMessage(e) || 'Failed to update settings');
+      if (isCurrent()) notifyError(getErrorMessage(e) || 'Failed to update settings');
+    } finally {
+      if (isCurrent()) setIsLoading(false);
     }
   };
 
@@ -158,16 +193,7 @@ export default function Forecasting() {
             variant="secondary"
             size="sm"
             isLoading={isLoading}
-            onClick={() =>
-              void (async () => {
-                try {
-                  const f = await getForecast(monthsForward);
-                  setForecast(f);
-                } catch (e: unknown) {
-                  notifyError(getErrorMessage(e) || 'Failed to refresh');
-                }
-              })()
-            }
+            onClick={() => void refreshForecast()}
           >
             Refresh
           </Button>
@@ -270,9 +296,14 @@ export default function Forecasting() {
             label="Yellow Buffer %"
             type="number"
             value={String(settingsDraft.yellowBufferPct ?? 10)}
-            onChange={(e) =>
-              setSettingsDraft((s) => ({ ...s, yellowBufferPct: Number(e.target.value) || 10 }))
-            }
+            onChange={(e) => {
+              const value = e.target.value.trim();
+              const parsed = Number(value);
+              setSettingsDraft((s) => ({
+                ...s,
+                yellowBufferPct: value !== '' && !Number.isNaN(parsed) ? parsed : 10,
+              }));
+            }}
             fieldSize="sm"
           />
           <Input
