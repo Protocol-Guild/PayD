@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   CartesianGrid,
   Line,
@@ -66,33 +66,50 @@ export default function Forecasting() {
 
   const { notifyError, notifySuccess } = useNotification();
   const { socket, connected, subscribeToOrganization, unsubscribeFromOrganization } = useSocket();
+  const subscribedOrgRef = useRef<number | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+
     const load = async () => {
       setIsLoading(true);
       try {
         const s = await getLiquiditySettings();
+        if (cancelled) return;
         setSettings(s);
         if (s) setSettingsDraft(s);
 
         const f = await getForecast(monthsForward);
+        if (cancelled) return;
         setForecast(f);
 
         if (connected && f?.organizationId) {
-          subscribeToOrganization(f.organizationId);
+          // Avoid re-emitting a duplicate subscription for the same org.
+          if (subscribedOrgRef.current !== f.organizationId) {
+            subscribeToOrganization(f.organizationId);
+            subscribedOrgRef.current = f.organizationId;
+          }
         }
       } catch (e: unknown) {
-        notifyError(getErrorMessage(e) || 'Failed to load forecast');
+        if (!cancelled) {
+          notifyError(getErrorMessage(e) || 'Failed to load forecast');
+        }
       } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
     };
 
     void load();
 
     return () => {
-      if (forecast?.organizationId && connected) {
-        unsubscribeFromOrganization(forecast.organizationId);
+      // Use the ref so cleanup always reads the latest subscribed org,
+      // even though load() resolves asynchronously — fixes the stale-closure leak.
+      cancelled = true;
+      if (subscribedOrgRef.current !== null) {
+        unsubscribeFromOrganization(subscribedOrgRef.current);
+        subscribedOrgRef.current = null;
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
