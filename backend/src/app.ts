@@ -9,6 +9,7 @@ import logger from './utils/logger.js';
 import passport from './config/passport.js';
 import { apiVersionMiddleware } from './middlewares/apiVersionMiddleware.js';
 import { requestIdMiddleware } from './middleware/requestId.js';
+import { allowedCorsOrigins } from './config/corsOrigins.js';
 import { auditLoggerMiddleware } from './middleware/auditLogger.js';
 import { tieredOrganizationRateLimit } from './middleware/advancedRateLimiting.js';
 import { rateLimitHeaders } from './middleware/rateLimitHeaders.js';
@@ -88,7 +89,25 @@ app.use(
     referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
   })
 );
-app.use(cors());
+app.use(
+  cors({
+    origin(origin, callback) {
+      // Non-browser / same-origin requests omit Origin
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+      if (allowedCorsOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(null, false);
+    },
+    credentials: true,
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    optionsSuccessStatus: 204,
+  })
+);
 
 // Attach request ID to morgan logs for end-to-end traceability
 morgan.token('request-id', (req) => (req as any).requestId || '-');
