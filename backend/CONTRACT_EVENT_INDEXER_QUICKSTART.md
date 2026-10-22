@@ -16,14 +16,61 @@ VESTING_ESCROW_CONTRACT_ID=CXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 REVENUE_SPLIT_CONTRACT_ID=CXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ```
 
-### 2. Run Database Migration
+### 2. Check the Schema and Run Migrations
+
+Set `DATABASE_URL` in `backend/.env` for the intended PostgreSQL database.
+The canonical indexer requires the `contract_events` and `indexer_state`
+layout described by
+[`016_create_contract_events.sql`](src/db/migrations/016_create_contract_events.sql).
+
+[`015_reconcile_contract_events.sql`](src/db/migrations/015_reconcile_contract_events.sql)
+runs between the original 015 migrations and 016. It preserves a legacy 015
+`contract_events` table as `contract_events_legacy_015`, including its rows,
+indexes, and sequence, so 016 can create the canonical table. The original 015
+and 016 migration files and their checksums are unchanged; an already-canonical
+table is left alone. An unknown mixed layout or an existing archive is reported
+for explicit reconciliation instead of overwriting data. Use the transactional runner below;
+if 016 was previously run manually without a transaction, reconcile any indexes
+it left behind before retrying.
+
+Legacy rows remain available in `contract_events_legacy_015`; the API reads the
+new canonical table. The legacy layout does not retain authoritative organization
+ownership or ledger closure time. Recover those values from verified event records
+before backfilling; do not use organization 1 or the old local insertion time as
+substitutes. The old `contract_event_index_state` is also preserved, but its cursor
+is not copied into `indexer_state`, because the archived events have not been
+backfilled. Historical reindexing depends on the RPC provider's event retention.
+
+The backend manifest defines `db:migrate`, not `migrate`. From the repository
+root, invoke the maintained runner with:
 
 ```bash
 cd backend
-npm run migrate
+npm run db:migrate
 ```
 
-This will create the `contract_events` and `indexer_state` tables.
+The [runner](src/db/migrate.ts) processes all pending SQL migrations in filename
+order and records them in `schema_migrations`; it is not limited to the indexer
+tables. Check its result before starting the server.
+
+The PostgreSQL installation must provide the supplied `btree_gist` and `pgcrypto`
+extensions. The migration sequence enables them when needed. The audit IP index
+is then explicitly rebuilt with the core `inet_ops` class for subnet queries;
+the original audit migration and its checksum remain unchanged.
+
+The startup corrections to 004 and 027 change those two files in place. If a
+database already records their earlier checksums, stop and reconcile that
+installation explicitly; do not bypass the runner's checksum-drift check.
+
+For the focused migration regression, use a separate PostgreSQL test database:
+
+```bash
+MIGRATION_TEST_DATABASE_URL=postgresql://localhost/payd_test npm test -- --runInBand --runTestsByPath src/db/__tests__/contractEventSchema.integration.test.ts
+```
+
+The three cases execute the actual SQL in temporary schemas and roll them back.
+They cover the original failure, preservation of legacy data and cursor state,
+canonical insert deduplication, and an already-canonical installation.
 
 ### 3. Start the Server
 
@@ -32,6 +79,15 @@ npm run dev
 ```
 
 The contract event indexer will start automatically and begin polling for events.
+
+### Behavior Preserved from the Removed Service
+
+The canonical `contractEventIndexer.ts` retains the removed
+`contractEventIndexerService.ts` behavior of querying configured contracts
+together, converting the stored ledger to a number before incrementing it, and
+preventing overlapping polls. The combined batch advances one shared checkpoint
+after its events are processed. The canonical indexer's existing transaction
+continues to contain both event inserts and the checkpoint update.
 
 ## Verify It's Working
 
@@ -64,7 +120,7 @@ You should see logs like:
 [ContractEventIndexer] Monitoring contracts: CTEST123..., CTEST456...
 [ContractEventIndexer] Started polling every 10000ms
 [ContractEventIndexer] Last indexed ledger: 0
-[ContractEventIndexer] Found 5 new events for contract CTEST123...
+[ContractEventIndexer] Found 5 new events across configured contracts
 [ContractEventIndexer] Indexed 5 events, skipped 0 duplicates
 ```
 
@@ -117,7 +173,8 @@ curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
 
 1. Verify PostgreSQL is running
 2. Check `DATABASE_URL` is correct
-3. Ensure migrations have been applied: `npm run migrate`
+3. Ensure migrations have been applied with `npm run db:migrate` and that the
+   canonical schema prerequisite above is satisfied.
 
 ## Testing
 

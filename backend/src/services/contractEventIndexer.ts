@@ -5,14 +5,21 @@ import * as StellarSdk from '@stellar/stellar-sdk';
 
 export class ContractEventIndexer {
   private isRunning = false;
+  private isPolling = false;
   private intervalId: NodeJS.Timeout | null = null;
   private readonly POLL_INTERVAL_MS = 10000; // Poll every 10 seconds
   private readonly BATCH_SIZE = 100;
-  private readonly CONTRACTS_TO_INDEX = [
-    process.env.BULK_PAYMENT_CONTRACT_ID,
-    process.env.VESTING_ESCROW_CONTRACT_ID,
-    process.env.REVENUE_SPLIT_CONTRACT_ID,
-  ].filter(Boolean) as string[];
+  private readonly CONTRACTS_TO_INDEX = Array.from(
+    new Set(
+      [
+        process.env.BULK_PAYMENT_CONTRACT_ID,
+        process.env.VESTING_ESCROW_CONTRACT_ID,
+        process.env.REVENUE_SPLIT_CONTRACT_ID,
+      ]
+        .map((value) => (value || '').trim())
+        .filter(Boolean)
+    )
+  );
 
   private readonly RPC_URL = process.env.SOROBAN_RPC_URL || 'https://soroban-testnet.stellar.org';
 
@@ -61,38 +68,47 @@ export class ContractEventIndexer {
   /**
    * Main polling loop - fetches and indexes new events
    */
+  /**
+   * Run a single poll cycle. Used by tests and on-demand refresh.
+   */
+  async pollOnce(): Promise<void> {
+    return this.pollAndIndexEvents();
+  }
+
   private async pollAndIndexEvents(): Promise<void> {
-    if (!this.isRunning) return;
+    if (!this.isRunning || this.isPolling) return;
+    this.isPolling = true;
 
     try {
       const lastIndexedLedger = await this.getLastIndexedLedger();
       console.log(`[ContractEventIndexer] Last indexed ledger: ${lastIndexedLedger}`);
 
-      for (const contractId of this.CONTRACTS_TO_INDEX) {
-        try {
-          await this.indexContractEvents(contractId, lastIndexedLedger);
-        } catch (error) {
-          console.error(`[ContractEventIndexer] Error indexing contract ${contractId}:`, error);
-          await this.updateIndexerState(lastIndexedLedger, 'error', String(error));
-        }
+      try {
+        // Preserve the removed service's combined batch and shared checkpoint.
+        await this.indexContractEvents(this.CONTRACTS_TO_INDEX, lastIndexedLedger);
+      } catch (error) {
+        console.error('[ContractEventIndexer] Error indexing contracts:', error);
+        await this.updateIndexerState(lastIndexedLedger, 'error', String(error));
       }
     } catch (error) {
       console.error('[ContractEventIndexer] Error in polling loop:', error);
+    } finally {
+      this.isPolling = false;
     }
   }
 
   /**
-   * Fetch and index events for a specific contract
+   * Fetch and index configured contracts as one batch with a shared checkpoint
    */
-  private async indexContractEvents(contractId: string, fromLedger: number): Promise<void> {
-    const events = await this.fetchEventsFromRPC(contractId, fromLedger);
+  private async indexContractEvents(contractIds: string[], fromLedger: number): Promise<void> {
+    const events = await this.fetchEventsFromRPC(contractIds, fromLedger);
     
     if (events.length === 0) {
-      console.log(`[ContractEventIndexer] No new events for contract ${contractId}`);
+      console.log('[ContractEventIndexer] No new events for configured contracts');
       return;
     }
 
-    console.log(`[ContractEventIndexer] Found ${events.length} new events for contract ${contractId}`);
+    console.log(`[ContractEventIndexer] Found ${events.length} new events across configured contracts`);
 
     const client = await pool.connect();
     try {
@@ -130,46 +146,60 @@ export class ContractEventIndexer {
   /**
    * Fetch events from Soroban RPC
    */
-  private async fetchEventsFromRPC(contractId: string, startLedger: number): Promise<SorobanEvent[]> {
+  private async fetchEventsFromRPC(contractIds: string[], startLedger: number): Promise<SorobanEvent[]> {
+    const allEvents: SorobanEvent[] = [];
+    const seenCursors = new Set<string>();
+    let cursor: string | undefined;
+    // Keep an RPC failure or a runaway cursor loop from advancing the ledger
+    // checkpoint with an incomplete set of events.
+    const MAX_RPC_PAGES = 100;
+
     try {
-      const response = await fetch(this.RPC_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          jsonrpc: '2.0',
-          id: 1,
-          method: 'getEvents',
-          params: {
-            startLedger: startLedger + 1,
-            filters: [
-              {
-                type: 'contract',
-                contractIds: [contractId],
-              },
-            ],
-            pagination: {
-              limit: this.BATCH_SIZE,
-            },
-          },
-        }),
-      });
+      for (let page = 0; page < MAX_RPC_PAGES; page++) {
+        const params: {
+          startLedger?: number;
+          filters: { type: string; contractIds: string[] }[];
+          pagination: { limit: number; cursor?: string };
+        } = {
+          filters: [{ type: 'contract', contractIds }],
+          pagination: { limit: this.BATCH_SIZE },
+        };
+        // Stellar RPC forbids startLedger and a pagination cursor together.
+        if (cursor) params.pagination.cursor = cursor;
+        else params.startLedger = startLedger + 1;
 
-      if (!response.ok) {
-        throw new Error(`RPC request failed: ${response.status} ${response.statusText}`);
+        const response = await fetch(this.RPC_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getEvents', params }),
+        });
+        if (!response.ok) {
+          throw new Error(`RPC request failed: ${response.status} ${response.statusText}`);
+        }
+        const data = (await response.json()) as {
+          error?: { message?: string };
+          result?: GetEventsResponse & { cursor?: string };
+        };
+        if (data.error) {
+          throw new Error(`RPC error: ${data.error.message || 'Unknown RPC error'}`);
+        }
+        const events = data.result?.events;
+        if (!Array.isArray(events)) throw new Error('RPC getEvents response is missing the events array');
+        allEvents.push(...events);
+        if (events.length < this.BATCH_SIZE) return allEvents;
+
+        // A full page is not a completed ledger. Resume at the RPC cursor,
+        // falling back to the event paging token for older RPC deployments.
+        const nextCursor = data.result?.cursor || events[events.length - 1]?.pagingToken;
+        if (typeof nextCursor !== 'string' || !nextCursor || seenCursors.has(nextCursor)) {
+          throw new Error('RPC getEvents returned a full page without a new pagination cursor');
+        }
+        seenCursors.add(nextCursor);
+        cursor = nextCursor;
       }
-
-      const data = (await response.json()) as { error?: { message?: string }; result?: GetEventsResponse };
-
-      if (data.error) {
-        throw new Error(`RPC error: ${data.error.message || 'Unknown RPC error'}`);
-      }
-
-      const result: GetEventsResponse = (data.result || {}) as GetEventsResponse;
-      return result.events || [];
+      throw new Error(`RPC getEvents exceeded ${MAX_RPC_PAGES} pages; retaining checkpoint`);
     } catch (error) {
-      console.error(`[ContractEventIndexer] Error fetching events from RPC:`, error);
+      console.error('[ContractEventIndexer] Error fetching events from RPC:', error);
       throw error;
     }
   }
@@ -259,7 +289,8 @@ export class ContractEventIndexer {
           .filter((topic): topic is string => typeof topic === 'string')
           .map((topic) => this.decodeSorobanTopic(topic))
       : null;
-    const decodedValue = event.value?.xdr ? this.decodeSorobanScVal(event.value.xdr) : null;
+    const valueXdr = typeof event.value === 'string' ? event.value : event.value?.xdr;
+    const decodedValue = valueXdr ? this.decodeSorobanScVal(valueXdr) : null;
 
     return {
       type: event.type,
@@ -333,7 +364,12 @@ export class ContractEventIndexer {
     `;
 
     const result = await pool.query(query);
-    return result.rows[0]?.last_indexed_ledger || 0;
+    // Preserve numeric ledger arithmetic when pg returns BIGINT as a string.
+    const ledger = Number(result.rows[0]?.last_indexed_ledger ?? 0);
+    if (!Number.isSafeInteger(ledger) || ledger < 0) {
+      throw new Error('Invalid contract event indexer ledger');
+    }
+    return ledger;
   }
 
   /**
