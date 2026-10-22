@@ -28,6 +28,13 @@ spec:
                 name: payd-backend-config
             - secretRef:
                 name: payd-backend-secrets
+          env:
+            - name: JWT_REFRESH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: payd-backend-secrets
+                  key: JWT_REFRESH_SECRET
+                  optional: false
           resources:
             requests:
               memory: "256Mi"

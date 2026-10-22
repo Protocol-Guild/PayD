@@ -40,11 +40,13 @@ This guide covers deploying PayD to a Kubernetes cluster using either raw manife
 
 ## Option 1: Using Raw Manifests
 
+Run this option's commands from the repository root.
+
 ### 1. Create Secrets
 
-**Do not edit `k8s/base/backend-secret.yaml` with real values.** That file is
-tracked by git and must only contain placeholders. Instead, create the secret
-imperatively:
+**Do not commit real secret values.** Production `k8s/base/` requires External
+Secrets Operator and the AWS values described in [k8s/README.md](../k8s/README.md).
+For a local cluster without ESO, create the secret imperatively:
 
 ```bash
 kubectl create secret generic payd-backend-secrets \
@@ -53,14 +55,21 @@ kubectl create secret generic payd-backend-secrets \
   --from-literal=DB_USER="your_db_user" \
   --from-literal=DB_PASSWORD="your_db_password" \
   --from-literal=JWT_SECRET="$(openssl rand -hex 32)" \
+  --from-literal=JWT_REFRESH_SECRET="$(openssl rand -hex 32)" \
   --from-literal=STELLAR_SECRET_KEY="your_stellar_secret_key" \
   --from-literal=ANCHOR_API_KEY="your_anchor_api_key" \
   --from-literal=SDS_API_KEY="your_sds_api_key" \
   --dry-run=client -o yaml | kubectl apply -f -
 ```
 
-For production, use the External Secrets Operator to sync from AWS Secrets
-Manager. See [k8s/README.md](../k8s/README.md) for details.
+Keep `JWT_REFRESH_SECRET` separate from `JWT_SECRET`. The
+[backend Deployment](../k8s/base/backend-deployment.yaml) requires the refresh
+key before new containers can start.
+
+The manual Secret alone does not make `kubectl apply -k k8s/base/` work on a
+cluster without ESO CRDs. Use the separate non-ESO local apply commands in
+[k8s/README.md](../k8s/README.md). In production, install ESO and configure the
+SecretStore and remote keys first.
 
 ### 2. Update ConfigMap
 
@@ -88,23 +97,24 @@ spec:
     - host: api.payd.yourdomain.com
 ```
 
-### 4. Build and Push Docker Images
+### 4. Prepare Docker Images
 
 ```bash
-# Build backend
-cd backend
-docker build -t your-registry/payd-backend:latest .
+# Build and push the backend image from the repository root
+docker build -t your-registry/payd-backend:latest backend/
 docker push your-registry/payd-backend:latest
-
-# Build frontend
-cd frontend
-docker build -t your-registry/payd-frontend:latest .
-docker push your-registry/payd-frontend:latest
 ```
+
+This repository does not include a frontend Dockerfile. Supply a published
+frontend image that serves the app over HTTP on port 80, as expected by the
+[frontend Deployment](../k8s/base/frontend-deployment.yaml) and
+[Service](../k8s/base/frontend-service.yaml). Set that image's registry reference
+in Step 5 before deploying.
 
 ### 5. Update Image References
 
-Edit the deployment files to use your registry:
+Set the deployment image references to the backend image you pushed and the
+published frontend image you supply:
 
 ```yaml
 # k8s/base/backend-deployment.yaml
@@ -121,15 +131,21 @@ containers:
 ### 6. Deploy
 
 ```bash
-kubectl apply -k k8s/base/
+kubectl -n payd apply -k k8s/base/
+kubectl -n payd get externalsecret payd-backend-secrets
 ```
+
+Only use this base command after ESO is installed and its AWS access is
+configured; wait for the ExternalSecret to report Ready=True before serving
+traffic. For a local cluster without ESO, use the manifest list in
+[k8s/README.md](../k8s/README.md).
 
 ### 7. Verify Deployment
 
 ```bash
-kubectl get pods -l app=payd
-kubectl get services -l app=payd
-kubectl get ingress payd-ingress
+kubectl -n payd get pods -l app=payd
+kubectl -n payd get services -l app=payd
+kubectl -n payd get ingress payd-ingress
 ```
 
 ## Option 2: Using Helm Chart
